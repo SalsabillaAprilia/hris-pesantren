@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, BarChart3, Trash2 } from "lucide-react";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 export default function KPI() {
   const { user, isAdminOrHr } = useAuth();
@@ -22,13 +23,24 @@ export default function KPI() {
   const [newIndicators, setNewIndicators] = useState([{ name: "", weight: "" }]);
 
   const fetchData = async () => {
-    const [tRes, iRes] = await Promise.all([
-      supabase.from("kpi_templates").select("*").order("created_at", { ascending: false }),
-      supabase.from("kpi_indicators").select("*"),
-    ]);
-    setTemplates(tRes.data ?? []);
-    setIndicators(iRes.data ?? []);
-    setLoading(false);
+    try {
+      const [tRes, iRes] = await supabaseFetchWithTimeout(
+        Promise.all([
+          supabase.from("kpi_templates").select("*").order("created_at", { ascending: false }),
+          supabase.from("kpi_indicators").select("*"),
+        ])
+      );
+      
+      if (tRes.error) throw tRes.error;
+      if (iRes.error) throw iRes.error;
+
+      setTemplates(tRes.data ?? []);
+      setIndicators(iRes.data ?? []);
+    } catch (err) {
+      console.error("KPI: Fetch error", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);

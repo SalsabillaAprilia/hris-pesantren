@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Search, Edit, Trash } from "lucide-react";
+import { Plus, Search, Edit, Trash, Eye, Download } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 type Employee = Tables<"employees"> & { units?: { name: string } | null; role?: string };
 
@@ -33,12 +34,14 @@ export default function Employees() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", phone: "", unit_id: "", position: "", password: "", role: "employee" });
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", unit_id: "", position: "", password: "", role: "employee", status: "active" });
 
   const handleOpenChange = (open: boolean) => {
     setDialogOpen(open);
     if (!open) {
-      setForm({ name: "", email: "", phone: "", unit_id: "", position: "", password: "", role: "employee" });
+      setForm({ name: "", email: "", phone: "", unit_id: "", position: "", password: "", role: "employee", status: "active" });
       setDialogMode("create");
       setEditingId(null);
     }
@@ -46,11 +49,17 @@ export default function Employees() {
 
   const fetchData = async () => {
     try {
-      const [empRes, unitRes, rolesRes] = await Promise.all([
-        supabase.from("employees").select("*, units(name)").order("name"),
-        supabase.from("units").select("*"),
-        supabase.from("user_roles").select("*"),
-      ]);
+      const [empRes, unitRes, rolesRes] = await supabaseFetchWithTimeout(
+        Promise.all([
+          supabase.from("employees").select("*, units(name)").order("name"),
+          supabase.from("units").select("*"),
+          supabase.from("user_roles").select("*"),
+        ])
+      );
+      
+      if (empRes.error) throw empRes.error;
+      if (unitRes.error) throw unitRes.error;
+      if (rolesRes.error) throw rolesRes.error;
       
       if (empRes.data) {
         // Gabungkan dengan role (untuk mode edit)
@@ -118,6 +127,7 @@ export default function Employees() {
       if (form.phone) updates.phone = form.phone;
       if (form.unit_id) updates.unit_id = form.unit_id;
       if (form.position) updates.position = form.position;
+      if (form.status) updates.status = form.status;
       
       const { error } = await supabase.from("employees").update(updates).eq("id", editingId);
       if (error) {
@@ -137,7 +147,7 @@ export default function Employees() {
     }
 
     setDialogOpen(false);
-    setForm({ name: "", email: "", phone: "", unit_id: "", position: "", password: "", role: "employee" });
+    setForm({ name: "", email: "", phone: "", unit_id: "", position: "", password: "", role: "employee", status: "active" });
     setDialogMode("create");
     setEditingId(null);
     fetchData();
@@ -180,6 +190,50 @@ export default function Employees() {
     return <Badge variant={variants[status] ?? "secondary"}>{labels[status] ?? status}</Badge>;
   };
 
+  const exportToCsv = () => {
+    if (employees.length === 0) {
+      toast.error("Tidak ada data karyawan untuk diexport");
+      return;
+    }
+
+    const headers = ["Nama,Email,Telepon,Unit,Jabatan,Role Sistem,Status,Tanggal Bergabung"];
+    
+    const csvRows = employees.map(emp => {
+      const unit = emp.units?.name || "-";
+      const role = emp.role === "super_admin" ? "Admin" 
+                 : emp.role === "hr" ? "HR" 
+                 : emp.role === "unit_leader" ? "Kepala Unit" : "Karyawan";
+      const statusStr = emp.status === "active" ? "Aktif" : emp.status === "inactive" ? "Nonaktif" : "Cuti";
+      const joinDate = new Date(emp.join_date).toLocaleDateString("id-ID");
+      
+      // Escape koma untuk format CSV
+      const escapeStr = (str: string) => `"${(str || "-").replace(/"/g, '""')}"`;
+      
+      return [
+        escapeStr(emp.name),
+        escapeStr(emp.email),
+        escapeStr(emp.phone || ""),
+        escapeStr(unit),
+        escapeStr(emp.position || ""),
+        escapeStr(role),
+        escapeStr(statusStr),
+        escapeStr(joinDate)
+      ].join(",");
+    });
+
+    const csvContent = headers.concat(csvRows).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Data_Karyawan_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Berhasil mengunduh CSV");
+  };
+
   return (
     <DashboardLayout>
       <div className="page-header flex items-center justify-between">
@@ -188,10 +242,14 @@ export default function Employees() {
           <p className="page-description">Kelola data karyawan pesantren</p>
         </div>
         {isAdminOrHr && (
-          <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setDialogMode("create")}><Plus className="h-4 w-4 mr-2" />Tambah Karyawan</Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={exportToCsv}>
+              <Download className="h-4 w-4 mr-2" /> Export CSV
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setDialogMode("create")}><Plus className="h-4 w-4 mr-2" />Tambah Karyawan</Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>{dialogMode === "create" ? "Tambah Karyawan Baru" : "Edit Karyawan"}</DialogTitle>
@@ -244,6 +302,19 @@ export default function Employees() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {dialogMode === "edit" && (
+                      <div className="space-y-2">
+                        <Label>Status Karyawan</Label>
+                        <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                          <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Aktif</SelectItem>
+                            <SelectItem value="inactive">Nonaktif</SelectItem>
+                            <SelectItem value="on_leave">Cuti</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="pt-2 border-t mt-auto">
@@ -252,6 +323,7 @@ export default function Employees() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 
@@ -274,14 +346,14 @@ export default function Employees() {
               <TableHead>Unit</TableHead>
               <TableHead>Jabatan</TableHead>
               <TableHead>Status</TableHead>
-              {isAdminOrHr && <TableHead className="text-right">Aksi</TableHead>}
+              <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={isAdminOrHr ? 6 : 5} className="text-center py-8 text-muted-foreground">Memuat...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Memuat...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={isAdminOrHr ? 6 : 5} className="text-center py-8 text-muted-foreground">Tidak ada data</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Tidak ada data</TableCell></TableRow>
             ) : (
               filtered.map((emp) => (
                 <TableRow key={emp.id}>
@@ -290,35 +362,44 @@ export default function Employees() {
                   <TableCell>{emp.units?.name ?? "—"}</TableCell>
                   <TableCell>{emp.position ?? "—"}</TableCell>
                   <TableCell>{statusBadge(emp.status)}</TableCell>
-                  {isAdminOrHr && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon" onClick={() => {
-                          setDialogMode("edit");
-                          setEditingId(emp.id);
-                          setForm({
-                            name: emp.name || "",
-                            email: emp.email || "",
-                            phone: emp.phone || "",
-                            unit_id: emp.unit_id || "",
-                            position: emp.position || "",
-                            password: "",
-                            role: emp.role || "employee"
-                          });
-                          setDialogOpen(true);
-                        }}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="destructive" size="icon" onClick={() => {
-                          setDeletingEmployee(emp);
-                          setDeleteConfirmation("");
-                          setDeleteDialogOpen(true);
-                        }}>
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="icon" onClick={() => {
+                        setViewingEmployee(emp);
+                        setViewDialogOpen(true);
+                      }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {isAdminOrHr && (
+                        <>
+                          <Button variant="outline" size="icon" onClick={() => {
+                            setDialogMode("edit");
+                            setEditingId(emp.id);
+                            setForm({
+                              name: emp.name || "",
+                              email: emp.email || "",
+                              phone: emp.phone || "",
+                              unit_id: emp.unit_id || "",
+                              position: emp.position || "",
+                              password: "",
+                              role: emp.role || "employee",
+                              status: emp.status || "active"
+                            });
+                            setDialogOpen(true);
+                          }}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="destructive" size="icon" onClick={() => {
+                            setDeletingEmployee(emp);
+                            setDeleteConfirmation("");
+                            setDeleteDialogOpen(true);
+                          }}>
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -350,6 +431,59 @@ export default function Employees() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Detail Lengkap Karyawan</DialogTitle>
+          </DialogHeader>
+          {viewingEmployee && (
+            <div className="space-y-4 mt-4 text-sm">
+              <div className="grid grid-cols-3 gap-4 border-b pb-2">
+                <div className="font-semibold text-muted-foreground">Nama</div>
+                <div className="col-span-2 font-medium">{viewingEmployee.name}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 border-b pb-2">
+                <div className="font-semibold text-muted-foreground">Email</div>
+                <div className="col-span-2">{viewingEmployee.email}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 border-b pb-2">
+                <div className="font-semibold text-muted-foreground">Telepon</div>
+                <div className="col-span-2">{viewingEmployee.phone || "—"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 border-b pb-2">
+                <div className="font-semibold text-muted-foreground">Unit</div>
+                <div className="col-span-2">{viewingEmployee.units?.name || "—"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 border-b pb-2">
+                <div className="font-semibold text-muted-foreground">Jabatan</div>
+                <div className="col-span-2">{viewingEmployee.position || "—"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 border-b pb-2">
+                <div className="font-semibold text-muted-foreground">Role Sistem</div>
+                <div className="col-span-2 capitalize">
+                  {viewingEmployee.role === "super_admin" ? "Admin" 
+                    : viewingEmployee.role === "hr" ? "HR" 
+                    : viewingEmployee.role === "unit_leader" ? "Kepala Unit" 
+                    : "Karyawan"}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 border-b pb-2">
+                <div className="font-semibold text-muted-foreground">Status</div>
+                <div className="col-span-2">{statusBadge(viewingEmployee.status)}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-semibold text-muted-foreground">Tanggal Bergabung</div>
+                <div className="col-span-2">
+                  {new Date(viewingEmployee.join_date).toLocaleDateString("id-ID", {
+                    day: "numeric", month: "long", year: "numeric"
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>

@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, Check, X } from "lucide-react";
 import { format } from "date-fns";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 export default function Approvals() {
   const { employee, user, isAdminOrHr, hasRole } = useAuth();
@@ -22,12 +23,21 @@ export default function Approvals() {
   const [form, setForm] = useState({ type: "leave" as "leave" | "permission", start_date: "", end_date: "", reason: "" });
 
   const fetchData = async () => {
-    const { data } = await supabase
-      .from("approvals")
-      .select("*, employees(name, unit_id)")
-      .order("created_at", { ascending: false });
-    setApprovals(data ?? []);
-    setLoading(false);
+    try {
+      const res = await supabaseFetchWithTimeout<any>(
+        supabase
+          .from("approvals")
+          .select("*, employees(name, unit_id)")
+          .order("created_at", { ascending: false })
+      );
+      
+      if (res.error) throw res.error;
+      setApprovals(res.data ?? []);
+    } catch (err) {
+      console.error("Approvals: Fetch error", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);

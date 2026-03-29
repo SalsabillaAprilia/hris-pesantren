@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { format } from "date-fns";
 import type { Tables as DbTables } from "@/integrations/supabase/types";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 export default function Tasks() {
   const { user, isAdminOrHr, hasRole } = useAuth();
@@ -26,13 +27,24 @@ export default function Tasks() {
   const canCreate = isAdminOrHr || hasRole("unit_leader");
 
   const fetchData = async () => {
-    const [taskRes, empRes] = await Promise.all([
-      supabase.from("tasks").select("*, employees!tasks_assigned_to_fkey(name)").order("created_at", { ascending: false }),
-      supabase.from("employees").select("*").eq("status", "active"),
-    ]);
-    setTasks(taskRes.data ?? []);
-    setEmployees(empRes.data ?? []);
-    setLoading(false);
+    try {
+      const [taskRes, empRes] = await supabaseFetchWithTimeout(
+        Promise.all([
+          supabase.from("tasks").select("*, employees!tasks_assigned_to_fkey(name)").order("created_at", { ascending: false }),
+          supabase.from("employees").select("*").eq("status", "active"),
+        ])
+      );
+      
+      if (taskRes.error) throw taskRes.error;
+      if (empRes.error) throw empRes.error;
+
+      setTasks(taskRes.data ?? []);
+      setEmployees(empRes.data ?? []);
+    } catch (err) {
+      console.error("Tasks: Fetch error", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);

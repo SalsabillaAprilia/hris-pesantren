@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Clock, FileCheck, ListTodo } from "lucide-react";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 interface Stats {
   totalEmployees: number;
@@ -24,12 +25,19 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         const today = new Date().toISOString().split("T")[0];
-        const [emp, att, appr, tasks] = await Promise.all([
-          supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active"),
-          supabase.from("attendance").select("id", { count: "exact", head: true }).eq("date", today),
-          supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending"),
-          supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["todo", "in_progress"]),
-        ]);
+        const [emp, att, appr, tasks] = await supabaseFetchWithTimeout(
+          Promise.all([
+            supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active"),
+            supabase.from("attendance").select("id", { count: "exact", head: true }).eq("date", today),
+            supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending"),
+            supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["todo", "in_progress"]),
+          ])
+        );
+        
+        if (emp.error) throw emp.error;
+        if (att.error) throw att.error;
+        if (appr.error) throw appr.error;
+        if (tasks.error) throw tasks.error;
         
         setStats({
           totalEmployees: emp.count ?? 0,

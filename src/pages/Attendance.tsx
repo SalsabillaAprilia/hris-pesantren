@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Camera, Clock, LogIn, LogOut } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 export default function Attendance() {
   const { employee, isAdminOrHr } = useAuth();
@@ -24,22 +25,31 @@ export default function Attendance() {
   const fetchData = useCallback(async () => {
     if (!employee) return;
 
-    const query = isAdminOrHr
-      ? supabase.from("attendance").select("*, employees(name)").order("date", { ascending: false }).limit(50)
-      : supabase.from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30);
+    try {
+      const [recordsRes, todayRes] = await supabaseFetchWithTimeout(
+        Promise.all([
+          isAdminOrHr
+            ? supabase.from("attendance").select("*, employees(name)").order("date", { ascending: false }).limit(50)
+            : supabase.from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30),
+          supabase
+            .from("attendance")
+            .select("*")
+            .eq("employee_id", employee.id)
+            .eq("date", today)
+            .maybeSingle()
+        ])
+      );
 
-    const { data } = await query;
-    setRecords(data ?? []);
+      if (recordsRes.error) throw recordsRes.error;
+      if (todayRes.error) throw todayRes.error;
 
-    const { data: todayData } = await supabase
-      .from("attendance")
-      .select("*")
-      .eq("employee_id", employee.id)
-      .eq("date", today)
-      .maybeSingle();
-
-    setTodayRecord(todayData);
-    setLoading(false);
+      setRecords(recordsRes.data ?? []);
+      setTodayRecord(todayRes.data);
+    } catch (err) {
+      console.error("Attendance: Fetch error", err);
+    } finally {
+      setLoading(false);
+    }
   }, [employee, isAdminOrHr, today]);
 
   useEffect(() => { fetchData(); }, [fetchData]);

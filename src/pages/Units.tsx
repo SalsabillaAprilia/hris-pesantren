@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 export default function Units() {
   const [units, setUnits] = useState<(Tables<"units"> & { employeeCount: number })[]>([]);
@@ -11,14 +12,28 @@ export default function Units() {
 
   useEffect(() => {
     const fetch = async () => {
-      const { data: unitsData } = await supabase.from("units").select("*").order("name");
-      const { data: empData } = await supabase.from("employees").select("unit_id");
+      try {
+        const [unitsRes, empRes] = await supabaseFetchWithTimeout(
+          Promise.all([
+            supabase.from("units").select("*").order("name"),
+            supabase.from("employees").select("unit_id"),
+          ])
+        );
 
-      const counts: Record<string, number> = {};
-      empData?.forEach((e) => { if (e.unit_id) counts[e.unit_id] = (counts[e.unit_id] || 0) + 1; });
+        if (unitsRes.error) throw unitsRes.error;
+        if (empRes.error) throw empRes.error;
 
-      setUnits((unitsData ?? []).map((u) => ({ ...u, employeeCount: counts[u.id] || 0 })));
-      setLoading(false);
+        const counts: Record<string, number> = {};
+        empRes.data?.forEach((e) => { 
+          if (e.unit_id) counts[e.unit_id] = (counts[e.unit_id] || 0) + 1; 
+        });
+
+        setUnits((unitsRes.data ?? []).map((u) => ({ ...u, employeeCount: counts[u.id] || 0 })));
+      } catch (err) {
+        console.error("Units: Fetch error", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetch();
   }, []);
