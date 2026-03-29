@@ -11,7 +11,7 @@ Sistem Informasi Manajemen SDM Pesantren (Human Resource Information System / HR
 ## Persyaratan Sistem
 Pastikan Anda telah menginstal *tools* berikut sebelum menjalankan proyek:
 - [Node.js](https://nodejs.org/) (versi 18.x atau lebih baru disarankan)
-- [npm](https://www.npmjs.com/) atau [bun](https://bun.sh/) sebagai *package manager*
+- [npm](https://www.npmjs.com/) sebagai *package manager*
 - Git
 
 ## Panduan Instalasi dan Menjalankan Proyek (Local Development)

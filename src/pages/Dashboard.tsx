@@ -22,20 +22,26 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const [emp, att, appr, tasks] = await Promise.all([
-        supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("attendance").select("id", { count: "exact", head: true }).eq("date", today),
-        supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["todo", "in_progress"]),
-      ]);
-      setStats({
-        totalEmployees: emp.count ?? 0,
-        presentToday: att.count ?? 0,
-        pendingApprovals: appr.count ?? 0,
-        activeTasks: tasks.count ?? 0,
-      });
-      setLoading(false);
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const [emp, att, appr, tasks] = await Promise.all([
+          supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active"),
+          supabase.from("attendance").select("id", { count: "exact", head: true }).eq("date", today),
+          supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending"),
+          supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["todo", "in_progress"]),
+        ]);
+        
+        setStats({
+          totalEmployees: emp.count ?? 0,
+          presentToday: att.count ?? 0,
+          pendingApprovals: appr.count ?? 0,
+          activeTasks: tasks.count ?? 0,
+        });
+      } catch (err) {
+        console.error("Dashboard: Unexpected error", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchStats();
   }, []);

@@ -31,13 +31,19 @@ export default function Employees() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", unit_id: "", position: "", password: "" });
 
   const fetchData = async () => {
-    const [empRes, unitRes] = await Promise.all([
-      supabase.from("employees").select("*, units(name)").order("name"),
-      supabase.from("units").select("*"),
-    ]);
-    if (empRes.data) setEmployees(empRes.data as Employee[]);
-    if (unitRes.data) setUnits(unitRes.data);
-    setLoading(false);
+    try {
+      const [empRes, unitRes] = await Promise.all([
+        supabase.from("employees").select("*, units(name)").order("name"),
+        supabase.from("units").select("*"),
+      ]);
+      
+      if (empRes.data) setEmployees(empRes.data as Employee[]);
+      if (unitRes.data) setUnits(unitRes.data);
+    } catch (err) {
+      console.error("Employees: Unexpected error", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);

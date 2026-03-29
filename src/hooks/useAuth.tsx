@@ -25,17 +25,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = async (userId: string) => {
-    const [empRes, rolesRes] = await Promise.all([
-      supabase.from("employees").select("*").eq("user_id", userId).single(),
-      supabase.from("user_roles").select("role").eq("user_id", userId),
-    ]);
-    if (empRes.data) setEmployee(empRes.data);
-    if (rolesRes.data) setRoles(rolesRes.data.map((r) => r.role));
+    try {
+      const [empRes, rolesRes] = await Promise.all([
+        supabase.from("employees").select("*").eq("user_id", userId).single(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+      ]);
+      
+      if (empRes.error && empRes.error.code !== "PGRST116") {
+        console.error("Error fetching employee:", empRes.error);
+      }
+      if (rolesRes.error) {
+        console.error("Error fetching roles:", rolesRes.error);
+      }
+
+      if (empRes.data) setEmployee(empRes.data);
+      if (rolesRes.data) setRoles(rolesRes.data.map((r) => r.role as AppRole));
+    } catch (err) {
+      console.error("Unexpected error in fetchUserData:", err);
+    }
   };
 
   useEffect(() => {
+    let mounted = true;
+    
+    // Fail-safe: jika Supabase terlalu lambat (misal project paused), paksa loading selesai
+    const fallback = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 15000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!mounted) return;
         const u = session?.user ?? null;
         setUser(u);
         if (u) {
@@ -44,18 +64,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setEmployee(null);
           setRoles([]);
         }
-        setLoading(false);
+        if (mounted) { setLoading(false); clearTimeout(fallback); }
       }
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
       const u = session?.user ?? null;
       setUser(u);
-      if (u) await fetchUserData(u.id);
-      setLoading(false);
+      if (u) {
+        await fetchUserData(u.id);
+      }
+      if (mounted) { setLoading(false); clearTimeout(fallback); }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(fallback);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -64,10 +91,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setEmployee(null);
-    setRoles([]);
+    try {
+      await Promise.race([
+        supabase.auth.signOut({ scope: "local" }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+      ]);
+    } catch (e) {
+      console.warn("Force logout triggered");
+    } finally {
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      setEmployee(null);
+      setRoles([]);
+      window.location.href = "/login";
+    }
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
