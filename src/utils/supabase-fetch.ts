@@ -27,14 +27,15 @@ export async function supabaseFetchWithTimeout<T>(
     return result;
   } catch (err: any) {
     if (err.message === "Supabase_Timeout") {
-      toast.error("Koneksi bermasalah atau sesi kedaluwarsa. Menyegarkan perangkat...", { duration: 3000 });
-      // Beri sedikit jeda agar user sempat membaca pesan sebelum hard refresh
+      toast.error("Sesi berakhir atau koneksi terputus. Silakan login kembali.", { duration: 3000 });
       setTimeout(() => {
-        window.location.reload();
+        supabase.auth.signOut().then(() => {
+          localStorage.clear();
+          window.location.href = "/login";
+        });
       }, 1500);
     } else {
       console.error("Fetch Data Error:", err);
-      // Optional JWT handling if Supabase passes up the specific auth 401 error code
       if (err?.code === "PGRST301" || err?.message?.includes("JWT")) {
          toast.error("Sesi otentikasi telah berakhir. Silakan masuk kembali.");
          setTimeout(() => {
