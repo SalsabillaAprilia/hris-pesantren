@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Employees from "./pages/Employees";
+import Employees from "./pages/employees";
 import Units from "./pages/Units";
 import Attendance from "./pages/Attendance";
 import Approvals from "./pages/Approvals";
