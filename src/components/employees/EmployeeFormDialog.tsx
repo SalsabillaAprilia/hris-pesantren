@@ -12,6 +12,7 @@ interface EmployeeFormDialogProps {
   setForm: (form: any) => void;
   units: any[];
   isSuperAdmin: boolean;
+  isSaving: boolean;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -23,6 +24,7 @@ export function EmployeeFormDialog({
   setForm,
   units,
   isSuperAdmin,
+  isSaving,
   onSubmit
 }: EmployeeFormDialogProps) {
   return (
@@ -47,12 +49,12 @@ export function EmployeeFormDialog({
             />
           </div>
           
-          <div className="p-6 border-t bg-muted/30 flex gap-3">
-            <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => onOpenChange(false)}>
+          <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
+            <Button type="button" variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => onOpenChange(false)} disabled={isSaving}>
               Batal
             </Button>
-            <Button type="submit" className="flex-[2] h-11 shadow-md bg-primary hover:bg-primary/90 text-white font-semibold">
-              {mode === "create" ? "Simpan Data Karyawan" : "Simpan Perubahan"}
+            <Button type="submit" disabled={isSaving} className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">
+              {isSaving ? "Menyimpan..." : (mode === "create" ? "Simpan Data" : "Simpan Perubahan")}
             </Button>
           </div>
         </form>

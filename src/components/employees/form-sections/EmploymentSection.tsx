@@ -13,70 +13,101 @@ interface EmploymentSectionProps {
 export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: EmploymentSectionProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-primary font-bold text-sm uppercase tracking-wider">
+      <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
         <div className="h-4 w-1 bg-primary rounded-full"></div>
         Pendidikan & Kepegawaian
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-3 border-l-2 border-muted/50 py-1">
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground uppercase">Lembaga Pendidikan</Label>
+          <Label className="text-sm text-muted-foreground/90 font-bold">Jenjang Akademik</Label>
+          <Select value={form.education_level} onValueChange={(v) => setForm({ ...form, education_level: v })}>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih jenjang" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SMA/SMK" className="text-sm">SMA/SMK</SelectItem>
+              <SelectItem value="D1" className="text-sm">D1-D3</SelectItem>
+              <SelectItem value="S1" className="text-sm">S1</SelectItem>
+              <SelectItem value="S2" className="text-sm">S2</SelectItem>
+              <SelectItem value="S3" className="text-sm">S3</SelectItem>
+              <SelectItem value="Lainnya" className="text-sm">Lainnya</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm text-muted-foreground/90 font-bold">Lembaga Pendidikan</Label>
           <Input 
             value={form.education_institution} 
             onChange={(e) => setForm({ ...form, education_institution: e.target.value })} 
             placeholder="Universitas / Sekolah" 
+            className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground uppercase">Fakultas / Jurusan</Label>
+          <Label className="text-sm text-muted-foreground/90 font-bold">Program Studi</Label>
           <Input 
             value={form.education_major} 
             onChange={(e) => setForm({ ...form, education_major: e.target.value })} 
+            placeholder="Contoh: Teknik Informatika"
+            className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>
-        <div className="space-y-2 text-primary font-semibold">
-          <Label className="text-xs uppercase font-bold">Unit Kerja *</Label>
+        <div className="space-y-2 font-normal">
+          <Label className="text-sm font-bold text-muted-foreground/90">Unit Kerja *</Label>
           <Select value={form.unit_id} onValueChange={(v) => setForm({ ...form, unit_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Pilih unit" /></SelectTrigger>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih unit" /></SelectTrigger>
             <SelectContent>
               {units.map((u) => (
-                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                <SelectItem key={u.id} value={u.id} className="text-sm">{u.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label className="text-xs uppercase font-bold text-primary">Jabatan *</Label>
+          <Label className="text-sm font-bold text-muted-foreground/90">Jabatan *</Label>
           <Input 
             value={form.position} 
             onChange={(e) => setForm({ ...form, position: e.target.value })} 
             placeholder="Guru / Staf / Ka. Unit" 
+            className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground uppercase">Tanggal Bergabung</Label>
-          <Input type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
+          <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal Bergabung</Label>
+          <Input type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} className="h-9 text-sm text-slate-900 shadow-sm" />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs uppercase font-bold">Status *</Label>
+          <Label className="text-sm text-muted-foreground/90 font-bold">Akhir Kontrak</Label>
+          <Input type="date" value={form.contract_end_date} onChange={(e) => setForm({ ...form, contract_end_date: e.target.value })} className="h-9 text-sm text-slate-900 shadow-sm" />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-bold text-muted-foreground/90">Status *</Label>
           <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="active">Aktif</SelectItem>
-              <SelectItem value="inactive">Nonaktif</SelectItem>
-              <SelectItem value="on_leave">Cuti</SelectItem>
+              <SelectItem value="active" className="text-sm">Aktif</SelectItem>
+              <SelectItem value="inactive" className="text-sm">Nonaktif</SelectItem>
+              <SelectItem value="on_leave" className="text-sm">Cuti</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm text-muted-foreground/90 font-bold">Lampiran (URL)</Label>
+          <Input 
+            value={form.attachment_url} 
+            onChange={(e) => setForm({ ...form, attachment_url: e.target.value })} 
+            placeholder="Link dokumen lampiran" 
+            className="h-9 text-sm text-slate-900 shadow-sm"
+          />
         </div>
         
         {isSuperAdmin && (
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-red-600">Role Sistem (Admin Only)</Label>
+            <Label className="text-sm text-muted-foreground/90 font-bold">Role Sistem</Label>
             <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="employee">Karyawan</SelectItem>
-                <SelectItem value="unit_leader">Kepala Unit</SelectItem>
-                <SelectItem value="hr">HR / Admin</SelectItem>
+                <SelectItem value="employee" className="text-sm">Karyawan</SelectItem>
+                <SelectItem value="unit_leader" className="text-sm">Kepala Unit</SelectItem>
+                <SelectItem value="hr" className="text-sm">HR / Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -84,7 +115,7 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
 
         {mode === "create" && (
           <div className="space-y-2">
-            <Label className="text-xs uppercase font-bold text-slate-800">Password Akun *</Label>
+            <Label className="text-sm text-muted-foreground/90 font-bold">Password Akun *</Label>
             <Input 
               type="password" 
               value={form.password} 
@@ -92,6 +123,7 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
               required 
               minLength={6} 
               placeholder="Minimal 6 karakter" 
+              className="h-9 text-sm text-slate-900 shadow-sm"
             />
           </div>
         )}

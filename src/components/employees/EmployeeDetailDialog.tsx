@@ -27,28 +27,23 @@ export function EmployeeDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-        <DialogHeader className="p-8 border-b bg-primary/5">
+        <DialogHeader className="p-6 border-b bg-primary/5">
           <div className="flex items-start justify-between">
-            <div className="flex gap-4 items-center">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/20">
-                <UserIcon className="h-8 w-8" />
-              </div>
-              <div className="space-y-1">
-                <DialogTitle className="text-2xl font-bold tracking-tight">{employee.name}</DialogTitle>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono text-muted-foreground">{employee.employee_id_number || "Tanpa ID"}</span>
-                  <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30"></div>
-                  {getStatusBadge(employee.status)}
-                </div>
+            <div className="space-y-1 py-1">
+              <DialogTitle className="text-2xl font-bold tracking-tight">{employee.name}</DialogTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{employee.employee_id_number || "Tanpa ID"}</span>
+                <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30"></div>
+                {getStatusBadge(employee.status)}
               </div>
             </div>
             {isAdminOrHr && (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => onEdit(employee)} className="gap-2">
-                  <Edit className="h-4 w-4" /> Edit
+              <div className="flex gap-2 pr-8">
+                <Button variant="outline" size="sm" onClick={() => onEdit(employee)} className="gap-2 h-8 text-sm">
+                  <Edit className="h-3.5 w-3.5" /> Edit
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => onDelete(employee)} className="gap-2">
-                  <Trash className="h-4 w-4" /> Hapus
+                <Button variant="destructive" size="sm" onClick={() => onDelete(employee)} className="gap-2 h-8 text-sm">
+                  <Trash className="h-3.5 w-3.5" /> Hapus
                 </Button>
               </div>
             )}
@@ -57,10 +52,10 @@ export function EmployeeDetailDialog({
 
         <div className="flex-1 overflow-y-auto p-8">
           <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 p-1 rounded-xl">
-              <TabsTrigger value="personal" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Data Pribadi</TabsTrigger>
-              <TabsTrigger value="contact" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Kontak & Alamat</TabsTrigger>
-              <TabsTrigger value="employment" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Kepegawaian</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 p-1 rounded-xl h-10">
+              <TabsTrigger value="personal" className="rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Data Pribadi</TabsTrigger>
+              <TabsTrigger value="contact" className="rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Kontak</TabsTrigger>
+              <TabsTrigger value="employment" className="rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Kepegawaian</TabsTrigger>
             </TabsList>
 
             <TabsContent value="personal" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -78,13 +73,12 @@ export function EmployeeDetailDialog({
 
             <TabsContent value="contact" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                <DetailItem label="Email (Username)" value={employee.email} />
-                <DetailItem label="Telepon" value={employee.phone} />
+                <DetailItem label="Email" value={employee.email} />
                 <DetailItem label="Nomor WhatsApp" value={employee.whatsapp_number} isHighlight />
-                <DetailItem label="Tipe Identitas" value={employee.identity_card_type} />
-                <DetailItem label="Nomor Identitas" value={employee.identity_card_number} />
+                <DetailItem label="Kartu Identitas" value={employee.identity_card_type} />
+                <DetailItem label="ID Kartu Identitas" value={employee.identity_card_number} />
                 <div className="md:col-span-2">
-                  <DetailItem label="Alamat Sesuai KTP" value={employee.address} isFullWidth />
+                  <DetailItem label="Alamat Kartu Identitas" value={employee.address} isFullWidth />
                 </div>
                 <div className="md:col-span-2">
                   <DetailItem label="Alamat Domisili" value={employee.address_domicile} isFullWidth />
@@ -99,9 +93,9 @@ export function EmployeeDetailDialog({
                 <DetailItem label="Tanggal Bergabung" value={employee.join_date ? new Date(employee.join_date).toLocaleDateString("id-ID") : null} />
                 <DetailItem label="Masa Kerja" value={calculateMasaKerja(employee.join_date)} />
                 <DetailItem label="Status Karyawan" value={employee.status === "active" ? "Aktif" : (employee.status === "inactive" ? "Nonaktif" : "Cuti")} />
-                <DetailItem label="Akhir Kontrak / Kerja" value={employee.contract_end_date ? new Date(employee.contract_end_date).toLocaleDateString("id-ID") : null} />
+                <DetailItem label="Akhir Kontrak" value={employee.contract_end_date ? new Date(employee.contract_end_date).toLocaleDateString("id-ID") : null} />
                 <DetailItem label="Jenjang Pendidikan" value={employee.education_level} />
-                <DetailItem label="Institusi" value={employee.education_institution} />
+                <DetailItem label="Lembaga Pendidikan" value={employee.education_institution} />
                 <div className="md:col-span-2">
                    <DetailItem label="Program Studi" value={employee.education_major} isFullWidth />
                 </div>
@@ -130,9 +124,9 @@ function DetailItem({ label, value, isHighlight = false, isFullWidth = false }: 
   isFullWidth?: boolean;
 }) {
   return (
-    <div className={`space-y-1.5 ${isFullWidth ? "w-full" : ""}`}>
-      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">{label}</span>
-      <p className={`text-base font-medium ${isHighlight ? "text-primary" : "text-slate-900"}`}>
+    <div className={`space-y-1 ${isFullWidth ? "w-full" : ""}`}>
+      <span className="text-sm font-bold text-muted-foreground/90">{label}</span>
+      <p className={`text-sm font-semibold text-slate-900`}>
         {value || "—"}
       </p>
     </div>
