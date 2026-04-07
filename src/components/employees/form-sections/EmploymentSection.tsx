@@ -24,8 +24,8 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih jenjang" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="SMA/SMK" className="text-sm">SMA/SMK</SelectItem>
-              <SelectItem value="D1" className="text-sm">D1-D3</SelectItem>
-              <SelectItem value="S1" className="text-sm">S1</SelectItem>
+              <SelectItem value="D1-D3" className="text-sm">D1-D3</SelectItem>
+              <SelectItem value="S1/D4" className="text-sm">S1/D4</SelectItem>
               <SelectItem value="S2" className="text-sm">S2</SelectItem>
               <SelectItem value="S3" className="text-sm">S3</SelectItem>
               <SelectItem value="Lainnya" className="text-sm">Lainnya</SelectItem>
@@ -61,14 +61,18 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 font-normal">
           <Label className="text-sm font-bold text-muted-foreground/90">Jabatan *</Label>
-          <Input 
-            value={form.position} 
-            onChange={(e) => setForm({ ...form, position: e.target.value })} 
-            placeholder="Guru / Staf / Ka. Unit" 
-            className="h-9 text-sm text-slate-900 shadow-sm"
-          />
+          <Select value={form.position} onValueChange={(v) => setForm({ ...form, position: v })}>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Guru" className="text-sm">Guru</SelectItem>
+              <SelectItem value="Pembina Asrama" className="text-sm">Pembina Asrama</SelectItem>
+              <SelectItem value="Petugas Kebersihan" className="text-sm">Petugas Kebersihan</SelectItem>
+              <SelectItem value="Staf HR" className="text-sm">Staf HR</SelectItem>
+              <SelectItem value="Kepala Unit" className="text-sm">Kepala Unit</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal Bergabung</Label>
@@ -105,9 +109,10 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
             <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="employee" className="text-sm">Karyawan</SelectItem>
+                <SelectItem value="super_admin" className="text-sm">Super Admin</SelectItem>
+                <SelectItem value="hr" className="text-sm">HR</SelectItem>
                 <SelectItem value="unit_leader" className="text-sm">Kepala Unit</SelectItem>
-                <SelectItem value="hr" className="text-sm">HR / Admin</SelectItem>
+                <SelectItem value="employee" className="text-sm">Karyawan</SelectItem>
               </SelectContent>
             </Select>
           </div>

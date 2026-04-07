@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Employee } from "@/types/employee";
 import { getStatusBadge, calculateMasaKerja } from "@/utils/employee-format";
@@ -13,8 +13,70 @@ interface EmployeeTableProps {
 export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: EmployeeTableProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLTableSectionElement>(null);
 
-  const handleScroll = () => {
+  // We extract the calculation logic so we can call it manually WITHOUT Triggering React Renders!
+  const recalculateSticky = () => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl || !scrollContainerRef.current || !headerRef.current) return;
+
+    const rect = scrollContainerRef.current.getBoundingClientRect();
+    const stickThreshold = Math.max(0, mainEl.getBoundingClientRect().top);
+    
+    let finalOffset = 0;
+    if (rect.top < stickThreshold) {
+      const maxOffset = rect.height - 44; // approx header height + some padding
+      const offset = Math.min(stickThreshold - rect.top, maxOffset);
+      finalOffset = Math.max(0, offset);
+    }
+    
+    // Direct DOM manipulation completely skips React re-render, eliminating scroll jitter!
+    headerRef.current.style.setProperty('--sticky-offset', `${finalOffset}px`);
+    if (finalOffset > 0) {
+      headerRef.current.classList.add('[&_th]:shadow-sm');
+    } else {
+      headerRef.current.classList.remove('[&_th]:shadow-sm');
+    }
+  };
+
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
+    let ticking = false;
+
+    // Use fast native RAF scroll listener to update offset without React states
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          recalculateSticky();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    window.addEventListener('resize', handleScroll);
+    
+    // Initial check
+    handleScroll();
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
+
+  // Force recalculation when data changes because UI modals (like add/edit employee)
+  // temporarily block scrolling and might leave stale bounding rects
+  useEffect(() => {
+    // Add small delay to let DOM settle after render
+    const timer = setTimeout(recalculateSticky, 50);
+    return () => clearTimeout(timer);
+  }, [employees, activeTab]);
+
+  const handleHorizontalScroll = () => {
     if (scrollContainerRef.current) {
       const scrolled = scrollContainerRef.current.scrollLeft > 2;
       if (scrolled !== isScrolled) {
@@ -32,18 +94,27 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
   }
 
   return (
-    <div className="relative border rounded-md bg-white">
-      {/* Container with horizontal scroll and fixed height for vertical scroll */}
+    <div className="relative border rounded-md bg-white flex flex-col">
+      {/* Container with horizontal scroll. Vertical scroll is handled by the main page. */}
       <div 
         ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="overflow-auto max-h-[calc(100vh-320px)]"
+        onScroll={handleHorizontalScroll}
+        className="overflow-x-auto overflow-y-visible flex-1 h-auto relative"
       >
         <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[1200px]">
-          <TableHeader className="sticky top-0 z-20 bg-muted hover:bg-muted shadow-sm">
-            <TableRow>
+          <TableHeader 
+            ref={headerRef}
+            className="z-20 transition-none [&_th]:sticky [&_th]:top-[var(--sticky-offset)] [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted"
+            style={{ 
+              "--sticky-offset": "0px",
+            } as React.CSSProperties}
+          >
+            <TableRow className="border-none hover:bg-transparent">
               {/* STICKY COLUMN HEADER: NAMA */}
-              <TableHead className={`sticky left-0 z-[40] bg-muted transition-all duration-75 w-[180px] min-w-[180px] font-semibold ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}>
+              <TableHead 
+                className={`sticky left-0 z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold 
+                  ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
+              >
                 Nama Lengkap
               </TableHead>
 
