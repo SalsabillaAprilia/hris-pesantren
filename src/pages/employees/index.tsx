@@ -29,6 +29,7 @@ import { EmployeeFormDialog } from "@/components/employees/EmployeeFormDialog";
 import { EmployeeDetailDialog } from "@/components/employees/EmployeeDetailDialog";
 import { EmployeeFilterDrawer } from "@/components/employees/EmployeeFilterDrawer";
 import { ExportConfigDialog, COLUMNS_MAP } from "@/components/employees/ExportConfigDialog";
+import { uploadFile } from "@/utils/supabase-storage";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -52,7 +53,8 @@ export default function EmployeesPage() {
     religion: "", last_education: "", address: "", join_date: new Date().toISOString().split('T')[0], 
     contract_end_date: "", marital_status: "Belum Menikah", identity_card_type: "KTP", 
     identity_card_number: "", whatsapp_number: "", address_domicile: "", education_level: "", 
-    education_institution: "", education_major: "", attachment_url: "" 
+    education_institution: "", education_major: "", attachment_url: "", avatar_url: "",
+    avatar_file: null as File | null
   };
 
   const [form, setForm] = useState(INITIAL_FORM);
@@ -74,32 +76,36 @@ export default function EmployeesPage() {
     try {
       setLoading(true);
       // Fetch concurrently but handle each result safely
-      const [empRes, unitRes, rolesRes] = await supabaseFetchWithTimeout(
-        Promise.all([
-          supabase.from("employees").select("*, units(name)").order("name"),
-          supabase.from("units").select("*"),
-          supabase.from("user_roles").select("*"),
-        ])
-      );
-      
+      const empRes = await supabase.from("employees").select("*").order("name");
       if (empRes.error) {
         console.error("Error fetching employees:", empRes.error);
         if (empRes.error.code !== "PGRST116") throw empRes.error;
       }
+
+      const unitRes = await supabase.from("units").select("*");
+      if (unitRes.error) console.error("Error fetching units:", unitRes.error);
+      
+      const allUnits = unitRes.data || [];
+      const rolesRes = await supabase.from("user_roles").select("*");
       
       if (empRes.data) {
         const rolesMap = rolesRes.data || [];
         setEmployees(empRes.data.map(emp => ({ 
           ...emp, 
+          // Petakan unit secara manual untuk menghindari join circular
+          units: allUnits.find(u => u.id === emp.unit_id) || null,
           role: rolesMap.find(r => r.user_id === emp.user_id)?.role || "employee" 
         })) as Employee[]);
       }
       
       if (unitRes.data) setUnits(unitRes.data);
     } catch (err: any) { 
-      console.error("Fetch Data Error:", err);
-      toast.error("Gagal memuat data. Sesi mungkin telah berakhir.");
-      // If error is PGRST301 (JWT expired), supabaseFetchWithTimeout will handle logout
+      console.error("Employees: Fetch Data Error Details:", {
+        message: err.message,
+        status: err.status,
+        code: err.code
+      });
+      toast.error("Gagal memuat data karyawan: " + (err.message || "Timeout"));
     } finally { 
       setLoading(false); 
     }
@@ -123,6 +129,18 @@ export default function EmployeesPage() {
     e.preventDefault();
     try {
       setIsSaving(true);
+      
+      // Upload avatar if a new file is selected
+      let finalAvatarUrl = form.avatar_url;
+      if (form.avatar_file) {
+        try {
+          finalAvatarUrl = await uploadFile(form.avatar_file);
+        } catch (uploadErr) {
+          console.error("Avatar upload failed:", uploadErr);
+          toast.error("Gagal mengunggah foto profil, mencoba melanjutkan tanpa foto.");
+        }
+      }
+
       // Prepare the data updates by specifically selecting allowed columns
       // This prevents "Column not found" errors from Supabase
       const profileUpdates: any = {
@@ -149,6 +167,7 @@ export default function EmployeesPage() {
         education_institution: form.education_institution || null,
         education_major: form.education_major || null,
         attachment_url: form.attachment_url || null,
+        avatar_url: finalAvatarUrl || null,
       };
 
       // Tambahkan fallback untuk field lama yang mungkin masih wajib di database
@@ -433,7 +452,7 @@ export default function EmployeesPage() {
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 h-9 text-xs bg-white shadow-sm border-muted-foreground/20 hover:bg-slate-50 transition-all font-semibold">
+                  <Button variant="outline" size="sm" className="gap-2 bg-white shadow-sm border-muted-foreground/20 hover:bg-slate-50 transition-all font-medium">
                     <Download className="h-4 w-4 text-primary" /> Export
                   </Button>
                 </DropdownMenuTrigger>
@@ -446,8 +465,8 @@ export default function EmployeesPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={() => handleOpenForm("create")} className="h-9 text-xs shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 font-bold transition-all transform active:scale-95">
-                <Plus className="h-4 w-4 mr-2" /> Tambah
+              <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium">
+                <Plus className="h-4 w-4" /> Tambah
               </Button>
             </div>
           )}
@@ -494,6 +513,7 @@ export default function EmployeesPage() {
         setConfig={setExportConfig}
         exportScope={exportScope}
         setExportScope={setExportScope}
+        hasActiveFilters={search !== "" || Object.values(filters).some(v => v !== "all")}
         onDownload={handleDownloadExport} 
       />
 

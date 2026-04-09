@@ -51,7 +51,7 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
           />
         </div>
         <div className="space-y-2 font-normal">
-          <Label className="text-sm font-bold text-muted-foreground/90">Unit Kerja *</Label>
+          <Label className="text-sm font-bold text-muted-foreground/90">Unit Kerja</Label>
           <Select value={form.unit_id} onValueChange={(v) => setForm({ ...form, unit_id: v })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih unit" /></SelectTrigger>
             <SelectContent>
@@ -62,7 +62,7 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
           </Select>
         </div>
         <div className="space-y-2 font-normal">
-          <Label className="text-sm font-bold text-muted-foreground/90">Jabatan *</Label>
+          <Label className="text-sm font-bold text-muted-foreground/90">Jabatan</Label>
           <Select value={form.position} onValueChange={(v) => setForm({ ...form, position: v })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
             <SelectContent>
@@ -83,7 +83,7 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
           <Input type="date" value={form.contract_end_date} onChange={(e) => setForm({ ...form, contract_end_date: e.target.value })} className="h-9 text-sm text-slate-900 shadow-sm" />
         </div>
         <div className="space-y-2">
-          <Label className="text-sm font-bold text-muted-foreground/90">Status *</Label>
+          <Label className="text-sm font-bold text-muted-foreground/90">Status</Label>
           <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
             <SelectContent>

@@ -23,8 +23,8 @@ export function EmployeeFilterDrawer({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className="h-9 text-xs gap-2 shadow-sm border-primary/20 hover:border-primary/50 transition-all">
-          <Filter className="h-3.5 w-3.5 text-primary" />
+        <Button variant="outline" size="sm" className="gap-2 bg-white shadow-sm border-muted-foreground/20 hover:bg-slate-50 transition-all font-medium">
+          <Filter className="h-4 w-4 text-primary" />
           Filter
           {hasActiveFilters && (
             <Badge variant="secondary" className="ml-1 px-1.5 h-5 min-w-5 flex items-center justify-center bg-primary text-primary-foreground font-bold">
@@ -132,7 +132,7 @@ export function EmployeeFilterDrawer({
             Hapus Filter
           </Button>
           <SheetClose asChild>
-            <Button className="flex-1 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all font-semibold">
+            <Button className="flex-1 bg-primary hover:bg-primary/90 shadow-md shadow-primary/10 transition-all font-medium">
               Tampilkan Hasil
             </Button>
           </SheetClose>

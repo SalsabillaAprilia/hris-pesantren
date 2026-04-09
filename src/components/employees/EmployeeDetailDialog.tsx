@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Employee } from "@/types/employee";
 import { getStatusBadge, calculateMasaKerja } from "@/utils/employee-format";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit, Trash, User as UserIcon, Phone, Briefcase, FileDown } from "lucide-react";
 
 interface EmployeeDetailDialogProps {
@@ -10,8 +11,8 @@ interface EmployeeDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   employee: Employee | null;
   isAdminOrHr: boolean;
-  onEdit: (emp: Employee) => void;
-  onDelete: (emp: Employee) => void;
+  onEdit?: (emp: Employee) => void;
+  onDelete?: (emp: Employee) => void;
 }
 
 export function EmployeeDetailDialog({
@@ -29,22 +30,34 @@ export function EmployeeDetailDialog({
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-primary/5">
           <div className="flex items-start justify-between">
-            <div className="space-y-1 py-1">
-              <DialogTitle className="text-2xl font-bold tracking-tight">{employee.name}</DialogTitle>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{employee.employee_id_number || "Tanpa ID"}</span>
-                <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30"></div>
-                {getStatusBadge(employee.status)}
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16 border-2 border-white shadow-md">
+                <AvatarImage src={employee.avatar_url || ""} className="object-cover" />
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
+                  {employee.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1 py-1">
+                <DialogTitle className="text-2xl font-bold tracking-tight">{employee.name}</DialogTitle>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{employee.employee_id_number || "Tanpa ID"}</span>
+                  <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30"></div>
+                  {getStatusBadge(employee.status)}
+                </div>
               </div>
             </div>
-            {isAdminOrHr && (
+            {isAdminOrHr && (onEdit || onDelete) && (
               <div className="flex gap-2 pr-8">
-                <Button variant="outline" size="sm" onClick={() => onEdit(employee)} className="gap-2 h-8 text-sm">
-                  <Edit className="h-3.5 w-3.5" /> Edit
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => onDelete(employee)} className="gap-2 h-8 text-sm">
-                  <Trash className="h-3.5 w-3.5" /> Hapus
-                </Button>
+                {onEdit && (
+                  <Button variant="outline" size="sm" onClick={() => onEdit(employee)} className="gap-2 h-8 text-sm">
+                    <Edit className="h-3.5 w-3.5" /> Edit
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button variant="destructive" size="sm" onClick={() => onDelete(employee)} className="gap-2 h-8 text-sm">
+                    <Trash className="h-3.5 w-3.5" /> Hapus
+                  </Button>
+                )}
               </div>
             )}
           </div>

@@ -7,7 +7,7 @@ import { toast } from "sonner";
  */
 export async function supabaseFetchWithTimeout<T>(
   promise: Promise<T> | PromiseLike<T>,
-  timeoutMs: number = 8000
+  timeoutMs: number = 15000
 ): Promise<T> {
   let timeoutId: NodeJS.Timeout;
 
@@ -18,12 +18,9 @@ export async function supabaseFetchWithTimeout<T>(
   });
 
   try {
-    // Proactively refresh the session before the query to prevent deadlocks
-    await Promise.race([supabase.auth.getSession(), timeoutPromise]);
-
-    // Proceed to execute the actual query alongside the timeout clock
+    console.log("SupabaseFetch: Initiating request...");
     const result = await Promise.race([promise, timeoutPromise]);
-    
+    console.log("SupabaseFetch: Request completed successfully.");
     return result;
   } catch (err: any) {
     if (err.message === "Supabase_Timeout") {
@@ -41,6 +38,8 @@ export async function supabaseFetchWithTimeout<T>(
          setTimeout(() => {
            supabase.auth.signOut().then(() => window.location.href = "/login");
          }, 1500);
+      } else {
+        toast.error("Gagal memuat data: " + (err.message || "Terjadi kesalahan"));
       }
     }
     throw err;

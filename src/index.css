@@ -90,9 +90,20 @@
     @apply border-border;
   }
 
+  html,
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  /* Force font inheritance for form elements and buttons */
+  input, 
+  button, 
+  textarea, 
+  select,
+  kbd,
+  samp {
+    font-family: inherit;
   }
 }
 

@@ -14,6 +14,7 @@ interface ExportConfigDialogProps {
   setConfig: (config: Record<string, boolean>) => void;
   exportScope: "filtered" | "all";
   setExportScope: (scope: "filtered" | "all") => void;
+  hasActiveFilters: boolean;
   onDownload: () => void;
 }
 
@@ -50,6 +51,7 @@ export function ExportConfigDialog({
   setConfig,
   exportScope,
   setExportScope,
+  hasActiveFilters,
   onDownload
 }: ExportConfigDialogProps) {
   
@@ -98,6 +100,12 @@ export function ExportConfigDialog({
     }
   }, [isPdf, open]); 
 
+  // Reset to "all" if active filters are gone
+  useEffect(() => {
+    if (open && !hasActiveFilters && exportScope === "filtered") {
+      setExportScope("all");
+    }
+  }, [open, hasActiveFilters, exportScope, setExportScope]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] shadow-2xl border-none p-0 overflow-hidden bg-white max-h-[95vh] flex flex-col">
@@ -117,15 +125,20 @@ export function ExportConfigDialog({
           <div className="mb-6 space-y-3">
             <h4 className="text-sm font-bold text-slate-800">Cakupan Data</h4>
             <RadioGroup value={exportScope} onValueChange={(v) => setExportScope(v as "filtered"|"all")} className="flex flex-col sm:flex-row gap-3">
-              <div className="flex items-center space-x-2 border rounded-md p-3 flex-1 cursor-pointer hover:bg-slate-50 relative">
-                <RadioGroupItem value="filtered" id="r-filtered" />
-                <Label htmlFor="r-filtered" className="cursor-pointer text-sm font-semibold">Sesuai Filter Aktif</Label>
+              <div className={`flex items-center space-x-2 border rounded-md p-3 flex-1 transition-all relative ${!hasActiveFilters ? 'opacity-40 cursor-not-allowed bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}`}>
+                <RadioGroupItem value="filtered" id="r-filtered" disabled={!hasActiveFilters} />
+                <Label htmlFor="r-filtered" className={`text-sm font-semibold ${!hasActiveFilters ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                  Sesuai Filter Aktif
+                </Label>
               </div>
               <div className="flex items-center space-x-2 border rounded-md p-3 flex-1 cursor-pointer hover:bg-slate-50 relative">
                 <RadioGroupItem value="all" id="r-all" />
                 <Label htmlFor="r-all" className="cursor-pointer text-sm font-semibold">Semua Karyawan</Label>
               </div>
             </RadioGroup>
+            {!hasActiveFilters && (
+              <p className="text-[10px] text-muted-foreground italic pl-1">*Tidak ada filter yang aktif</p>
+            )}
           </div>
 
           <div className="flex justify-between items-center py-2 border-b mb-4 bg-white">

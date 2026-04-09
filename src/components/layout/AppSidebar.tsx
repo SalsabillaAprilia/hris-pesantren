@@ -25,6 +25,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -80,12 +81,30 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-4">
         {!collapsed && employee && (
-          <div className="mb-2 px-2">
-            <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{employee.name}</p>
-            <p className="text-xs text-sidebar-muted truncate">{employee.email}</p>
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <Avatar className="h-9 w-9 border-2 border-sidebar-accent shadow-sm">
+              <AvatarImage src={employee.avatar_url || ""} className="object-cover" />
+              <AvatarFallback className="bg-sidebar-accent text-sidebar-primary font-bold text-xs">
+                {employee.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-semibold text-sidebar-accent-foreground truncate">{employee.name}</p>
+              <p className="text-[10px] text-sidebar-muted truncate">{employee.email}</p>
+            </div>
           </div>
+        )}
+        {collapsed && employee && (
+           <div className="flex justify-center mb-4">
+             <Avatar className="h-8 w-8 border-2 border-sidebar-accent shadow-sm">
+               <AvatarImage src={employee.avatar_url || ""} className="object-cover" />
+               <AvatarFallback className="bg-sidebar-accent text-sidebar-primary font-bold text-[10px]">
+                 {employee.name.charAt(0)}
+               </AvatarFallback>
+             </Avatar>
+           </div>
         )}
         <Button
           variant="ghost"

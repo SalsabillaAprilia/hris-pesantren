@@ -25,26 +25,22 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         const today = new Date().toISOString().split("T")[0];
-        const [emp, att, appr, tasks] = await supabaseFetchWithTimeout(
-          Promise.all([
-            supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active"),
-            supabase.from("attendance").select("id", { count: "exact", head: true }).eq("date", today),
-            supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending"),
-            supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["todo", "in_progress"]),
-          ])
-        );
+        // Fetch sequentially to prevent congestion and identify which one hangs
+        const emp = await supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active");
+        if (!emp.error) setStats(prev => ({ ...prev, totalEmployees: emp.count ?? 0 }));
+        else console.error("Dashboard: Employee fetch error", emp.error);
         
-        if (emp.error) throw emp.error;
-        if (att.error) throw att.error;
-        if (appr.error) throw appr.error;
-        if (tasks.error) throw tasks.error;
-        
-        setStats({
-          totalEmployees: emp.count ?? 0,
-          presentToday: att.count ?? 0,
-          pendingApprovals: appr.count ?? 0,
-          activeTasks: tasks.count ?? 0,
-        });
+        const att = await supabase.from("attendance").select("id", { count: "exact", head: true }).eq("date", today);
+        if (!att.error) setStats(prev => ({ ...prev, presentToday: att.count ?? 0 }));
+        else console.error("Dashboard: Attendance fetch error", att.error);
+
+        const appr = await supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending");
+        if (!appr.error) setStats(prev => ({ ...prev, pendingApprovals: appr.count ?? 0 }));
+        else console.error("Dashboard: Approvals fetch error", appr.error);
+
+        const tasks = await supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["todo", "in_progress"]);
+        if (!tasks.error) setStats(prev => ({ ...prev, activeTasks: tasks.count ?? 0 }));
+        else console.error("Dashboard: Tasks fetch error", tasks.error);
       } catch (err) {
         console.error("Dashboard: Unexpected error", err);
       } finally {
