@@ -86,7 +86,7 @@ export function AppSidebar() {
           <div className="flex items-center gap-3 mb-4 px-1">
             <Avatar className="h-9 w-9 border-2 border-sidebar-accent shadow-sm">
               <AvatarImage src={employee.avatar_url || ""} className="object-cover" />
-              <AvatarFallback className="bg-sidebar-accent text-sidebar-primary font-bold text-xs">
+              <AvatarFallback className="bg-slate-100 text-primary font-bold text-xs ring-1 ring-white/20">
                 {employee.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
@@ -100,9 +100,9 @@ export function AppSidebar() {
            <div className="flex justify-center mb-4">
              <Avatar className="h-8 w-8 border-2 border-sidebar-accent shadow-sm">
                <AvatarImage src={employee.avatar_url || ""} className="object-cover" />
-               <AvatarFallback className="bg-sidebar-accent text-sidebar-primary font-bold text-[10px]">
-                 {employee.name.charAt(0)}
-               </AvatarFallback>
+                <AvatarFallback className="bg-slate-100 text-primary font-bold text-[10px] ring-1 ring-white/20">
+                  {employee.name.charAt(0)}
+                </AvatarFallback>
              </Avatar>
            </div>
         )}
@@ -110,10 +110,10 @@ export function AppSidebar() {
           variant="ghost"
           size={collapsed ? "icon" : "default"}
           onClick={signOut}
-          className="w-full text-sidebar-foreground hover:text-destructive hover:bg-sidebar-accent justify-start"
+          className="w-full px-4 text-sidebar-foreground hover:bg-white/10 hover:text-red-400 transition-colors justify-start group/logout border-t border-sidebar-border/30 rounded-none h-12"
         >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span className="ml-2">Keluar</span>}
+          <LogOut className="h-4 w-4 group-hover/logout:text-red-500 transition-colors" />
+          {!collapsed && <span className="ml-2 group-hover/logout:text-red-400 transition-colors">Keluar</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>

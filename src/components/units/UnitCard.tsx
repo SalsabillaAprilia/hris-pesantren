@@ -37,7 +37,7 @@ export function UnitCard({ unit, employeeCount, leaderName, onClick }: UnitCardP
           {leaderName && (
             <div className="flex flex-col border-l border-slate-100 pl-4">
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-1">Kepala Unit</p>
-              <div className="flex items-center gap-1.5 text-amber-600">
+              <div className="flex items-center gap-1.5 text-[#F16D34]">
                 <Crown className="h-3.5 w-3.5" />
                 <span className="text-xs font-bold truncate">{leaderName.split(' ')[0]}</span>
               </div>

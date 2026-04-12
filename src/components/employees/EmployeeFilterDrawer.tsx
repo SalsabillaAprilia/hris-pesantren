@@ -23,7 +23,7 @@ export function EmployeeFilterDrawer({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 bg-white shadow-sm border-muted-foreground/20 hover:bg-slate-50 transition-all font-medium">
+        <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all font-medium">
           <Filter className="h-4 w-4 text-primary" />
           Filter
           {hasActiveFilters && (

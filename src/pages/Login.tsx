@@ -27,8 +27,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-xl border-0 bg-card">
+    <div className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-blue-100/80 via-white to-indigo-100/80 p-4 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-blue-400/20 blur-[120px] z-0 pointer-events-none" />
+      <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-indigo-400/20 blur-[120px] z-0 pointer-events-none" />
+      
+      <Card className="w-full max-w-md shadow-2xl border border-white/20 bg-card/95 backdrop-blur-sm z-10">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-primary flex items-center justify-center">
             <span className="text-2xl font-bold text-primary-foreground">P</span>

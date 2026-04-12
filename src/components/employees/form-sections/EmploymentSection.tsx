@@ -37,7 +37,6 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
           <Input 
             value={form.education_institution} 
             onChange={(e) => setForm({ ...form, education_institution: e.target.value })} 
-            placeholder="Universitas / Sekolah" 
             className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>
@@ -46,7 +45,6 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
           <Input 
             value={form.education_major} 
             onChange={(e) => setForm({ ...form, education_major: e.target.value })} 
-            placeholder="Contoh: Teknik Informatika"
             className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>
@@ -98,7 +96,6 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
           <Input 
             value={form.attachment_url} 
             onChange={(e) => setForm({ ...form, attachment_url: e.target.value })} 
-            placeholder="Link dokumen lampiran" 
             className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>

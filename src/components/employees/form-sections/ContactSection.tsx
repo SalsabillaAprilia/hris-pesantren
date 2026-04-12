@@ -33,7 +33,7 @@ export function ContactSection({ form, setForm, mode }: ContactSectionProps) {
           <Input 
             value={form.whatsapp_number} 
             onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })} 
-            placeholder="0812XXXXXXXX" 
+            placeholder="Diawali dengan 0" 
             className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>
@@ -55,7 +55,6 @@ export function ContactSection({ form, setForm, mode }: ContactSectionProps) {
           <Input 
             value={form.identity_card_number} 
             onChange={(e) => setForm({ ...form, identity_card_number: e.target.value })} 
-            placeholder="NIK/No. Identitas" 
             className="h-9 text-sm text-slate-900 shadow-sm"
           />
         </div>

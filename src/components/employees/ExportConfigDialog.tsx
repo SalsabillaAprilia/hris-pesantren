@@ -114,16 +114,12 @@ export function ExportConfigDialog({
             {isPdf ? <FileText className="h-5 w-5 text-red-500" /> : <FileDown className="h-5 w-5 text-green-600" />}
             Download {isPdf ? "PDF" : "CSV"} Karyawan
           </DialogTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            Pilih baris data dan kolom yang ingin Anda masukkan ke dalam file.
-            {isPdf && " Untuk PDF, maksimal 4 kolom saja."}
-          </p>
         </DialogHeader>
         
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
           
           <div className="mb-6 space-y-3">
-            <h4 className="text-sm font-bold text-slate-800">Cakupan Data</h4>
+            <h4 className="text-sm font-bold text-slate-800">Data</h4>
             <RadioGroup value={exportScope} onValueChange={(v) => setExportScope(v as "filtered"|"all")} className="flex flex-col sm:flex-row gap-3">
               <div className={`flex items-center space-x-2 border rounded-md p-3 flex-1 transition-all relative ${!hasActiveFilters ? 'opacity-40 cursor-not-allowed bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}`}>
                 <RadioGroupItem value="filtered" id="r-filtered" disabled={!hasActiveFilters} />
@@ -143,7 +139,7 @@ export function ExportConfigDialog({
 
           <div className="flex justify-between items-center py-2 border-b mb-4 bg-white">
             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-               Pilihan Kolom
+              Kolom
                {isPdf && (
                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${selectedCount >= maxPdfColumns ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
                    {selectedCount} / {maxPdfColumns}
