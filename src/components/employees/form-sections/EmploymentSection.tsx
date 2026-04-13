@@ -6,11 +6,12 @@ interface EmploymentSectionProps {
   form: any;
   setForm: (form: any) => void;
   units: any[];
+  shifts: any[];
   isSuperAdmin: boolean;
   mode: "create" | "edit";
 }
 
-export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: EmploymentSectionProps) {
+export function EmploymentSection({ form, setForm, units, shifts, isSuperAdmin, mode }: EmploymentSectionProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
@@ -69,6 +70,17 @@ export function EmploymentSection({ form, setForm, units, isSuperAdmin, mode }: 
               <SelectItem value="Petugas Kebersihan" className="text-sm">Petugas Kebersihan</SelectItem>
               <SelectItem value="Staf HR" className="text-sm">Staf HR</SelectItem>
               <SelectItem value="Kepala Unit" className="text-sm">Kepala Unit</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2 font-normal">
+          <Label className="text-sm font-bold text-muted-foreground/90">Jadwal Shift</Label>
+          <Select value={form.shift_id ?? ""} onValueChange={(v) => setForm({ ...form, shift_id: v || null })}>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih shift" /></SelectTrigger>
+            <SelectContent>
+              {shifts.map((s) => (
+                <SelectItem key={s.id} value={s.id} className="text-sm">{s.name} ({s.start_time?.slice(0,5)} - {s.end_time?.slice(0,5)})</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -13,6 +13,7 @@ import Approvals from "./pages/Approvals";
 import Tasks from "./pages/Tasks";
 import KPI from "./pages/KPI";
 import Reports from "./pages/Reports";
+import WorkSchedules from "./pages/WorkSchedules";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/units" element={<ProtectedRoute><Units /></ProtectedRoute>} />
             <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
             <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
+            <Route path="/work-schedules" element={<ProtectedRoute><WorkSchedules /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
             <Route path="/kpi" element={<ProtectedRoute><KPI /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />

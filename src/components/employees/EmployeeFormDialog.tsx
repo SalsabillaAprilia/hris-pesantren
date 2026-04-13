@@ -11,6 +11,7 @@ interface EmployeeFormDialogProps {
   form: any;
   setForm: (form: any) => void;
   units: any[];
+  shifts: any[];
   isSuperAdmin: boolean;
   isSaving: boolean;
   onSubmit: (e: React.FormEvent) => void;
@@ -23,6 +24,7 @@ export function EmployeeFormDialog({
   form,
   setForm,
   units,
+  shifts,
   isSuperAdmin,
   isSaving,
   onSubmit
@@ -43,7 +45,8 @@ export function EmployeeFormDialog({
             <EmploymentSection 
               form={form} 
               setForm={setForm} 
-              units={units} 
+              units={units}
+              shifts={shifts}
               isSuperAdmin={isSuperAdmin} 
               mode={mode} 
             />

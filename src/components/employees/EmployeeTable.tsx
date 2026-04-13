@@ -115,7 +115,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
                 className={`sticky left-0 z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold 
                   ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
               >
-                Nama Lengkap
+                Nama
               </TableHead>
 
               {activeTab === "personal" && (

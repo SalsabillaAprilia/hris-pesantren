@@ -38,6 +38,7 @@ export default function EmployeesPage() {
   const { isAdminOrHr, isSuperAdmin } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [units, setUnits] = useState<Tables<"units">[]>([]);
+  const [shifts, setShifts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -54,6 +55,7 @@ export default function EmployeesPage() {
     contract_end_date: "", marital_status: "Belum Menikah", identity_card_type: "KTP", 
     identity_card_number: "", whatsapp_number: "", address_domicile: "", education_level: "", 
     education_institution: "", education_major: "", attachment_url: "", avatar_url: "",
+    shift_id: "" as string | null,
     avatar_file: null as File | null
   };
 
@@ -84,6 +86,9 @@ export default function EmployeesPage() {
 
       const unitRes = await supabase.from("units").select("*");
       if (unitRes.error) console.error("Error fetching units:", unitRes.error);
+
+      const shiftRes = await supabase.from("work_shifts").select("*").order("name");
+      if (shiftRes.error) console.error("Error fetching shifts:", shiftRes.error);
       
       const allUnits = unitRes.data || [];
       const rolesRes = await supabase.from("user_roles").select("*");
@@ -99,6 +104,7 @@ export default function EmployeesPage() {
       }
       
       if (unitRes.data) setUnits(unitRes.data);
+      if (shiftRes.data) setShifts(shiftRes.data);
     } catch (err: any) { 
       console.error("Employees: Fetch Data Error Details:", {
         message: err.message,
@@ -168,6 +174,7 @@ export default function EmployeesPage() {
         education_major: form.education_major || null,
         attachment_url: form.attachment_url || null,
         avatar_url: finalAvatarUrl || null,
+        shift_id: form.shift_id || null,
       };
 
       // Tambahkan fallback untuk field lama yang mungkin masih wajib di database
@@ -452,7 +459,7 @@ export default function EmployeesPage() {
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all font-medium">
+                  <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all font-medium">
                     <Download className="h-4 w-4 text-primary" /> Export
                   </Button>
                 </DropdownMenuTrigger>
@@ -498,7 +505,8 @@ export default function EmployeesPage() {
         mode={dialogMode} 
         form={form} 
         setForm={setForm} 
-        units={units} 
+        units={units}
+        shifts={shifts}
         isSuperAdmin={isSuperAdmin} 
         onSubmit={handleSubmit}
         isSaving={isSaving} 

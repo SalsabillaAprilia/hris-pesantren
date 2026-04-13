@@ -113,7 +113,7 @@
   }
 
   .page-header {
-    @apply mb-6;
+    @apply mb-6 flex items-center justify-between;
   }
 
   .page-title {

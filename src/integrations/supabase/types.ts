@@ -73,32 +73,53 @@ export type Database = {
       attendance: {
         Row: {
           check_in: string | null
+          check_in_location: string | null
+          check_in_method: string | null
           check_out: string | null
+          check_out_location: string | null
+          check_out_method: string | null
           created_at: string
+          daily_status: string | null
           date: string
           employee_id: string
           id: string
+          late_minutes: number | null
           notes: string | null
+          overtime_minutes: number | null
           selfie_url: string | null
         }
         Insert: {
           check_in?: string | null
+          check_in_location?: string | null
+          check_in_method?: string | null
           check_out?: string | null
+          check_out_location?: string | null
+          check_out_method?: string | null
           created_at?: string
+          daily_status?: string | null
           date?: string
           employee_id: string
           id?: string
+          late_minutes?: number | null
           notes?: string | null
+          overtime_minutes?: number | null
           selfie_url?: string | null
         }
         Update: {
           check_in?: string | null
+          check_in_location?: string | null
+          check_in_method?: string | null
           check_out?: string | null
+          check_out_location?: string | null
+          check_out_method?: string | null
           created_at?: string
+          daily_status?: string | null
           date?: string
           employee_id?: string
           id?: string
+          late_minutes?: number | null
           notes?: string | null
+          overtime_minutes?: number | null
           selfie_url?: string | null
         }
         Relationships: [
@@ -121,6 +142,7 @@ export type Database = {
           name: string
           phone: string | null
           position: string | null
+          shift_id: string | null
           status: Database["public"]["Enums"]["employee_status"]
           unit_id: string | null
           updated_at: string
@@ -135,6 +157,7 @@ export type Database = {
           name: string
           phone?: string | null
           position?: string | null
+          shift_id?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           unit_id?: string | null
           updated_at?: string
@@ -149,6 +172,7 @@ export type Database = {
           name?: string
           phone?: string | null
           position?: string | null
+          shift_id?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           unit_id?: string | null
           updated_at?: string
@@ -393,6 +417,36 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      work_shifts: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          late_tolerance_minutes: number
+          name: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          late_tolerance_minutes?: number
+          name: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          late_tolerance_minutes?: number
+          name?: string
+          start_time?: string
+          updated_at?: string
         }
         Relationships: []
       }
