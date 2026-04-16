@@ -110,9 +110,15 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
             } as React.CSSProperties}
           >
             <TableRow className="border-none hover:bg-transparent">
+              <TableHead 
+                className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center
+                  ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
+              >
+                No.
+              </TableHead>
               {/* STICKY COLUMN HEADER: NAMA */}
               <TableHead 
-                className={`sticky left-0 z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold 
+                className={`sticky left-[41px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold 
                   ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
               >
                 Nama
@@ -120,33 +126,33 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
 
               {activeTab === "personal" && (
                 <>
-                  <TableHead className="w-[120px] font-semibold">ID Karyawan</TableHead>
-                  <TableHead className="w-[100px] font-semibold">Jenis Kelamin</TableHead>
-                  <TableHead className="w-[100px] font-semibold">Kewarganegaraan</TableHead>
-                  <TableHead className="w-[150px] font-semibold">Data Identitas</TableHead>
-                  <TableHead className="w-[120px] font-semibold">Tanggal Lahir</TableHead>
-                  <TableHead className="w-[100px] font-semibold">Agama</TableHead>
+                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">ID Karyawan</TableHead>
+                  <TableHead className="w-[130px] font-semibold border-r border-gray-200">Jenis Kelamin</TableHead>
+                  <TableHead className="w-[100px] font-semibold border-r border-gray-200">Kewarganegaraan</TableHead>
+                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">Data Identitas</TableHead>
+                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">Tanggal Lahir</TableHead>
+                  <TableHead className="w-[100px] font-semibold border-r border-gray-200">Agama</TableHead>
                   <TableHead className="w-[100px] font-semibold">Pendidikan</TableHead>
                 </>
               )}
 
               {activeTab === "contact" && (
                 <>
-                  <TableHead className="w-[150px] font-semibold">WhatsApp</TableHead>
-                  <TableHead className="w-[180px] font-semibold">Email</TableHead>
-                  <TableHead className="w-[250px] font-semibold">Alamat</TableHead>
+                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">WhatsApp</TableHead>
+                  <TableHead className="w-[180px] font-semibold border-r border-gray-200">Email</TableHead>
+                  <TableHead className="w-[250px] font-semibold border-r border-gray-200">Alamat</TableHead>
                   <TableHead className="w-[250px] font-semibold">Domisili</TableHead>
                 </>
               )}
 
               {activeTab === "employment" && (
                 <>
-                  <TableHead className="w-[120px] font-semibold">ID Karyawan</TableHead>
-                  <TableHead className="w-[100px] font-semibold">Status</TableHead>
-                  <TableHead className="w-[150px] font-semibold">Unit Kerja</TableHead>
-                  <TableHead className="w-[150px] font-semibold">Jabatan</TableHead>
-                  <TableHead className="w-[120px] font-semibold">Bergabung</TableHead>
-                  <TableHead className="w-[120px] font-semibold">Masa Kerja</TableHead>
+                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">ID Karyawan</TableHead>
+                  <TableHead className="w-[100px] font-semibold border-r border-gray-200">Status</TableHead>
+                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">Unit Kerja</TableHead>
+                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">Jabatan</TableHead>
+                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">Bergabung</TableHead>
+                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">Masa Kerja</TableHead>
                   <TableHead className="w-[120px] font-semibold">Akhir Kontrak</TableHead>
                 </>
               )}
@@ -156,52 +162,55 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
             {employees.map((emp) => (
               <TableRow 
                 key={emp.id} 
-                className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b text-xs"
+                className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                 onClick={() => onViewDetail(emp)}
               >
+                <TableCell className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[40px] max-w-[40px] min-w-[40px] group-hover:bg-[#f8fafc] py-1.5 text-slate-500 ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}>
+                  {employees.indexOf(emp) + 1}
+                </TableCell>
                 {/* STICKY COLUMN CELL: NAMA */}
-                <TableCell className={`sticky left-0 z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 text-xs truncate text-slate-900 ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}>
+                <TableCell className={`sticky left-[41px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 truncate text-slate-900 ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}>
                   {emp.name}
                 </TableCell>
 
                 {activeTab === "personal" && (
                   <>
-                    <TableCell className="text-[10px] text-slate-900 py-1.5">{emp.employee_id_number || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-xs text-slate-900">{emp.gender || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-xs text-slate-900">{emp.nationality || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-[10px] truncate max-w-[150px] text-slate-900">
+                    <TableCell className="text-slate-900 py-1.5">{emp.employee_id_number || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900">{emp.gender || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900">{emp.nationality || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">
                       {emp.identity_card_type && `${emp.identity_card_type}: `}{emp.identity_card_number || "—"}
                     </TableCell>
-                    <TableCell className="text-xs py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
                       {emp.birth_date ? new Date(emp.birth_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>
-                    <TableCell className="py-1.5 text-xs text-slate-900">{emp.religion || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-xs text-slate-900">{emp.education_level || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900">{emp.religion || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900">{emp.education_level || "—"}</TableCell>
                   </>
                 )}
 
                 {activeTab === "contact" && (
                   <>
-                    <TableCell className="text-xs text-slate-900 py-1.5">{emp.whatsapp_number || "—"}</TableCell>
-                    <TableCell className="text-xs py-1.5 truncate max-w-[180px] text-slate-900">{emp.email || "—"}</TableCell>
-                    <TableCell className="text-xs py-1.5 text-slate-900 truncate max-w-[200px]">{emp.address || "—"}</TableCell>
-                    <TableCell className="text-xs py-1.5 text-slate-900 truncate max-w-[200px]">{emp.address_domicile || "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5">{emp.whatsapp_number || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[180px] text-slate-900">{emp.email || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 truncate max-w-[200px]">{emp.address || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 truncate max-w-[200px]">{emp.address_domicile || "—"}</TableCell>
                   </>
                 )}
 
                 {activeTab === "employment" && (
                   <>
-                    <TableCell className="text-[10px] text-slate-900 py-1.5">{emp.employee_id_number || "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5">{emp.employee_id_number || "—"}</TableCell>
                     <TableCell className="py-1.5 scale-90 origin-left">{getStatusBadge(emp.status)}</TableCell>
-                    <TableCell className="text-xs py-1.5 truncate max-w-[150px] text-slate-900">{emp.units?.name || "—"}</TableCell>
-                    <TableCell className="text-xs py-1.5 truncate max-w-[150px] text-slate-900">{emp.position || "—"}</TableCell>
-                    <TableCell className="text-xs py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.units?.name || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.position || "—"}</TableCell>
+                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
                       {emp.join_date ? new Date(emp.join_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>
-                    <TableCell className="text-[10px] font-normal py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="font-normal py-1.5 whitespace-nowrap text-slate-900">
                       {calculateMasaKerja(emp.join_date)}
                     </TableCell>
-                    <TableCell className="text-xs py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
                       {emp.contract_end_date ? new Date(emp.contract_end_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>
                   </>

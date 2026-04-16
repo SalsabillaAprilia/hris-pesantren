@@ -177,12 +177,6 @@ export default function EmployeesPage() {
         shift_id: form.shift_id || null,
       };
 
-      // Tambahkan fallback untuk field lama yang mungkin masih wajib di database
-      if (form.whatsapp_number || (form as any).phone) {
-        profileUpdates.phone = form.whatsapp_number || (form as any).phone || null;
-      }
-
-
       if (dialogMode === "create") {
          console.log("Mencoba mendaftarkan user baru:", form.email);
          
@@ -485,7 +479,7 @@ export default function EmployeesPage() {
               placeholder="Cari nama atau ID..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
-              className="pl-9 h-9 text-xs shadow-sm border-muted-foreground/20" 
+              className="pl-9 h-9 text-sm shadow-sm border-muted-foreground/20" 
             />
           </div>
           <EmployeeFilterDrawer filters={filters} setFilters={setFilters} units={units} hasActiveFilters={Object.values(filters).some(v => v !== "all")} onReset={() => setFilters({ unit_id: "all", position: "all", status: "all", tenure: "all", gender: "all", education: "all", religion: "all" })} />

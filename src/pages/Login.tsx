@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => localStorage.getItem("remembered_email") || "");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem("remembered_email"));
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -17,6 +19,14 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Handle "Remember Me" for email
+    if (rememberMe) {
+      localStorage.setItem("remembered_email", email);
+    } else {
+      localStorage.removeItem("remembered_email");
+    }
+
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
@@ -65,6 +75,19 @@ export default function Login() {
                 placeholder="••••••••"
                 required
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="remember" 
+                checked={rememberMe} 
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              />
+              <Label 
+                htmlFor="remember" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Ingat saya
+              </Label>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Memproses..." : "Masuk"}

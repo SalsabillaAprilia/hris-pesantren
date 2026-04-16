@@ -117,6 +117,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px] text-center">No.</TableHead>
               <TableHead>Jenis</TableHead>
               <TableHead>Tanggal</TableHead>
               <TableHead>Alasan</TableHead>
@@ -125,12 +126,13 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Memuat...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
             ) : approvals.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Belum ada riwayat pengajuan</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">Belum ada riwayat pengajuan</TableCell></TableRow>
             ) : (
-              approvals.map((a) => (
-                <TableRow key={a.id}>
+              approvals.map((a, index) => (
+                <TableRow key={a.id} className="text-sm">
+                  <TableCell className="text-center text-slate-500">{index + 1}</TableCell>
                   <TableCell>{a.type === "leave" ? "Cuti" : "Izin"}</TableCell>
                   <TableCell>{format(new Date(a.start_date), "dd/MM/yy")} - {format(new Date(a.end_date), "dd/MM/yy")}</TableCell>
                   <TableCell className="max-w-[200px] truncate" title={a.reason}>{a.reason}</TableCell>

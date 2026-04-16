@@ -17,7 +17,7 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
   const [capturing, setCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const today = new Date().toISOString().split("T")[0];
+  const today = format(new Date(), "yyyy-MM-dd");
 
   const startCamera = async () => {
     setCapturing(true);

@@ -105,19 +105,18 @@ export default function WorkSchedules() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground" onClick={() => navigate("/attendance")}>
             <ArrowLeft className="h-4 w-4" />
-            Kembali ke Kehadiran
+            Kembali
           </Button>
           <div className="h-5 w-px bg-border" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Jadwal Kerja (Shifting)</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Kelola master jadwal dan toleransi keterlambatan</p>
+            <h1 className="text-2xl font-bold tracking-tight">Jadwal Kerja</h1>
           </div>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()} className="bg-primary hover:bg-primary/90 text-white">
-              <Plus className="mr-2 h-4 w-4" /> Tambah Shift
+              <Plus className="mr-2 h-4 w-4" /> Tambah
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -172,6 +171,7 @@ export default function WorkSchedules() {
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50">
+              <TableHead className="w-[50px] text-center font-semibold">No.</TableHead>
               <TableHead className="font-semibold">Nama Shift</TableHead>
               <TableHead className="font-semibold text-center">Jam Mulai</TableHead>
               <TableHead className="font-semibold text-center">Jam Selesai</TableHead>
@@ -181,12 +181,13 @@ export default function WorkSchedules() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-6">Memuat...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-6">Memuat...</TableCell></TableRow>
             ) : shifts.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Belum ada jadwal shift. Silakan buat baru.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Belum ada jadwal shift. Silakan buat baru.</TableCell></TableRow>
             ) : (
-              shifts.map((shift) => (
-                <TableRow key={shift.id}>
+              shifts.map((shift, index) => (
+                <TableRow key={shift.id} className="text-sm">
+                  <TableCell className="text-center text-slate-500">{index + 1}</TableCell>
                   <TableCell className="font-medium">{shift.name}</TableCell>
                   <TableCell className="text-center">{shift.start_time.slice(0, 5)}</TableCell>
                   <TableCell className="text-center">{shift.end_time.slice(0, 5)}</TableCell>

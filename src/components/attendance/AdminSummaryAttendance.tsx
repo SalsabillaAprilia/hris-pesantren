@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 
@@ -9,10 +10,10 @@ interface AdminSummaryAttendanceProps {
 
 export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttendanceProps) {
   const [startDate, setStartDate] = useState<string>(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+    format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd")
   );
   const [endDate, setEndDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    format(new Date(), "yyyy-MM-dd")
   );
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -92,9 +93,9 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-sm w-40" />
+        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-sm w-[135px] h-9 px-2" />
         <span className="text-muted-foreground text-sm">—</span>
-        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-sm w-40" />
+        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-sm w-[135px] h-9 px-2" />
       </div>
 
       <div className="relative border rounded-md bg-white flex flex-col">
@@ -111,7 +112,13 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
             >
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead
-                  className={`sticky left-0 z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
+                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center
+                    ${isScrolled ? 'bg-muted' : ''}`}
+                >
+                  No.
+                </TableHead>
+                <TableHead
+                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
                     ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
                 >
                   Nama
@@ -129,29 +136,32 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-xs text-muted-foreground">Memuat...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
               ) : summaryData.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-xs text-muted-foreground">Tidak ada data untuk periode ini</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-sm text-muted-foreground">Tidak ada data untuk periode ini</TableCell></TableRow>
               ) : (
                 summaryData.map((stat) => (
-                  <TableRow key={stat.employee_id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-xs">
+                  <TableRow key={stat.employee_id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-sm">
+                    <TableCell className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[40px] max-w-[40px] min-w-[40px] group-hover:bg-[#f8fafc] py-1.5 text-slate-500`}>
+                      {summaryData.indexOf(stat) + 1}
+                    </TableCell>
                     <TableCell
-                      className={`sticky left-0 z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 text-xs truncate text-slate-900
+                      className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 truncate text-slate-900
                         ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}
                     >
                       {stat.name}
                     </TableCell>
-                    <TableCell className="text-[10px] text-slate-900 py-1.5">{stat.employee_id_number}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 text-center">{stat.hadir}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 text-center">{stat.telat}</TableCell>
-                    <TableCell className="text-xs py-1.5 text-center">
+                    <TableCell className="text-slate-900 py-1.5">{stat.employee_id_number}</TableCell>
+                    <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.hadir}</TableCell>
+                    <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.telat}</TableCell>
+                    <TableCell className="text-sm py-1.5 text-center">
                       {stat.total_late_minutes > 0 ? <span className="text-red-500 font-medium">{stat.total_late_minutes}mnt</span> : "—"}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 text-center">{stat.overtime > 0 ? `${stat.overtime}mnt` : "—"}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 text-center">{stat.cuti}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 text-center">{stat.sakit}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 text-center">{stat.izin}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 text-center">{stat.mangkir}</TableCell>
+                    <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.overtime > 0 ? `${stat.overtime}mnt` : "—"}</TableCell>
+                    <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.cuti}</TableCell>
+                    <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.sakit}</TableCell>
+                    <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.izin}</TableCell>
+                    <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.mangkir}</TableCell>
                   </TableRow>
                 ))
               )}

@@ -9,7 +9,7 @@ interface AdminDailyAttendanceProps {
 }
 
 export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceProps) {
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
@@ -62,12 +62,12 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <div className="w-48">
+        <div className="w-[135px]">
           <Input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-sm"
+            className="text-sm h-9 px-2"
           />
         </div>
       </div>
@@ -86,7 +86,13 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
             >
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead
-                  className={`sticky left-0 z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
+                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center
+                    ${isScrolled ? 'bg-muted' : ''}`}
+                >
+                  No.
+                </TableHead>
+                <TableHead
+                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
                     ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
                 >
                   Nama
@@ -104,29 +110,32 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-xs text-muted-foreground">Memuat...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
               ) : filteredRecords.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-xs text-muted-foreground">Tidak ada data untuk tanggal ini</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-sm text-muted-foreground">Tidak ada data untuk tanggal ini</TableCell></TableRow>
               ) : (
                 filteredRecords.map((r) => (
-                  <TableRow key={r.id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-xs">
+                  <TableRow key={r.id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-sm">
+                    <TableCell className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[40px] max-w-[40px] min-w-[40px] group-hover:bg-[#f8fafc] py-1.5 text-slate-500`}>
+                      {filteredRecords.indexOf(r) + 1}
+                    </TableCell>
                     <TableCell
-                      className={`sticky left-0 z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 text-xs truncate text-slate-900
+                      className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 truncate text-slate-900
                         ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}
                     >
                       {r.employees?.name ?? "—"}
                     </TableCell>
-                    <TableCell className="text-[10px] text-slate-900 py-1.5">{r.employees?.employee_id_number ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 truncate max-w-[130px]">{r.employees?.units?.name ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5 truncate max-w-[130px]">{r.employees?.position ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5">{r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5">{r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}</TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5">{r.overtime_minutes ? `${r.overtime_minutes}mnt` : "—"}</TableCell>
-                    <TableCell className="text-xs py-1.5">
+                    <TableCell className="text-slate-900 py-1.5">{r.employees?.employee_id_number ?? "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px]">{r.employees?.units?.name ?? "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px]">{r.employees?.position ?? "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5">{r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5">{r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5">{r.overtime_minutes ? `${r.overtime_minutes}mnt` : "—"}</TableCell>
+                    <TableCell className="py-1.5">
                       {r.late_minutes ? <span className="text-red-500 font-medium">{r.late_minutes}mnt</span> : "—"}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-900 py-1.5">{r.daily_status ?? "Hadir"}</TableCell>
-                    <TableCell className="text-xs text-slate-500 py-1.5 truncate max-w-[120px]">{r.notes ?? "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5">{r.daily_status ?? "Hadir"}</TableCell>
+                    <TableCell className="text-slate-500 py-1.5 truncate max-w-[120px]">{r.notes ?? "—"}</TableCell>
                   </TableRow>
                 ))
               )}

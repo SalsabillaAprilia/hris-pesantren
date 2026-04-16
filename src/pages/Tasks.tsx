@@ -131,6 +131,7 @@ export default function Tasks() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px] text-center">No.</TableHead>
               <TableHead>Judul</TableHead>
               <TableHead>Ditugaskan Ke</TableHead>
               <TableHead>Tenggat</TableHead>
@@ -140,12 +141,13 @@ export default function Tasks() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Memuat...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
             ) : tasks.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Tidak ada tugas</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Tidak ada tugas</TableCell></TableRow>
             ) : (
-              tasks.map((t) => (
-                <TableRow key={t.id}>
+              tasks.map((t, index) => (
+                <TableRow key={t.id} className="text-sm">
+                  <TableCell className="text-center text-slate-500">{index + 1}</TableCell>
                   <TableCell className="font-medium">{t.title}</TableCell>
                   <TableCell>{t.employees?.name ?? "—"}</TableCell>
                   <TableCell>{t.due_date ? format(new Date(t.due_date), "dd/MM/yy") : "—"}</TableCell>

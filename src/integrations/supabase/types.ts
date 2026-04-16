@@ -140,13 +140,29 @@ export type Database = {
           id: string
           join_date: string
           name: string
-          phone: string | null
           position: string | null
           shift_id: string | null
           status: Database["public"]["Enums"]["employee_status"]
           unit_id: string | null
           updated_at: string
           user_id: string
+          employee_id_number: string | null
+          gender: string | null
+          nationality: string | null
+          birth_date: string | null
+          birth_place: string | null
+          religion: string | null
+          marital_status: string | null
+          identity_card_type: string | null
+          identity_card_number: string | null
+          whatsapp_number: string | null
+          address: string | null
+          address_domicile: string | null
+          education_level: string | null
+          education_institution: string | null
+          education_major: string | null
+          contract_end_date: string | null
+          attachment_url: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -155,13 +171,29 @@ export type Database = {
           id?: string
           join_date?: string
           name: string
-          phone?: string | null
           position?: string | null
           shift_id?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           unit_id?: string | null
           updated_at?: string
           user_id: string
+          employee_id_number?: string | null
+          gender?: string | null
+          nationality?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          religion?: string | null
+          marital_status?: string | null
+          identity_card_type?: string | null
+          identity_card_number?: string | null
+          whatsapp_number?: string | null
+          address?: string | null
+          address_domicile?: string | null
+          education_level?: string | null
+          education_institution?: string | null
+          education_major?: string | null
+          contract_end_date?: string | null
+          attachment_url?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -170,13 +202,29 @@ export type Database = {
           id?: string
           join_date?: string
           name?: string
-          phone?: string | null
           position?: string | null
           shift_id?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
           unit_id?: string | null
           updated_at?: string
           user_id?: string
+          employee_id_number?: string | null
+          gender?: string | null
+          nationality?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          religion?: string | null
+          marital_status?: string | null
+          identity_card_type?: string | null
+          identity_card_number?: string | null
+          whatsapp_number?: string | null
+          address?: string | null
+          address_domicile?: string | null
+          education_level?: string | null
+          education_institution?: string | null
+          education_major?: string | null
+          contract_end_date?: string | null
+          attachment_url?: string | null
         }
         Relationships: [
           {

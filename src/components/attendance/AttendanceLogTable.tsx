@@ -70,9 +70,15 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
             style={{ "--sticky-offset": "0px" } as React.CSSProperties}
           >
             <TableRow className="border-none hover:bg-transparent">
+              <TableHead 
+                className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center
+                  ${isScrolled ? 'bg-muted' : ''}`}
+              >
+                No.
+              </TableHead>
               {isAdminOrHr && (
                 <TableHead
-                  className={`sticky left-0 z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
+                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
                     ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
                 >
                   Karyawan
@@ -86,34 +92,37 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={isAdminOrHr ? 4 : 3} className="text-center py-8 text-xs text-muted-foreground">
+                <TableCell colSpan={isAdminOrHr ? 5 : 4} className="text-center py-8 text-sm text-muted-foreground">
                   Memuat...
                 </TableCell>
               </TableRow>
             ) : records.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdminOrHr ? 4 : 3} className="text-center py-8 text-xs text-muted-foreground">
+                <TableCell colSpan={isAdminOrHr ? 5 : 4} className="text-center py-8 text-sm text-muted-foreground">
                   Belum ada data absensi
                 </TableCell>
               </TableRow>
             ) : (
               records.map((r) => (
-                <TableRow key={r.id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-xs">
+                <TableRow key={r.id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-sm">
+                  <TableCell className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[40px] max-w-[40px] min-w-[40px] group-hover:bg-[#f8fafc] py-1.5 text-slate-500 ${!isAdminOrHr && isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : ''}`}>
+                    {records.indexOf(r) + 1}
+                  </TableCell>
                   {isAdminOrHr && (
                     <TableCell
-                      className={`sticky left-0 z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 text-xs truncate text-slate-900
+                      className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 truncate text-slate-900
                         ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}
                     >
                       {r.employees?.name ?? "—"}
                     </TableCell>
                   )}
-                  <TableCell className="text-xs text-slate-900 py-1.5">
+                  <TableCell className="text-slate-900 py-1.5">
                     {format(new Date(r.date), "dd MMM yyyy")}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-900 py-1.5">
+                  <TableCell className="text-slate-900 py-1.5">
                     {r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-900 py-1.5">
+                  <TableCell className="text-slate-900 py-1.5">
                     {r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}
                   </TableCell>
                 </TableRow>

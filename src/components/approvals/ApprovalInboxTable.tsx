@@ -33,6 +33,7 @@ export function ApprovalInboxTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[50px] text-center">No.</TableHead>
             <TableHead>Karyawan</TableHead>
             <TableHead>Jenis</TableHead>
             <TableHead>Tanggal</TableHead>
@@ -43,12 +44,13 @@ export function ApprovalInboxTable({
         </TableHeader>
         <TableBody>
           {loading ? (
-            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Memuat...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
           ) : approvals.length === 0 ? (
-            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Tidak ada antrean persetujuan</TableCell></TableRow>
+            <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">Tidak ada antrean persetujuan</TableCell></TableRow>
           ) : (
-            approvals.map((a) => (
-              <TableRow key={a.id}>
+            approvals.map((a, index) => (
+              <TableRow key={a.id} className="text-sm">
+                <TableCell className="text-center text-slate-500">{index + 1}</TableCell>
                 <TableCell className="font-medium">{a.employees?.name ?? "—"}</TableCell>
                 <TableCell>{a.type === "leave" ? "Cuti" : "Izin"}</TableCell>
                 <TableCell>{format(new Date(a.start_date), "dd/MM/yy")} - {format(new Date(a.end_date), "dd/MM/yy")}</TableCell>

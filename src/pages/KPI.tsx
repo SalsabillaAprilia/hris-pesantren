@@ -168,13 +168,15 @@ export default function KPI() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[40px] text-center">No.</TableHead>
                       <TableHead>Indikator</TableHead>
                       <TableHead className="text-right">Bobot</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {getIndicators(t.id).map((ind) => (
-                      <TableRow key={ind.id}>
+                    {getIndicators(t.id).map((ind, idx) => (
+                      <TableRow key={ind.id} className="text-sm">
+                        <TableCell className="text-center text-slate-500">{idx + 1}</TableCell>
                         <TableCell>{ind.name}</TableCell>
                         <TableCell className="text-right font-medium">{ind.weight}%</TableCell>
                       </TableRow>

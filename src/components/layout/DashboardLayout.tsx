@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
+import { QuickAttendanceDialog } from "../attendance/QuickAttendanceDialog";
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,8 +9,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center border-b bg-card px-4 shrink-0">
-            <SidebarTrigger className="mr-4" />
+          <header className="h-14 flex items-center justify-between border-b bg-card px-4 shrink-0">
+            <div className="flex items-center">
+              <SidebarTrigger className="mr-4" />
+            </div>
+            <QuickAttendanceDialog />
           </header>
           <main className="flex-1 p-6 overflow-auto animate-fade-in">
             {children}
