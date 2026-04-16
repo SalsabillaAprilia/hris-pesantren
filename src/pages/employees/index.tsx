@@ -77,24 +77,26 @@ export default function EmployeesPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch concurrently but handle each result safely
-      const empRes = await supabase.from("employees").select("*").order("name");
+      // Fetch concurrently but handle each result safely using timeout wrapper
+      const [empRes, unitRes, shiftRes, rolesRes] = await Promise.all([
+        supabaseFetchWithTimeout(supabase.from("employees").select("*").order("name"), 20000),
+        supabaseFetchWithTimeout(supabase.from("units").select("*"), 20000),
+        supabaseFetchWithTimeout(supabase.from("work_shifts").select("*").order("name"), 20000),
+        supabaseFetchWithTimeout(supabase.from("user_roles").select("*"), 20000)
+      ]);
+
       if (empRes.error) {
         console.error("Error fetching employees:", empRes.error);
         if (empRes.error.code !== "PGRST116") throw empRes.error;
       }
 
-      const unitRes = await supabase.from("units").select("*");
       if (unitRes.error) console.error("Error fetching units:", unitRes.error);
-
-      const shiftRes = await supabase.from("work_shifts").select("*").order("name");
       if (shiftRes.error) console.error("Error fetching shifts:", shiftRes.error);
       
       const allUnits = unitRes.data || [];
-      const rolesRes = await supabase.from("user_roles").select("*");
+      const rolesMap = rolesRes.data || [];
       
       if (empRes.data) {
-        const rolesMap = rolesRes.data || [];
         setEmployees(empRes.data.map(emp => ({ 
           ...emp, 
           // Petakan unit secara manual untuk menghindari join circular
@@ -106,12 +108,8 @@ export default function EmployeesPage() {
       if (unitRes.data) setUnits(unitRes.data);
       if (shiftRes.data) setShifts(shiftRes.data);
     } catch (err: any) { 
-      console.error("Employees: Fetch Data Error Details:", {
-        message: err.message,
-        status: err.status,
-        code: err.code
-      });
-      toast.error("Gagal memuat data karyawan: " + (err.message || "Timeout"));
+      console.error("Employees: Fetch Data Error Details:", err);
+      toast.error("Gagal memuat data karyawan. Koneksi mungkin terputus.");
     } finally { 
       setLoading(false); 
     }

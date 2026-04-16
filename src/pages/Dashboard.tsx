@@ -79,7 +79,6 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="page-header">
         <h1 className="page-title">Dashboard</h1>
-        <p className="page-description">Ringkasan data organisasi pesantren</p>
       </div>
 
       <div className="mb-8 max-w-2xl">

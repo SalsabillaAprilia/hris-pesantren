@@ -69,8 +69,8 @@ export default function Attendance() {
         <Tabs defaultValue="harian" className="w-full">
           <div className="flex items-center justify-between mb-3">
             <TabsList className="grid grid-cols-2 bg-muted/50 h-9 rounded-lg w-64">
-              <TabsTrigger value="harian" className="text-sm">Harian</TabsTrigger>
-              <TabsTrigger value="ringkasan" className="text-sm">Ringkasan</TabsTrigger>
+              <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
+              <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
             </TabsList>
             <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all font-medium" onClick={() => navigate("/work-schedules")}>
               <CalendarClock className="h-4 w-4 text-primary" />
@@ -99,10 +99,10 @@ export default function Attendance() {
         {isAdminOrHr ? (
           <div className="flex items-center justify-between mb-3">
             <TabsList className="grid grid-cols-4 bg-muted/50 h-9 rounded-lg">
-              <TabsTrigger value="harian" className="text-sm">Rekap Harian</TabsTrigger>
-              <TabsTrigger value="ringkasan" className="text-sm">Ringkasan</TabsTrigger>
-              <TabsTrigger value="presensi" className="text-sm">Presensi Pribadi</TabsTrigger>
-              <TabsTrigger value="cuti_izin" className="text-sm">Cuti & Izin</TabsTrigger>
+              <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
+              <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
+              <TabsTrigger value="presensi" className="text-xs">Presensi Pribadi</TabsTrigger>
+              <TabsTrigger value="cuti_izin" className="text-xs">Cuti & Izin</TabsTrigger>
             </TabsList>
             <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all font-medium" onClick={() => navigate("/work-schedules")}>
               <CalendarClock className="h-4 w-4 text-primary" />
@@ -111,8 +111,8 @@ export default function Attendance() {
           </div>
         ) : (
           <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
-            <TabsTrigger value="presensi" className="text-sm">Presensi Pribadi</TabsTrigger>
-            <TabsTrigger value="cuti_izin" className="text-sm">Cuti & Izin</TabsTrigger>
+            <TabsTrigger value="presensi" className="text-xs">Presensi Pribadi</TabsTrigger>
+            <TabsTrigger value="cuti_izin" className="text-xs">Cuti & Izin</TabsTrigger>
           </TabsList>
         )}
 

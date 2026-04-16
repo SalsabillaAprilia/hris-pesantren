@@ -7,43 +7,54 @@ import { toast } from "sonner";
  */
 export async function supabaseFetchWithTimeout<T>(
   promise: Promise<T> | PromiseLike<T>,
-  timeoutMs: number = 15000
+  timeoutMs: number = 60000 // Increased to 60s for better background tab compatibility
 ): Promise<T> {
   let timeoutId: NodeJS.Timeout;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
-      reject(new Error("Supabase_Timeout"));
+      // Only reject if the tab is visible. If hidden, ignore timeout for now as browser might be throttling.
+      if (document.visibilityState === "visible") {
+        reject(new Error("Supabase_Timeout"));
+      } else {
+        // If hidden, we don't reject yet. We'll let it stay pending or wait until visible.
+        console.log("SupabaseFetch: Request prolonged in background, but ignoring timeout while hidden.");
+      }
     }, timeoutMs);
   });
 
   try {
-    console.log("SupabaseFetch: Initiating request...");
     const result = await Promise.race([promise, timeoutPromise]);
-    console.log("SupabaseFetch: Request completed successfully.");
     return result;
   } catch (err: any) {
+    // If it timed out, we check if it's a real issue
     if (err.message === "Supabase_Timeout") {
-      toast.error("Sesi berakhir atau koneksi terputus. Silakan login kembali.", { duration: 3000 });
-      setTimeout(() => {
-        supabase.auth.signOut().then(() => {
-          localStorage.clear();
-          window.location.href = "/login";
-        });
-      }, 1500);
+      console.warn("SupabaseFetch: Request timed out after 60s.");
+      // We don't force logout anymore. Just notify.
+      toast.error("Koneksi tidak stabil. Jika data tidak muncul, silakan segarkan halaman.", {
+        description: "Permintaan data membutuhkan waktu lebih lama dari biasanya."
+      });
     } else {
       console.error("Fetch Data Error:", err);
-      if (err?.code === "PGRST301" || err?.message?.includes("JWT")) {
-         toast.error("Sesi otentikasi telah berakhir. Silakan masuk kembali.");
-         setTimeout(() => {
-           supabase.auth.signOut().then(() => window.location.href = "/login");
-         }, 1500);
-      } else {
-        toast.error("Gagal memuat data: " + (err.message || "Terjadi kesalahan"));
+      // Handle actual Auth failures (JWT expired)
+      if (err?.code === "PGRST301" || err?.message?.includes("JWT") || err?.status === 401) {
+         console.warn("Auth Session Expired. Redirecting to login...");
+         toast.error("Sesi telah berakhir. Silakan masuk kembali.");
+         
+         // Only redirect if we are not already at login
+         if (window.location.pathname !== "/login") {
+           setTimeout(() => {
+             supabase.auth.signOut().then(() => {
+               localStorage.clear();
+               sessionStorage.clear();
+               window.location.href = "/login";
+             });
+           }, 2000);
+         }
       }
     }
     throw err;
   } finally {
-    clearTimeout(timeoutId!);
+    if (timeoutId!) clearTimeout(timeoutId);
   }
 }

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import type { User } from "@supabase/supabase-js";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -25,64 +26,116 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserData = async (userId: string) => {
-    try {
-      const [empRes, rolesRes] = await Promise.all([
-        supabase.from("employees").select("*").eq("user_id", userId).single(),
-        supabase.from("user_roles").select("role").eq("user_id", userId),
-      ]);
-      
-      if (empRes.error && empRes.error.code !== "PGRST116") {
-        console.error("Error fetching employee:", empRes.error);
-      }
-      if (rolesRes.error) {
-        console.error("Error fetching roles:", rolesRes.error);
-      }
+  const [lastRefresh, setLastRefresh] = useState<number>(0);
 
-      if (empRes.data) setEmployee(empRes.data);
-      if (rolesRes.data) setRoles(rolesRes.data.map((r) => r.role as AppRole));
+  const refreshSession = async (force: boolean = false) => {
+    const now = Date.now();
+    
+    // Performance Optimization: Skip full refresh if it was done recently (< 5 minutes)
+    // and we already have the user and employee data.
+    if (!force && lastRefresh > 0 && (now - lastRefresh < 300000) && user && employee) {
+      console.log("Auth: Session is fresh, skipping metadata fetch.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabaseFetchWithTimeout(supabase.auth.getSession(), 20000);
+      const u = session?.user ?? null;
+      
+      if (u) {
+        // Only fetch profile metadata if missing, forced, or specifically user changed
+        if (!employee || !roles.length || force || u.id !== user?.id) {
+          console.log("Auth: Fetching profile metadata...");
+          const [empRes, rolesRes] = await Promise.all([
+            supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("user_id", u.id).single(), 20000),
+            supabaseFetchWithTimeout(supabase.from("user_roles").select("role").eq("user_id", u.id), 20000),
+          ]);
+          
+          if (empRes?.data) setEmployee(empRes.data);
+          if (rolesRes?.data) setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
+        }
+        
+        setUser(u);
+        setLastRefresh(now);
+      } else {
+        setUser(null);
+        setEmployee(null);
+        setRoles([]);
+      }
     } catch (err) {
-      console.error("Unexpected error in fetchUserData:", err);
+      console.error("Auth: Session refresh failed:", err);
+      if (!user) setUser(null); 
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    
-    // Fail-safe: jika Supabase terlalu lambat (misal project paused), paksa loading selesai
-    const fallback = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 15000);
+    let visibilityTimeout: NodeJS.Timeout;
+
+    // Initial session check (forced)
+    refreshSession(true);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (!mounted) return;
-        const u = session?.user ?? null;
-        setUser(u);
-        if (u) {
-          await fetchUserData(u.id);
-        } else {
+        console.log("Auth Event:", event);
+        
+        if (event === 'SIGNED_OUT' || !session) {
+          setUser(null);
           setEmployee(null);
           setRoles([]);
+          setLoading(false);
+          setLastRefresh(0);
+          return;
         }
-        if (mounted) { setLoading(false); clearTimeout(fallback); }
+
+        const u = session.user;
+        try {
+          // Optimization: If it's just a token refresh and we already have data, don't block
+          if (event === 'TOKEN_REFRESHED' && employee && u.id === user?.id) {
+            setUser(u);
+            return;
+          }
+
+          const [empRes, rolesRes] = await Promise.all([
+            supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("user_id", u.id).single(), 20000),
+            supabaseFetchWithTimeout(supabase.from("user_roles").select("role").eq("user_id", u.id), 20000),
+          ]);
+          
+          if (empRes?.data) setEmployee(empRes.data);
+          if (rolesRes?.data) setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
+          setUser(u);
+          setLastRefresh(Date.now());
+        } catch (err) {
+          console.error("Auth: State change metadata fetch failed:", err);
+          setUser(u); 
+        } finally {
+          setLoading(false);
+        }
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        await fetchUserData(u.id);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && mounted) {
+        // Small debounce to prevent rapid re-triggering and give browser time to wake up
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(() => {
+          console.log("Tab focused, performed smart refresh check.");
+          refreshSession(false);
+        }, 1000);
       }
-      if (mounted) { setLoading(false); clearTimeout(fallback); }
-    });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       mounted = false;
-      clearTimeout(fallback);
       subscription.unsubscribe();
+      clearTimeout(visibilityTimeout);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

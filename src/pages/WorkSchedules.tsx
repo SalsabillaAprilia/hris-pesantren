@@ -101,24 +101,32 @@ export default function WorkSchedules() {
 
   return (
     <DashboardLayout>
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground" onClick={() => navigate("/attendance")}>
-            <ArrowLeft className="h-4 w-4" />
-            Kembali
-          </Button>
-          <div className="h-5 w-px bg-border" />
+      <div className="flex flex-col space-y-4 mb-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Jadwal Kerja</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Jadwal Kerja</h1>
           </div>
-        </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()} className="bg-primary hover:bg-primary/90 text-white">
-              <Plus className="mr-2 h-4 w-4" /> Tambah
+          
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all font-medium" 
+              onClick={() => navigate("/attendance")}
+            >
+              <ArrowLeft className="h-4 w-4 text-primary" /> Kembali
             </Button>
-          </DialogTrigger>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  onClick={() => handleOpenDialog()} 
+                  size="sm"
+                  className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium"
+                >
+                  <Plus className="h-4 w-4" /> Tambah
+                </Button>
+              </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingShift ? "Edit Jadwal Shift" : "Tambah Jadwal Shift Baru"}</DialogTitle>
@@ -165,47 +173,79 @@ export default function WorkSchedules() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+          </div>
+        </div>
 
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50">
-              <TableHead className="w-[50px] text-center font-semibold">No.</TableHead>
-              <TableHead className="font-semibold">Nama Shift</TableHead>
-              <TableHead className="font-semibold text-center">Jam Mulai</TableHead>
-              <TableHead className="font-semibold text-center">Jam Selesai</TableHead>
-              <TableHead className="font-semibold text-center">Toleransi Keterlambatan</TableHead>
-              <TableHead className="text-right font-semibold">Tindakan</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-6">Memuat...</TableCell></TableRow>
-            ) : shifts.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Belum ada jadwal shift. Silakan buat baru.</TableCell></TableRow>
-            ) : (
-              shifts.map((shift, index) => (
-                <TableRow key={shift.id} className="text-sm">
-                  <TableCell className="text-center text-slate-500">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{shift.name}</TableCell>
-                  <TableCell className="text-center">{shift.start_time.slice(0, 5)}</TableCell>
-                  <TableCell className="text-center">{shift.end_time.slice(0, 5)}</TableCell>
-                  <TableCell className="text-center">{shift.late_tolerance_minutes} Menit</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="icon" onClick={() => handleOpenDialog(shift)}>
-                      <Pencil className="h-4 w-4 text-blue-600" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleDelete(shift.id)}>
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
+      <div className="relative border rounded-md bg-white flex flex-col">
+        <div className="overflow-x-auto overflow-y-visible flex-1 h-auto relative">
+          <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[800px]">
+            <TableHeader className="bg-muted transition-none">
+              <TableRow className="border-none hover:bg-transparent">
+                <TableHead className="w-[60px] text-center font-semibold text-slate-900 py-3 border-b border-r border-gray-200">No.</TableHead>
+                <TableHead className="font-semibold text-slate-900 py-3 border-b border-r border-gray-200">Nama Shift</TableHead>
+                <TableHead className="font-semibold text-slate-900 py-3 text-center border-b border-r border-gray-200">Jam Mulai</TableHead>
+                <TableHead className="font-semibold text-slate-900 py-3 text-center border-b border-r border-gray-200">Jam Selesai</TableHead>
+                <TableHead className="font-semibold text-slate-900 py-3 text-center border-b border-r border-gray-200">Toleransi Keterlambatan</TableHead>
+                <TableHead className="text-right font-semibold text-slate-900 py-3 border-b">Tindakan</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Memuat data jadwal...
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : shifts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground border-b border-dashed">
+                    Belum ada jadwal shift. Silakan buat baru.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                shifts.map((shift, index) => (
+                  <TableRow 
+                    key={shift.id} 
+                    className="hover:bg-muted/50 transition-colors h-12 group border-b border-gray-200"
+                  >
+                    <TableCell className="text-center text-slate-500 py-2 border-r border-gray-100">{index + 1}</TableCell>
+                    <TableCell className="font-semibold text-slate-900 py-2 border-r border-gray-100">{shift.name}</TableCell>
+                    <TableCell className="text-center text-slate-700 py-2 border-r border-gray-100">{shift.start_time.slice(0, 5)}</TableCell>
+                    <TableCell className="text-center text-slate-700 py-2 border-r border-gray-100">{shift.end_time.slice(0, 5)}</TableCell>
+                    <TableCell className="text-center text-slate-700 py-2 border-r border-gray-100">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                        {shift.late_tolerance_minutes} Menit
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right py-2 space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                        onClick={() => handleOpenDialog(shift)}
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 hover:bg-red-50 hover:border-red-200 transition-colors"
+                        onClick={() => handleDelete(shift.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </table>
+        </div>
       </div>
-    </DashboardLayout>
+    </div>
+  </DashboardLayout>
   );
 }
