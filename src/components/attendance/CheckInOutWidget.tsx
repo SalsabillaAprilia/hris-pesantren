@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -40,7 +40,6 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
   const captureAndCheckIn = async () => {
     if (!videoRef.current || !employee) return;
 
-    // Get Geolocation
     let locationStr = "Location not available";
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -49,7 +48,6 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
       locationStr = `${position.coords.latitude}, ${position.coords.longitude}`;
     } catch (err) {
       console.warn("Could not get geolocation:", err);
-      // We still proceed even if geolocation fails, but log it.
     }
 
     const canvas = document.createElement("canvas");
@@ -76,12 +74,43 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
       });
       toast.success("Check-in berhasil!");
     } else {
+      let overtime_minutes = null;
+      try {
+        const { data: overtimeApp } = await supabase.from("approvals")
+          .select("start_time, end_time")
+          .eq("employee_id", employee.id)
+          .eq("type", "overtime")
+          .eq("start_date", today)
+          .in("status", ["approved_unit_leader", "approved_hr"])
+          .maybeSingle();
+
+        if (overtimeApp && overtimeApp.start_time && overtimeApp.end_time) {
+          const [startH, startM] = overtimeApp.start_time.split(":").map(Number);
+          const [endH, endM] = overtimeApp.end_time.split(":").map(Number);
+          const start_dt = new Date(); start_dt.setHours(startH, startM, 0, 0);
+          const end_dt = new Date(); end_dt.setHours(endH, endM, 0, 0);
+          const checkoutTime = new Date();
+          
+          const approvedMins = Math.max(0, (end_dt.getTime() - start_dt.getTime()) / 60000);
+          const actualMins = Math.max(0, (checkoutTime.getTime() - start_dt.getTime()) / 60000);
+          overtime_minutes = Math.round(Math.min(approvedMins, actualMins));
+        }
+      } catch (err) {
+        console.error("Error calculating overtime:", err);
+      }
+
       await supabase.from("attendance").update({
         check_out: new Date().toISOString(),
         check_out_location: locationStr,
-        check_out_method: 'selfie'
+        check_out_method: 'selfie',
+        overtime_minutes
       }).eq("id", todayRecord.id);
-      toast.success("Check-out berhasil!");
+      
+      if (overtime_minutes && overtime_minutes > 0) {
+        toast.success(`Check-out berhasil! Lembur tercatat: ${overtime_minutes} menit.`);
+      } else {
+        toast.success("Check-out berhasil!");
+      }
     }
 
     stopCamera();

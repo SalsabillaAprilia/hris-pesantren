@@ -23,8 +23,10 @@ export default function Login() {
     // Handle "Remember Me" for email
     if (rememberMe) {
       localStorage.setItem("remembered_email", email);
+      localStorage.setItem("use_persistent_session", "true");
     } else {
       localStorage.removeItem("remembered_email");
+      localStorage.setItem("use_persistent_session", "false");
     }
 
     const { error } = await signIn(email, password);

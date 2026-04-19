@@ -70,7 +70,6 @@ export default function Approvals() {
     <DashboardLayout>
       <div className="page-header">
         <h1 className="page-title">Persetujuan</h1>
-        <p className="page-description">Daftar pengajuan izin dan cuti yang menunggu tindak lanjut</p>
       </div>
 
       <ApprovalInboxTable 

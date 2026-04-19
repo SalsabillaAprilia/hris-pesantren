@@ -28,7 +28,8 @@ export default function WorkSchedules() {
     name: "",
     start_time: "08:00",
     end_time: "16:00",
-    late_tolerance_minutes: 15
+    late_tolerance_minutes: 15,
+    work_days: [1, 2, 3, 4, 5] // 1=Senin..7=Minggu
   });
 
   const fetchShifts = async () => {
@@ -47,9 +48,10 @@ export default function WorkSchedules() {
       setEditingShift(shift);
       setFormData({
         name: shift.name,
-        start_time: shift.start_time.slice(0, 5), // Assuming HH:mm:ss format from DB
+        start_time: shift.start_time.slice(0, 5),
         end_time: shift.end_time.slice(0, 5),
-        late_tolerance_minutes: shift.late_tolerance_minutes
+        late_tolerance_minutes: shift.late_tolerance_minutes,
+        work_days: shift.work_days || [1, 2, 3, 4, 5]
       });
     } else {
       setEditingShift(null);
@@ -57,7 +59,8 @@ export default function WorkSchedules() {
         name: "",
         start_time: "08:00",
         end_time: "16:00",
-        late_tolerance_minutes: 15
+        late_tolerance_minutes: 15,
+        work_days: [1, 2, 3, 4, 5]
       });
     }
     setIsDialogOpen(true);
@@ -66,13 +69,15 @@ export default function WorkSchedules() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) return toast.error("Nama shift harus diisi");
+    if (formData.work_days.length === 0) return toast.error("Minimal satu hari kerja harus dipilih");
 
     if (editingShift) {
       const { error } = await supabase.from("work_shifts").update({
         name: formData.name,
         start_time: formData.start_time,
         end_time: formData.end_time,
-        late_tolerance_minutes: formData.late_tolerance_minutes
+        late_tolerance_minutes: formData.late_tolerance_minutes,
+        work_days: formData.work_days
       }).eq("id", editingShift.id);
       
       if (error) toast.error("Gagal mengubah shift");
@@ -98,6 +103,25 @@ export default function WorkSchedules() {
       fetchShifts();
     }
   };
+
+  const toggleDay = (day: number) => {
+    setFormData(prev => ({
+      ...prev,
+      work_days: prev.work_days.includes(day)
+        ? prev.work_days.filter(d => d !== day)
+        : [...prev.work_days, day].sort()
+    }));
+  };
+
+  const dayNames = [
+    { value: 1, label: "Senin" },
+    { value: 2, label: "Selasa" },
+    { value: 3, label: "Rabu" },
+    { value: 4, label: "Kamis" },
+    { value: 5, label: "Jumat" },
+    { value: 6, label: "Sabtu" },
+    { value: 7, label: "Minggu" }
+  ];
 
   return (
     <DashboardLayout>
@@ -127,7 +151,7 @@ export default function WorkSchedules() {
                   <Plus className="h-4 w-4" /> Tambah
                 </Button>
               </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{editingShift ? "Edit Jadwal Shift" : "Tambah Jadwal Shift Baru"}</DialogTitle>
             </DialogHeader>
@@ -156,6 +180,21 @@ export default function WorkSchedules() {
                     value={formData.end_time} 
                     onChange={(e) => setFormData({...formData, end_time: e.target.value})} 
                   />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Hari Kerja</Label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {dayNames.map(day => (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => toggleDay(day.value)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${formData.work_days.includes(day.value) ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/80 border'}`}
+                    >
+                      {day.label}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="space-y-2">

@@ -92,10 +92,18 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-sm w-[135px] h-9 px-2" />
-        <span className="text-muted-foreground text-sm">—</span>
-        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-sm w-[135px] h-9 px-2" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Periode Laporan:</label>
+          <div className="flex items-center gap-2">
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-sm w-[135px] h-9 px-2 bg-white shadow-sm" />
+            <span className="text-muted-foreground text-sm font-medium">—</span>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-sm w-[135px] h-9 px-2 bg-white shadow-sm" />
+          </div>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Ringkasan <span className="font-bold text-slate-900">{summaryData.length}</span> karyawan
+        </div>
       </div>
 
       <div className="relative border rounded-md bg-white flex flex-col">

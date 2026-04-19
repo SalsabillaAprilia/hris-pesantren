@@ -25,6 +25,8 @@ export type Database = {
           id: string
           reason: string
           start_date: string
+          start_time: string | null
+          end_time: string | null
           status: Database["public"]["Enums"]["approval_status"]
           type: Database["public"]["Enums"]["approval_type"]
           unit_leader_notes: string | null
@@ -40,6 +42,8 @@ export type Database = {
           id?: string
           reason: string
           start_date: string
+          start_time?: string | null
+          end_time?: string | null
           status?: Database["public"]["Enums"]["approval_status"]
           type: Database["public"]["Enums"]["approval_type"]
           unit_leader_notes?: string | null
@@ -55,6 +59,8 @@ export type Database = {
           id?: string
           reason?: string
           start_date?: string
+          start_time?: string | null
+          end_time?: string | null
           status?: Database["public"]["Enums"]["approval_status"]
           type?: Database["public"]["Enums"]["approval_type"]
           unit_leader_notes?: string | null
@@ -382,6 +388,27 @@ export type Database = {
         }
         Relationships: []
       }
+      national_holidays: {
+        Row: {
+          id: string
+          date: string
+          description: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          date: string
+          description: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          date?: string
+          description?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assigned_by: string
@@ -520,7 +547,7 @@ export type Database = {
         | "approved_unit_leader"
         | "approved_hr"
         | "rejected"
-      approval_type: "leave" | "permission"
+      approval_type: "leave" | "permission" | "overtime"
       employee_status: "active" | "inactive" | "on_leave"
       task_status: "todo" | "in_progress" | "done" | "cancelled"
     }
@@ -657,7 +684,7 @@ export const Constants = {
         "approved_hr",
         "rejected",
       ],
-      approval_type: ["leave", "permission"],
+      approval_type: ["leave", "permission", "overtime"],
       employee_status: ["active", "inactive", "on_leave"],
       task_status: ["todo", "in_progress", "done", "cancelled"],
     },

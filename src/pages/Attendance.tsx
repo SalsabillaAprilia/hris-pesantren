@@ -15,7 +15,9 @@ import { AdminDailyAttendance } from "@/components/attendance/AdminDailyAttendan
 import { AdminSummaryAttendance } from "@/components/attendance/AdminSummaryAttendance";
 
 export default function Attendance() {
-  const { employee, isAdminOrHr, isSuperAdmin } = useAuth();
+  const { employee, isAdminOrHr, hasRole } = useAuth();
+  const isUnitLeader = hasRole("unit_leader");
+  const isManagerOrLeader = isAdminOrHr || isUnitLeader;
   const navigate = useNavigate();
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [globalRecords, setGlobalRecords] = useState<any[]>([]);
@@ -28,9 +30,14 @@ export default function Attendance() {
     if (!employee && !isAdminOrHr) return;
 
     try {
-      const fetchGlobal = isAdminOrHr
-        ? supabase.from("attendance").select("*, employees(*, units:unit_id(name))").order("date", { ascending: false }).limit(1000)
-        : Promise.resolve({ data: [] as any[], error: null });
+      let fetchGlobal;
+      if (isAdminOrHr) {
+         fetchGlobal = supabase.from("attendance").select("*, employees!inner(*, units:unit_id(name))").order("date", { ascending: false }).limit(1000);
+      } else if (isUnitLeader && employee?.unit_id) {
+         fetchGlobal = supabase.from("attendance").select("*, employees!inner(*, units:unit_id(name))").eq("employees.unit_id", employee.unit_id).order("date", { ascending: false }).limit(1000);
+      } else {
+         fetchGlobal = Promise.resolve({ data: [] as any[], error: null });
+      }
         
       const fetchPersonal = (employee)
         ? supabase.from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30)
@@ -56,67 +63,46 @@ export default function Attendance() {
     } finally {
       setLoading(false);
     }
-  }, [employee, isAdminOrHr, isSuperAdmin, today]);
+  }, [employee, isAdminOrHr, isUnitLeader, today]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  if (isSuperAdmin) {
-    return (
-      <DashboardLayout>
-        <div className="page-header">
-          <h1 className="page-title">Kehadiran Karyawan</h1>
-        </div>
-        <Tabs defaultValue="harian" className="w-full">
-          <div className="flex items-center justify-between mb-3">
-            <TabsList className="grid grid-cols-2 bg-muted/50 h-9 rounded-lg w-64">
-              <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
-              <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
-            </TabsList>
-            <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all font-medium" onClick={() => navigate("/work-schedules")}>
-              <CalendarClock className="h-4 w-4 text-primary" />
-              Jadwal Kerja
-            </Button>
-          </div>
-
-          <TabsContent value="harian">
-            <AdminDailyAttendance records={globalRecords} loading={loading} />
-          </TabsContent>
-          <TabsContent value="ringkasan">
-            <AdminSummaryAttendance records={globalRecords} loading={loading} />
-          </TabsContent>
-        </Tabs>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
       <div className="page-header">
         <h1 className="page-title">Kehadiran</h1>
-      </div>
-
-      <Tabs defaultValue={isAdminOrHr ? "harian" : "presensi"} className="w-full">
-        {isAdminOrHr ? (
-          <div className="flex items-center justify-between mb-3">
-            <TabsList className="grid grid-cols-4 bg-muted/50 h-9 rounded-lg">
-              <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
-              <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
-              <TabsTrigger value="presensi" className="text-xs">Presensi Pribadi</TabsTrigger>
-              <TabsTrigger value="cuti_izin" className="text-xs">Cuti & Izin</TabsTrigger>
-            </TabsList>
+        {isAdminOrHr && (
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all font-medium" onClick={() => navigate("/work-schedules")}>
               <CalendarClock className="h-4 w-4 text-primary" />
-              Jadwal Kerja
+              <span className="hidden sm:inline">Jadwal Kerja</span>
+              <span className="sm:hidden">Jadwal</span>
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all font-medium" onClick={() => navigate("/holidays")}>
+              <CalendarClock className="h-4 w-4 text-primary" />
+              <span className="hidden sm:inline">Hari Libur</span>
+              <span className="sm:hidden">Libur</span>
             </Button>
           </div>
+        )}
+      </div>
+
+      <Tabs defaultValue={isManagerOrLeader ? "harian" : "presensi"} className="w-full">
+        {isManagerOrLeader ? (
+          <TabsList className="grid grid-cols-4 mb-3 bg-muted/50 h-9 rounded-lg">
+            <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
+            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
+            <TabsTrigger value="presensi" className="text-xs">Presensi Saya</TabsTrigger>
+            <TabsTrigger value="cuti_izin" className="text-xs">Cuti & Izin</TabsTrigger>
+          </TabsList>
         ) : (
           <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
-            <TabsTrigger value="presensi" className="text-xs">Presensi Pribadi</TabsTrigger>
+            <TabsTrigger value="presensi" className="text-xs">Presensi Saya</TabsTrigger>
             <TabsTrigger value="cuti_izin" className="text-xs">Cuti & Izin</TabsTrigger>
           </TabsList>
         )}
 
-        {isAdminOrHr && (
+        {isManagerOrLeader && (
           <>
             <TabsContent value="harian">
               <AdminDailyAttendance records={globalRecords} loading={loading} />
@@ -128,11 +114,6 @@ export default function Attendance() {
         )}
 
         <TabsContent value="presensi" className="space-y-6">
-          <CheckInOutWidget 
-            employee={employee} 
-            todayRecord={todayRecord} 
-            onSuccess={fetchData} 
-          />
           <AttendanceLogTable 
             records={personalRecords} 
             loading={loading} 

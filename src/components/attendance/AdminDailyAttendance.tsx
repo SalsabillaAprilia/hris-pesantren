@@ -61,14 +61,20 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="w-[135px]">
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-sm h-9 px-2"
-          />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4">
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Tanggal Kehadiran:</label>
+          <div className="w-[150px]">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="text-sm h-9 px-3 bg-white shadow-sm"
+            />
+          </div>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Menampilkan <span className="font-bold text-slate-900">{filteredRecords.length}</span> rekam kehadiran
         </div>
       </div>
 

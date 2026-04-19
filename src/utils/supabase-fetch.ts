@@ -13,13 +13,7 @@ export async function supabaseFetchWithTimeout<T>(
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
-      // Only reject if the tab is visible. If hidden, ignore timeout for now as browser might be throttling.
-      if (document.visibilityState === "visible") {
-        reject(new Error("Supabase_Timeout"));
-      } else {
-        // If hidden, we don't reject yet. We'll let it stay pending or wait until visible.
-        console.log("SupabaseFetch: Request prolonged in background, but ignoring timeout while hidden.");
-      }
+      reject(new Error("Supabase_Timeout"));
     }, timeoutMs);
   });
 

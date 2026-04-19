@@ -52,8 +52,15 @@ export function ApprovalInboxTable({
               <TableRow key={a.id} className="text-sm">
                 <TableCell className="text-center text-slate-500">{index + 1}</TableCell>
                 <TableCell className="font-medium">{a.employees?.name ?? "—"}</TableCell>
-                <TableCell>{a.type === "leave" ? "Cuti" : "Izin"}</TableCell>
-                <TableCell>{format(new Date(a.start_date), "dd/MM/yy")} - {format(new Date(a.end_date), "dd/MM/yy")}</TableCell>
+                <TableCell>
+                  {a.type === "leave" ? "Cuti" : a.type === "overtime" ? "Lembur" : "Izin"}
+                  {a.type === "overtime" && a.start_time && <span className="block text-xs text-muted-foreground">{a.start_time.slice(0,5)} - {a.end_time?.slice(0,5)}</span>}
+                </TableCell>
+                <TableCell>
+                  {a.type === "overtime" || (a.start_date === a.end_date) 
+                    ? format(new Date(a.start_date), "dd/MM/yy")
+                    : `${format(new Date(a.start_date), "dd/MM/yy")} - ${format(new Date(a.end_date), "dd/MM/yy")}`}
+                </TableCell>
                 <TableCell className="max-w-[200px] truncate" title={a.reason}>{a.reason}</TableCell>
                 <TableCell>{statusBadge(a.status)}</TableCell>
                 {(isAdminOrHr || isUnitLeader) && (

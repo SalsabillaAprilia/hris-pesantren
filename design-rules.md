@@ -152,3 +152,26 @@ Khusus untuk **Tombol Batal di Footer Form**:
   Batal
 </Button>
 ```
+
+---
+
+## 4. Navigation Tabs
+
+Tab digunakan untuk membagi konten di dalam satu halaman atau komponen tanpa perlu berpindah haluan. Layout container disesuaikan menggunakan sistem *grid* agar lebarnya seragam.
+
+**Struktur Komponen Tabs:**
+```tsx
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  <TabsList className="grid grid-cols-3 mb-3 bg-muted/50 h-9 rounded-lg">
+    <TabsTrigger value="personal" className="text-xs">Pribadi</TabsTrigger>
+    <TabsTrigger value="contact" className="text-xs">Kontak</TabsTrigger>
+    <TabsTrigger value="employment" className="text-xs">Kepegawaian</TabsTrigger>
+  </TabsList>
+  
+  {/* Diikuti oleh konten tabel atau <TabsContent> */}
+</Tabs>
+```
+
+**Panduan Class Tailwind pada Tabs:**
+- **TabsList**: Gunakan `grid grid-cols-[jumlah-tab]` (misal: `grid-cols-3`), beri margin bawah `mb-3`, warna dasar abu-abu redup `bg-muted/50`, tinggi presisi `h-9`, dan kelengkungan `rounded-lg`.
+- **TabsTrigger**: Gunakan `text-xs` (atau `text-sm`) untuk label agar ukurannya pas di dalam container `h-9` tanpa berpotensi bergeser.
