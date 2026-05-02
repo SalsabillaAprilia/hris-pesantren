@@ -2,8 +2,11 @@ import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { QuickAttendanceDialog } from "../attendance/QuickAttendanceDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
+  const { isEmployee } = useAuth();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -13,7 +16,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center">
               <SidebarTrigger className="mr-4" />
             </div>
-            <QuickAttendanceDialog />
+            {/* Tombol presensi cepat hanya untuk karyawan (employee & unit_leader) */}
+            {isEmployee && <QuickAttendanceDialog />}
           </header>
           <main className="flex-1 p-6 overflow-auto animate-fade-in">
             {children}

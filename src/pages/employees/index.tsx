@@ -35,7 +35,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function EmployeesPage() {
-  const { isAdminOrHr, isSuperAdmin } = useAuth();
+  const { isAdminOrHr, isSuperAdmin, isHr, isEmployee, hasRole, employee: currentUser } = useAuth();
+  const isUnitLeader = hasRole("unit_leader");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [units, setUnits] = useState<Tables<"units">[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
@@ -79,7 +80,13 @@ export default function EmployeesPage() {
       setLoading(true);
       // Fetch concurrently but handle each result safely using timeout wrapper
       const [empRes, unitRes, shiftRes, rolesRes] = await Promise.all([
-        supabaseFetchWithTimeout(supabase.from("employees").select("*").order("name"), 20000),
+        // Unit leader hanya melihat anggota unitnya sendiri
+        supabaseFetchWithTimeout(
+          isUnitLeader && currentUser?.unit_id
+            ? supabase.from("employees").select("*").eq("unit_id", currentUser.unit_id).order("name")
+            : supabase.from("employees").select("*").order("name"),
+          20000
+        ),
         supabaseFetchWithTimeout(supabase.from("units").select("*"), 20000),
         supabaseFetchWithTimeout(supabase.from("work_shifts").select("*").order("name"), 20000),
         supabaseFetchWithTimeout(supabase.from("user_roles").select("*"), 20000)
@@ -102,7 +109,9 @@ export default function EmployeesPage() {
           // Petakan unit secara manual untuk menghindari join circular
           units: allUnits.find(u => u.id === emp.unit_id) || null,
           role: rolesMap.find(r => r.user_id === emp.user_id)?.role || "employee" 
-        })) as Employee[]);
+        }))
+        // Sembunyikan akun admin & HR dari halaman karyawan — mereka bukan karyawan
+        .filter(emp => !["super_admin", "hr"].includes(emp.role)) as Employee[]);
       }
       
       if (unitRes.data) setUnits(unitRes.data);
@@ -242,7 +251,7 @@ export default function EmployeesPage() {
           throw new Error(`Gagal update profil: ${empError.message}`);
         }
         
-        // Step 2: Update Role if user is Super Admin (Non-critical)
+        // Step 2: Update Role hanya boleh dilakukan oleh Super Admin
         if (isSuperAdmin) {
            const emp = employees.find(e => e.id === editingId);
            if (emp?.user_id) {
@@ -446,7 +455,13 @@ export default function EmployeesPage() {
     <DashboardLayout>
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
-          <div><h1 className="text-2xl font-bold">Karyawan</h1></div>
+          <div>
+            <h1 className="text-2xl font-bold">Karyawan</h1>
+            {isUnitLeader && (
+              <p className="text-sm text-muted-foreground mt-0.5">Anggota Unit Anda</p>
+            )}
+          </div>
+          {/* Tombol Tambah & Export hanya untuk Admin/HR */}
           {isAdminOrHr && (
             <div className="flex items-center gap-3">
               <DropdownMenu>
@@ -503,7 +518,15 @@ export default function EmployeesPage() {
         onSubmit={handleSubmit}
         isSaving={isSaving} 
       />
-      <EmployeeDetailDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} employee={viewingEmployee} isAdminOrHr={isAdminOrHr} onEdit={(emp) => { setViewDialogOpen(false); handleOpenForm("edit", emp); }} onDelete={handleDelete} />
+      <EmployeeDetailDialog 
+        open={viewDialogOpen} 
+        onOpenChange={setViewDialogOpen} 
+        employee={viewingEmployee} 
+        isAdminOrHr={isAdminOrHr} 
+        isSuperAdmin={isSuperAdmin}
+        onEdit={isAdminOrHr ? (emp) => { setViewDialogOpen(false); handleOpenForm("edit", emp); } : undefined} 
+        onDelete={isAdminOrHr ? handleDelete : undefined} 
+      />
       
       <ExportConfigDialog 
         open={exportDialogOpen} 

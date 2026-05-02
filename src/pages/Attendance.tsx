@@ -15,9 +15,11 @@ import { AdminDailyAttendance } from "@/components/attendance/AdminDailyAttendan
 import { AdminSummaryAttendance } from "@/components/attendance/AdminSummaryAttendance";
 
 export default function Attendance() {
-  const { employee, isAdminOrHr, hasRole } = useAuth();
+  const { employee, isAdminOrHr, isEmployee, hasRole } = useAuth();
   const isUnitLeader = hasRole("unit_leader");
-  const isManagerOrLeader = isAdminOrHr || isUnitLeader;
+  // Admin/HR melihat data global. Unit leader dan karyawan melihat data personal juga.
+  const canSeeGlobal = isAdminOrHr || isUnitLeader;
+  // isEmployee sudah mencakup unit_leader (keduanya punya data di tabel employees)
   const navigate = useNavigate();
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [globalRecords, setGlobalRecords] = useState<any[]>([]);
@@ -38,12 +40,13 @@ export default function Attendance() {
       } else {
          fetchGlobal = Promise.resolve({ data: [] as any[], error: null });
       }
-        
-      const fetchPersonal = (employee)
+
+      // Data personal hanya relevan untuk karyawan (employee & unit_leader), bukan admin/HR
+      const fetchPersonal = (employee && isEmployee)
         ? supabase.from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30)
         : Promise.resolve({ data: [] as any[], error: null });
 
-      const fetchToday = (employee)
+      const fetchToday = (employee && isEmployee)
         ? supabase.from("attendance").select("*").eq("employee_id", employee.id).eq("date", today).maybeSingle()
         : Promise.resolve({ data: null, error: null });
 
@@ -63,7 +66,7 @@ export default function Attendance() {
     } finally {
       setLoading(false);
     }
-  }, [employee, isAdminOrHr, isUnitLeader, today]);
+  }, [employee, isAdminOrHr, isEmployee, isUnitLeader, today]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -87,22 +90,40 @@ export default function Attendance() {
         )}
       </div>
 
-      <Tabs defaultValue={isManagerOrLeader ? "harian" : "presensi"} className="w-full">
-        {isManagerOrLeader ? (
+      {/* 
+        Struktur tab per role:
+        - isAdminOrHr (super_admin & hr): Harian + Ringkasan saja (bukan karyawan, tidak perlu Presensi Saya)
+        - isUnitLeader: Harian + Ringkasan + Presensi Saya + Pengajuan (karyawan dengan wewenang lebih)
+        - employee biasa: Presensi Saya + Pengajuan saja
+      */}
+      <Tabs
+        defaultValue={isAdminOrHr ? "harian" : isUnitLeader ? "harian" : "presensi"}
+        className="w-full"
+      >
+        {isAdminOrHr ? (
+          // Admin/HR: hanya 2 tab global, tanpa Presensi Saya
+          <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
+            <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
+            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
+          </TabsList>
+        ) : isUnitLeader ? (
+          // Unit Leader: 4 tab (global unit + personal)
           <TabsList className="grid grid-cols-4 mb-3 bg-muted/50 h-9 rounded-lg">
             <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
             <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
             <TabsTrigger value="presensi" className="text-xs">Presensi Saya</TabsTrigger>
-            <TabsTrigger value="cuti_izin" className="text-xs">Cuti & Izin</TabsTrigger>
+            <TabsTrigger value="pengajuan" className="text-xs">Pengajuan</TabsTrigger>
           </TabsList>
         ) : (
+          // Karyawan biasa: 2 tab personal
           <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
             <TabsTrigger value="presensi" className="text-xs">Presensi Saya</TabsTrigger>
-            <TabsTrigger value="cuti_izin" className="text-xs">Cuti & Izin</TabsTrigger>
+            <TabsTrigger value="pengajuan" className="text-xs">Pengajuan</TabsTrigger>
           </TabsList>
         )}
 
-        {isManagerOrLeader && (
+        {/* Tab Harian & Ringkasan: Admin/HR lihat semua, Unit Leader lihat unitnya */}
+        {canSeeGlobal && (
           <>
             <TabsContent value="harian">
               <AdminDailyAttendance records={globalRecords} loading={loading} />
@@ -113,17 +134,21 @@ export default function Attendance() {
           </>
         )}
 
-        <TabsContent value="presensi" className="space-y-6">
-          <AttendanceLogTable 
-            records={personalRecords} 
-            loading={loading} 
-            isAdminOrHr={false} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="cuti_izin">
-          <LeaveRequestWidget employee={employee} />
-        </TabsContent>
+        {/* Tab Presensi Saya & Pengajuan: hanya untuk karyawan (employee & unit_leader) */}
+        {isEmployee && (
+          <>
+            <TabsContent value="presensi" className="space-y-6">
+              <AttendanceLogTable
+                records={personalRecords}
+                loading={loading}
+                isAdminOrHr={false}
+              />
+            </TabsContent>
+            <TabsContent value="pengajuan">
+              <LeaveRequestWidget employee={employee} />
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     </DashboardLayout>
   );

@@ -11,6 +11,7 @@ interface EmployeeDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   employee: Employee | null;
   isAdminOrHr: boolean;
+  isSuperAdmin?: boolean;
   onEdit?: (emp: Employee) => void;
   onDelete?: (emp: Employee) => void;
 }
@@ -20,6 +21,7 @@ export function EmployeeDetailDialog({
   onOpenChange,
   employee,
   isAdminOrHr,
+  isSuperAdmin = false,
   onEdit,
   onDelete
 }: EmployeeDetailDialogProps) {
@@ -46,6 +48,7 @@ export function EmployeeDetailDialog({
                 </div>
               </div>
             </div>
+            {/* Edit: untuk Admin/HR. Hapus: untuk Admin/HR (role change khusus Super Admin di form edit) */}
             {isAdminOrHr && (onEdit || onDelete) && (
               <div className="flex gap-2 pr-8">
                 {onEdit && (

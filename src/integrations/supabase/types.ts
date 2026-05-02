@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendas: {
+        Row: {
+          id: string
+          employee_id: string
+          date: string
+          time: string
+          activity: string
+          status: Database["public"]["Enums"]["agenda_status"]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          date: string
+          time: string
+          activity: string
+          status?: Database["public"]["Enums"]["agenda_status"]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          date?: string
+          time?: string
+          activity?: string
+          status?: Database["public"]["Enums"]["agenda_status"]
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendas_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approvals: {
         Row: {
           approved_by_hr: string | null
@@ -541,6 +579,7 @@ export type Database = {
       is_admin_or_hr: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      agenda_status: "todo" | "on_progress" | "done" | "cancelled"
       app_role: "super_admin" | "hr" | "unit_leader" | "employee"
       approval_status:
         | "pending"
@@ -677,6 +716,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agenda_status: ["todo", "on_progress", "done", "cancelled"],
       app_role: ["super_admin", "hr", "unit_leader", "employee"],
       approval_status: [
         "pending",
@@ -686,7 +726,7 @@ export const Constants = {
       ],
       approval_type: ["leave", "permission", "overtime"],
       employee_status: ["active", "inactive", "on_leave"],
-      task_status: ["todo", "in_progress", "done", "cancelled"],
+      task_status: ["todo", "in_progress", "pending_review", "done", "cancelled"],
     },
   },
 } as const

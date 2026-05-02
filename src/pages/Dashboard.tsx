@@ -16,7 +16,7 @@ interface Stats {
 }
 
 export default function Dashboard() {
-  const { employee, isAdminOrHr, isSuperAdmin } = useAuth();
+  const { employee, isAdminOrHr, isSuperAdmin, isEmployee } = useAuth();
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     presentToday: 0,
@@ -45,7 +45,8 @@ export default function Dashboard() {
       };
 
       const fetchUserAttendance = async () => {
-        if (employee) {
+        // Hanya fetch jika user adalah karyawan (punya data di tabel employees)
+        if (employee && isEmployee) {
           const { data } = await supabase
             .from("attendance")
             .select("*")
@@ -78,32 +79,40 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
+        <h1 className="page-title">
+          {isEmployee ? `Selamat Datang, ${employee?.name?.split(" ")[0] ?? ""} 👋` : "Dashboard"}
+        </h1>
       </div>
 
-      <div className="mb-8 max-w-2xl">
-        <CheckInOutWidget 
-          employee={employee} 
-          todayRecord={todayRecord} 
-          onSuccess={fetchStats} 
-        />
-      </div>
+      {/* Widget Check-in hanya untuk karyawan (employee & unit_leader) */}
+      {isEmployee && (
+        <div className="mb-8 max-w-2xl">
+          <CheckInOutWidget 
+            employee={employee} 
+            todayRecord={todayRecord} 
+            onSuccess={fetchStats} 
+          />
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((s) => (
-          <Card key={s.label} className="stat-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
-              <s.icon className={`h-5 w-5 ${s.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {loading ? "—" : s.value}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Stat cards hanya untuk Admin & HR, bukan untuk karyawan */}
+      {isAdminOrHr && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map((s) => (
+            <Card key={s.label} className="stat-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
+                <s.icon className={`h-5 w-5 ${s.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {loading ? "—" : s.value}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </DashboardLayout>
   );
 }

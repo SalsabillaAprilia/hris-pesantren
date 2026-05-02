@@ -16,6 +16,8 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
   isAdminOrHr: boolean;
   isSuperAdmin: boolean;
+  isHr: boolean;
+  isEmployee: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -164,10 +166,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isSuperAdmin = hasRole("super_admin");
-  const isAdminOrHr = isSuperAdmin || hasRole("hr");
+  const isHr = hasRole("hr");
+  const isAdminOrHr = isSuperAdmin || isHr;
+  // isEmployee = true untuk karyawan biasa dan kepala unit (mereka punya data di tabel employees)
+  const isEmployee = hasRole("employee") || hasRole("unit_leader");
 
   return (
-    <AuthContext.Provider value={{ user, employee, roles, loading, signIn, signOut, hasRole, isAdminOrHr, isSuperAdmin }}>
+    <AuthContext.Provider value={{ user, employee, roles, loading, signIn, signOut, hasRole, isAdminOrHr, isSuperAdmin, isHr, isEmployee }}>
       {children}
     </AuthContext.Provider>
   );

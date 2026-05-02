@@ -8,6 +8,8 @@ import {
   BarChart3,
   FileText,
   LogOut,
+  CalendarDays,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -27,22 +29,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Karyawan", url: "/employees", icon: Users },
-  { title: "Unit", url: "/units", icon: Building2 },
-  { title: "Kehadiran", url: "/attendance", icon: Clock },
-  { title: "Persetujuan", url: "/approvals", icon: FileCheck },
-  { title: "Tugas", url: "/tasks", icon: ListTodo },
-  { title: "KPI", url: "/kpi", icon: BarChart3 },
-  { title: "Laporan", url: "/reports", icon: FileText },
-];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut, employee } = useAuth();
+  const { signOut, employee, isAdminOrHr, isSuperAdmin, hasRole } = useAuth();
+  const isUnitLeader = hasRole("unit_leader");
+  const isEmployee = !isAdminOrHr; // employee biasa atau unit_leader
+
+  // Filter menu berdasarkan role
+  const navItems = [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard, show: true },
+    { title: "Karyawan", url: "/employees", icon: Users, show: isAdminOrHr || isUnitLeader },
+    { title: "Unit", url: "/units", icon: Building2, show: isAdminOrHr },
+    { title: "Kehadiran", url: "/attendance", icon: Clock, show: true },
+    { title: "Persetujuan", url: "/approvals", icon: FileCheck, show: isAdminOrHr || isUnitLeader },
+    { title: "Tugas", url: "/tasks", icon: ListTodo, show: true },
+    { title: "Agenda", url: "/agenda", icon: CalendarDays, show: true },
+    { title: "KPI", url: "/kpi", icon: BarChart3, show: true },
+    { title: "Laporan", url: "/reports", icon: FileText, show: isAdminOrHr || isUnitLeader },
+    // Menu khusus Super Admin
+    { title: "Manajemen Akun", url: "/admin-accounts", icon: ShieldCheck, show: isSuperAdmin },
+  ].filter(item => item.show);
 
   return (
     <Sidebar collapsible="icon">

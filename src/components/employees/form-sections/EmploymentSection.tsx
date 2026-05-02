@@ -118,8 +118,6 @@ export function EmploymentSection({ form, setForm, units, shifts, isSuperAdmin, 
             <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="super_admin" className="text-sm">Super Admin</SelectItem>
-                <SelectItem value="hr" className="text-sm">HR</SelectItem>
                 <SelectItem value="unit_leader" className="text-sm">Kepala Unit</SelectItem>
                 <SelectItem value="employee" className="text-sm">Karyawan</SelectItem>
               </SelectContent>
