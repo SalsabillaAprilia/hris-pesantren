@@ -7,7 +7,6 @@ export default function Reports() {
     <DashboardLayout>
       <div className="page-header">
         <h1 className="page-title">Laporan</h1>
-        <p className="page-description">Laporan dan analitik organisasi</p>
       </div>
       <Card className="stat-card">
         <CardHeader>

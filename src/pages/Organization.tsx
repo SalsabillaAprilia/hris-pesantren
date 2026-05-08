@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Building2, Plus, ArrowLeft } from "lucide-react";
+import { Building2, Plus, ArrowLeft, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,13 +25,15 @@ import { UnitFormDialog } from "@/components/units/UnitFormDialog";
 import { UnitDetailDialog } from "@/components/units/UnitDetailDialog";
 import { EmployeeDetailDialog } from "@/components/employees/EmployeeDetailDialog";
 import { Employee } from "@/types/employee";
+import { PositionTab } from "@/components/positions/PositionTab";
 
-export default function Units() {
+export default function Organization() {
   const { isAdminOrHr } = useAuth();
   const [units, setUnits] = useState<(Tables<"units"> & { employeeCount: number, leader?: Employee | null })[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("units");
 
   // Dialog States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -170,14 +173,28 @@ export default function Units() {
       <div className="flex flex-col space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Unit</h1>
+            <h1 className="text-2xl font-bold">Struktur Organisasi</h1>
           </div>
-          {isAdminOrHr && (
+          {isAdminOrHr && activeTab === "units" && (
             <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium">
-              <Plus className="h-4 w-4" /> Tambah
+              <Plus className="h-4 w-4" /> Tambah Unit
             </Button>
           )}
         </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-slate-100/80 border p-1 rounded-lg">
+            <TabsTrigger value="units" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 font-medium text-slate-600 data-[state=active]:text-primary gap-2">
+              <Building2 className="h-4 w-4" />
+              Unit Kerja
+            </TabsTrigger>
+            <TabsTrigger value="positions" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 font-medium text-slate-600 data-[state=active]:text-primary gap-2">
+              <Network className="h-4 w-4" />
+              Master Jabatan
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="units" className="m-0 outline-none">
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {loading ? (
@@ -201,6 +218,12 @@ export default function Units() {
             </div>
           )}
         </div>
+          </TabsContent>
+
+          <TabsContent value="positions" className="m-0 outline-none">
+            <PositionTab isAdminOrHr={isAdminOrHr} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Dialogs */}

@@ -110,15 +110,17 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                 <TableHead className="font-semibold w-[100px]">Keluar</TableHead>
                 <TableHead className="font-semibold w-[90px]">Lembur</TableHead>
                 <TableHead className="font-semibold w-[90px]">Terlambat</TableHead>
+                <TableHead className="font-semibold w-[100px]">Plg Cepat</TableHead>
                 <TableHead className="font-semibold w-[90px]">Status</TableHead>
+                <TableHead className="font-semibold w-[120px]">Lokasi</TableHead>
                 <TableHead className="font-semibold">Catatan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={11} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
               ) : filteredRecords.length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center py-8 text-sm text-muted-foreground">Tidak ada data untuk tanggal ini</TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} className="text-center py-8 text-sm text-muted-foreground">Tidak ada data untuk tanggal ini</TableCell></TableRow>
               ) : (
                 filteredRecords.map((r) => (
                   <TableRow key={r.id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-sm">
@@ -140,7 +142,21 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                     <TableCell className="py-1.5">
                       {r.late_minutes ? <span className="text-red-500 font-medium">{r.late_minutes}mnt</span> : "—"}
                     </TableCell>
+                    <TableCell className="py-1.5">
+                      {r.early_leave_minutes ? <span className="text-rose-500 font-medium">{r.early_leave_minutes}mnt</span> : "—"}
+                    </TableCell>
                     <TableCell className="text-slate-900 py-1.5">{r.daily_status ?? "Hadir"}</TableCell>
+                    <TableCell className="py-1.5">
+                      <div className="flex gap-1.5">
+                        {r.check_in_location && r.check_in_location !== "Location not available" ? (
+                          <a href={`https://www.google.com/maps/search/?api=1&query=${r.check_in_location}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-semibold text-[10px] bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">Masuk</a>
+                        ) : null}
+                        {r.check_out_location && r.check_out_location !== "Location not available" ? (
+                          <a href={`https://www.google.com/maps/search/?api=1&query=${r.check_out_location}`} target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline font-semibold text-[10px] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Pulang</a>
+                        ) : null}
+                        {!r.check_in_location && !r.check_out_location && <span className="text-slate-400 text-xs">—</span>}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-slate-500 py-1.5 truncate max-w-[120px]">{r.notes ?? "—"}</TableCell>
                   </TableRow>
                 ))

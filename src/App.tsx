@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/employees";
-import Units from "./pages/Units";
+import Organization from "./pages/Organization";
 import Attendance from "./pages/Attendance";
 import Approvals from "./pages/Approvals";
 import Tasks from "./pages/Tasks";
@@ -88,7 +88,7 @@ function AppRoutes() {
       <Route path="/reports"   element={<GuardedRoute allowed={adminHrOrLeader}><Reports /></GuardedRoute>} />
 
       {/* Khusus Admin/HR saja */}
-      <Route path="/units"          element={<GuardedRoute allowed={adminOrHr}><Units /></GuardedRoute>} />
+      <Route path="/organization"   element={<GuardedRoute allowed={adminOrHr}><Organization /></GuardedRoute>} />
       <Route path="/work-schedules" element={<GuardedRoute allowed={adminOrHr}><WorkSchedules /></GuardedRoute>} />
       <Route path="/holidays"       element={<GuardedRoute allowed={adminOrHr}><NationalHolidays /></GuardedRoute>} />
 

@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Employee } from "@/types/employee";
 import { getStatusBadge, calculateMasaKerja } from "@/utils/employee-format";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,15 +25,21 @@ export function EmployeeDetailDialog({
   onEdit,
   onDelete
 }: EmployeeDetailDialogProps) {
+  const [showImage, setShowImage] = useState(false);
+
   if (!employee) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-primary/5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-white shadow-md">
+              <Avatar 
+                className={`h-16 w-16 border-2 border-white shadow-md ${employee.avatar_url ? "cursor-pointer hover:scale-105 hover:shadow-lg transition-all" : ""}`}
+                onClick={() => employee.avatar_url && setShowImage(true)}
+              >
                 <AvatarImage src={employee.avatar_url || ""} className="object-cover" />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
                   {employee.name.charAt(0)}
@@ -50,14 +56,14 @@ export function EmployeeDetailDialog({
             </div>
             {/* Edit: untuk Admin/HR. Hapus: untuk Admin/HR (role change khusus Super Admin di form edit) */}
             {isAdminOrHr && (onEdit || onDelete) && (
-              <div className="flex gap-2 pr-8">
+              <div className="flex items-center gap-2 pr-6">
                 {onEdit && (
-                  <Button variant="outline" size="sm" onClick={() => onEdit(employee)} className="gap-2 h-8 text-sm">
-                    <Edit className="h-3.5 w-3.5" /> Edit
+                  <Button variant="outline" size="sm" onClick={() => onEdit(employee)} className="gap-1.5 font-semibold text-slate-700 hover:text-primary">
+                    <Edit className="h-3.5 w-3.5 text-slate-400" /> Edit Data
                   </Button>
                 )}
                 {onDelete && (
-                  <Button variant="destructive" size="sm" onClick={() => onDelete(employee)} className="gap-2 h-8 text-sm">
+                  <Button variant="outline" size="sm" onClick={() => onDelete(employee)} className="gap-1.5 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none">
                     <Trash className="h-3.5 w-3.5" /> Hapus
                   </Button>
                 )}
@@ -67,15 +73,14 @@ export function EmployeeDetailDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-8">
-          <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 p-1 rounded-xl h-10">
-              <TabsTrigger value="personal" className="rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Data Pribadi</TabsTrigger>
-              <TabsTrigger value="contact" className="rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Kontak</TabsTrigger>
-              <TabsTrigger value="employment" className="rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Kepegawaian</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="personal" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+          <div className="space-y-10">
+            {/* Seksi Data Pribadi */}
+            <section>
+              <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-6">
+                <div className="h-4 w-1 bg-primary rounded-full"></div>
+                <span className="flex items-center gap-1.5"><UserIcon className="h-3.5 w-3.5" /> Data Pribadi</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
                 <DetailItem label="Nama Lengkap" value={employee.name} />
                 <DetailItem label="ID Karyawan" value={employee.employee_id_number} />
                 <DetailItem label="Tempat Lahir" value={employee.birth_place} />
@@ -85,10 +90,15 @@ export function EmployeeDetailDialog({
                 <DetailItem label="Status Perkawinan" value={employee.marital_status} />
                 <DetailItem label="Kewarganegaraan" value={employee.nationality} />
               </div>
-            </TabsContent>
+            </section>
 
-            <TabsContent value="contact" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            {/* Seksi Kontak */}
+            <section>
+              <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-6">
+                <div className="h-4 w-1 bg-primary rounded-full"></div>
+                <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Informasi Kontak</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
                 <DetailItem label="Email" value={employee.email} />
                 <DetailItem label="Nomor WhatsApp" value={employee.whatsapp_number} isHighlight />
                 <DetailItem label="Kartu Identitas" value={employee.identity_card_type} />
@@ -100,10 +110,15 @@ export function EmployeeDetailDialog({
                   <DetailItem label="Alamat Domisili" value={employee.address_domicile} isFullWidth />
                 </div>
               </div>
-            </TabsContent>
+            </section>
 
-            <TabsContent value="employment" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            {/* Seksi Kepegawaian */}
+            <section>
+              <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-6">
+                <div className="h-4 w-1 bg-primary rounded-full"></div>
+                <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" /> Kepegawaian & Pendidikan</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
                 <DetailItem label="Unit Kerja" value={employee.units?.name} isHighlight />
                 <DetailItem label="Jabatan" value={employee.position} />
                 <DetailItem label="Tanggal Bergabung" value={employee.join_date ? new Date(employee.join_date).toLocaleDateString("id-ID") : null} />
@@ -125,11 +140,24 @@ export function EmployeeDetailDialog({
                    </div>
                 )}
               </div>
-            </TabsContent>
-          </Tabs>
+            </section>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={showImage} onOpenChange={setShowImage}>
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-transparent border-none shadow-none flex justify-center items-center [&>button]:bg-black/50 [&>button]:text-white [&>button]:hover:bg-black/80 [&>button]:rounded-full [&>button]:p-2 [&>button]:right-4 [&>button]:top-4 [&>button]:opacity-100 [&>button]:ring-0 [&_svg]:h-6 [&_svg]:w-6">
+        {employee.avatar_url && (
+          <img 
+            src={employee.avatar_url} 
+            alt={`Foto Profil ${employee.name}`} 
+            className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl ring-4 ring-white/20" 
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
 

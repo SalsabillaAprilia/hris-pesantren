@@ -77,9 +77,6 @@ export default function Approvals() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Persetujuan</h1>
-          {isUnitLeader && !isAdminOrHr && (
-            <p className="text-sm text-muted-foreground mt-0.5">Pengajuan dari anggota unit Anda</p>
-          )}
         </div>
       </div>
 

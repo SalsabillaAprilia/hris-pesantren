@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -207,14 +207,10 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, onSuccess }: I
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="px-6 py-4 border-b bg-muted/30">
-          <DialogTitle className="text-xl flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-primary" />
+        <DialogHeader className="p-6 border-b bg-muted/30">
+          <DialogTitle className="text-xl font-bold tracking-tight">
             Import Karyawan Massal
           </DialogTitle>
-          <DialogDescription>
-            Impor banyak karyawan sekaligus dengan mengunggah file CSV. Unduh template untuk melihat format yang diwajibkan.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -305,12 +301,14 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, onSuccess }: I
           )}
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-muted/10 gap-2 sm:gap-0">
-          <Button variant="ghost" onClick={handleClose} disabled={isProcessing}>Batal</Button>
+        <DialogFooter className="px-6 py-4 border-t bg-muted/10 gap-2 sm:gap-0 flex sm:justify-end">
+          <Button variant="outline" className="min-w-[140px] h-10 text-sm font-semibold" onClick={handleClose} disabled={isProcessing}>
+            Batal
+          </Button>
           <Button 
             onClick={executeImport} 
             disabled={previewData.length === 0 || isProcessing}
-            className="gap-2"
+            className="min-w-[140px] h-10 text-sm font-semibold shadow-md gap-2"
           >
             {isProcessing ? "Sedang Mengimpor..." : "Mulai Import"}
           </Button>

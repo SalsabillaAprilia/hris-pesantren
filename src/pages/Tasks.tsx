@@ -280,13 +280,6 @@ export default function Tasks() {
               </span>
             )}
           </h1>
-          <p className="page-description">
-            {isAdminOrHr
-              ? "Monitoring semua tugas karyawan"
-              : isUnitLeader
-              ? "Kelola tugas anggota unit Anda"
-              : "Tugas yang diberikan kepada Anda"}
-          </p>
         </div>
         {/* Tombol Buat Tugas hanya untuk Unit Leader */}
         {isUnitLeader && (

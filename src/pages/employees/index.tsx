@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Search, Download, FileDown, FileText } from "lucide-react";
+import { Plus, Search, Download, FileDown, FileText, UploadCloud } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +29,7 @@ import { EmployeeFormDialog } from "@/components/employees/EmployeeFormDialog";
 import { EmployeeDetailDialog } from "@/components/employees/EmployeeDetailDialog";
 import { EmployeeFilterDrawer } from "@/components/employees/EmployeeFilterDrawer";
 import { ExportConfigDialog, COLUMNS_MAP } from "@/components/employees/ExportConfigDialog";
+import { ImportEmployeeDialog } from "@/components/employees/ImportEmployeeDialog";
 import { uploadFile } from "@/utils/supabase-storage";
 
 import jsPDF from "jspdf";
@@ -61,7 +62,9 @@ export default function EmployeesPage() {
   };
 
   const [form, setForm] = useState(INITIAL_FORM);
+  const [positions, setPositions] = useState<any[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [exportType, setExportType] = useState<"csv" | "pdf">("csv");
   const [exportScope, setExportScope] = useState<"filtered" | "all">("filtered");
   
@@ -74,12 +77,13 @@ export default function EmployeesPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [returnToDetailOnClose, setReturnToDetailOnClose] = useState(false);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       // Fetch concurrently but handle each result safely using timeout wrapper
-      const [empRes, unitRes, shiftRes, rolesRes] = await Promise.all([
+      const [empRes, unitRes, shiftRes, rolesRes, posRes] = await Promise.all([
         // Unit leader hanya melihat anggota unitnya sendiri
         supabaseFetchWithTimeout(
           isUnitLeader && currentUser?.unit_id
@@ -89,7 +93,8 @@ export default function EmployeesPage() {
         ),
         supabaseFetchWithTimeout(supabase.from("units").select("*"), 20000),
         supabaseFetchWithTimeout(supabase.from("work_shifts").select("*").order("name"), 20000),
-        supabaseFetchWithTimeout(supabase.from("user_roles").select("*"), 20000)
+        supabaseFetchWithTimeout(supabase.from("user_roles").select("*"), 20000),
+        supabaseFetchWithTimeout((supabase as any).from("positions").select("*").order("name"), 20000)
       ]);
 
       if (empRes.error) {
@@ -116,6 +121,7 @@ export default function EmployeesPage() {
       
       if (unitRes.data) setUnits(unitRes.data);
       if (shiftRes.data) setShifts(shiftRes.data);
+      if ((posRes as any).data) setPositions((posRes as any).data);
     } catch (err: any) { 
       console.error("Employees: Fetch Data Error Details:", err);
       toast.error("Gagal memuat data karyawan. Koneksi mungkin terputus.");
@@ -293,6 +299,7 @@ export default function EmployeesPage() {
       }
       
       // Cleanup UI and refresh data
+      setReturnToDetailOnClose(false);
       setDialogOpen(false);
       await fetchData();
       toast.success("Berhasil disimpan");
@@ -466,20 +473,23 @@ export default function EmployeesPage() {
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all font-medium">
-                    <Download className="h-4 w-4 text-primary" /> Export
+                  <Button variant="outline" size="sm" className="gap-2 font-medium">
+                    <Download className="h-4 w-4 text-slate-500" /> Export
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => { setExportType("csv"); setExportDialogOpen(true); }} className="cursor-pointer py-2.5 font-medium transition-colors">
-                    <FileDown className="h-4 w-4 mr-2 text-green-600" /> Download CSV
+                    <FileDown className="h-4 w-4 mr-2 text-emerald-600" /> Download CSV
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { setExportType("pdf"); setExportDialogOpen(true); }} className="cursor-pointer py-2.5 font-medium transition-colors">
-                    <FileText className="h-4 w-4 mr-2 text-red-500" /> Download PDF
+                    <FileText className="h-4 w-4 mr-2 text-rose-500" /> Download PDF
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium">
+              <Button onClick={() => setImportDialogOpen(true)} variant="outline" size="sm" className="gap-2 font-medium">
+                <UploadCloud className="h-4 w-4 text-slate-500" /> Import
+              </Button>
+              <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 font-medium">
                 <Plus className="h-4 w-4" /> Tambah
               </Button>
             </div>
@@ -495,7 +505,7 @@ export default function EmployeesPage() {
               className="pl-9 h-9 text-sm shadow-sm border-muted-foreground/20" 
             />
           </div>
-          <EmployeeFilterDrawer filters={filters} setFilters={setFilters} units={units} hasActiveFilters={Object.values(filters).some(v => v !== "all")} onReset={() => setFilters({ unit_id: "all", position: "all", status: "all", tenure: "all", gender: "all", education: "all", religion: "all" })} />
+          <EmployeeFilterDrawer filters={filters} setFilters={setFilters} units={units} positions={positions} hasActiveFilters={Object.values(filters).some(v => v !== "all")} onReset={() => setFilters({ unit_id: "all", position: "all", status: "all", tenure: "all", gender: "all", education: "all", religion: "all" })} />
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-3 mb-3 bg-muted/50 h-9 rounded-lg">
@@ -508,12 +518,19 @@ export default function EmployeesPage() {
       </div>
       <EmployeeFormDialog 
         open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open && returnToDetailOnClose) {
+            setViewDialogOpen(true);
+            setReturnToDetailOnClose(false);
+          }
+        }} 
         mode={dialogMode} 
         form={form} 
         setForm={setForm} 
         units={units}
         shifts={shifts}
+        positions={positions}
         isSuperAdmin={isSuperAdmin} 
         onSubmit={handleSubmit}
         isSaving={isSaving} 
@@ -524,7 +541,11 @@ export default function EmployeesPage() {
         employee={viewingEmployee} 
         isAdminOrHr={isAdminOrHr} 
         isSuperAdmin={isSuperAdmin}
-        onEdit={isAdminOrHr ? (emp) => { setViewDialogOpen(false); handleOpenForm("edit", emp); } : undefined} 
+        onEdit={isAdminOrHr ? (emp) => { 
+          handleOpenForm("edit", emp);
+          setViewDialogOpen(false); 
+          setReturnToDetailOnClose(true);
+        } : undefined} 
         onDelete={isAdminOrHr ? handleDelete : undefined} 
       />
       
@@ -538,6 +559,13 @@ export default function EmployeesPage() {
         setExportScope={setExportScope}
         hasActiveFilters={search !== "" || Object.values(filters).some(v => v !== "all")}
         onDownload={handleDownloadExport} 
+      />
+
+      <ImportEmployeeDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        units={units}
+        onSuccess={fetchData}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -559,15 +587,15 @@ export default function EmployeesPage() {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="h-10 text-sm">Batal</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2 pt-4">
+            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">Batal</AlertDialogCancel>
             <AlertDialogAction 
               onClick={(e) => {
                 e.preventDefault();
                 confirmDelete();
               }}
               disabled={deleteConfirmText !== "HAPUS" || isDeleting}
-              className="h-10 text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20"
+              className="h-10 min-w-[120px] text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20 transition-all"
             >
               {isDeleting ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>

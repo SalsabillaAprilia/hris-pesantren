@@ -7,11 +7,12 @@ interface EmploymentSectionProps {
   setForm: (form: any) => void;
   units: any[];
   shifts: any[];
+  positions: any[];
   isSuperAdmin: boolean;
   mode: "create" | "edit";
 }
 
-export function EmploymentSection({ form, setForm, units, shifts, isSuperAdmin, mode }: EmploymentSectionProps) {
+export function EmploymentSection({ form, setForm, units, shifts, positions, isSuperAdmin, mode }: EmploymentSectionProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
@@ -65,11 +66,9 @@ export function EmploymentSection({ form, setForm, units, shifts, isSuperAdmin, 
           <Select value={form.position} onValueChange={(v) => setForm({ ...form, position: v })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Guru" className="text-sm">Guru</SelectItem>
-              <SelectItem value="Pembina Asrama" className="text-sm">Pembina Asrama</SelectItem>
-              <SelectItem value="Petugas Kebersihan" className="text-sm">Petugas Kebersihan</SelectItem>
-              <SelectItem value="Staf HR" className="text-sm">Staf HR</SelectItem>
-              <SelectItem value="Kepala Unit" className="text-sm">Kepala Unit</SelectItem>
+              {positions.map((p) => (
+                <SelectItem key={p.id} value={p.name} className="text-sm">{p.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

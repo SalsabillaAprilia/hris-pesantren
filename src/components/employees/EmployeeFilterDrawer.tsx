@@ -9,6 +9,7 @@ interface EmployeeFilterDrawerProps {
   filters: any;
   setFilters: (filters: any) => void;
   units: any[];
+  positions: any[];
   hasActiveFilters: boolean;
   onReset: () => void;
 }
@@ -17,6 +18,7 @@ export function EmployeeFilterDrawer({
   filters,
   setFilters,
   units,
+  positions,
   hasActiveFilters,
   onReset
 }: EmployeeFilterDrawerProps) {
@@ -62,11 +64,7 @@ export function EmployeeFilterDrawer({
                 <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Jabatan" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Jabatan</SelectItem>
-                  <SelectItem value="Guru" className="text-sm">Guru</SelectItem>
-                  <SelectItem value="Pembina Asrama" className="text-sm">Pembina Asrama</SelectItem>
-                  <SelectItem value="Petugas Kebersihan" className="text-sm">Petugas Kebersihan</SelectItem>
-                  <SelectItem value="Staf HR" className="text-sm">Staf HR</SelectItem>
-                  <SelectItem value="Kepala Unit" className="text-sm">Kepala Unit</SelectItem>
+                  {positions.map(p => <SelectItem key={p.id} value={p.name} className="text-sm">{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -128,7 +126,7 @@ export function EmployeeFilterDrawer({
         </div>
 
         <SheetFooter className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t flex flex-row gap-3">
-          <Button variant="outline" onClick={onReset} className="flex-1 hover:bg-destructive/5 hover:text-destructive text-muted-foreground transition-all">
+          <Button variant="outline" onClick={onReset} className="flex-1 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none transition-all">
             Hapus Filter
           </Button>
           <SheetClose asChild>

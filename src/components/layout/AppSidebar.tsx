@@ -42,7 +42,7 @@ export function AppSidebar() {
   const navItems = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, show: true },
     { title: "Karyawan", url: "/employees", icon: Users, show: isAdminOrHr || isUnitLeader },
-    { title: "Unit", url: "/units", icon: Building2, show: isAdminOrHr },
+    { title: "Organisasi", url: "/organization", icon: Building2, show: isAdminOrHr },
     { title: "Kehadiran", url: "/attendance", icon: Clock, show: true },
     { title: "Persetujuan", url: "/approvals", icon: FileCheck, show: isAdminOrHr || isUnitLeader },
     { title: "Tugas", url: "/tasks", icon: ListTodo, show: true },

@@ -26,7 +26,7 @@ export function PersonalSection({ form, setForm }: PersonalSectionProps) {
   };
 
   const removeFile = () => {
-    setForm({ ...form, avatar_file: null });
+    setForm({ ...form, avatar_file: null, avatar_url: null });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -51,11 +51,11 @@ export function PersonalSection({ form, setForm }: PersonalSectionProps) {
           >
             <Camera className="h-4 w-4" />
           </button>
-          {form.avatar_file && (
+          {(form.avatar_file || form.avatar_url) && (
             <button 
               type="button"
               onClick={removeFile}
-              className="absolute -top-1 -right-1 h-7 w-7 bg-destructive text-white rounded-full flex items-center justify-center shadow-md hover:bg-destructive/90 transition-all border-2 border-white"
+              className="absolute -top-1 -right-1 h-7 w-7 bg-destructive text-white rounded-full flex items-center justify-center shadow-md hover:bg-destructive/90 transition-all border-2 border-white z-10"
             >
               <X className="h-3.5 w-3.5" />
             </button>

@@ -130,6 +130,7 @@ export type Database = {
           late_minutes: number | null
           notes: string | null
           overtime_minutes: number | null
+          early_leave_minutes: number | null
           selfie_url: string | null
         }
         Insert: {
@@ -147,6 +148,7 @@ export type Database = {
           late_minutes?: number | null
           notes?: string | null
           overtime_minutes?: number | null
+          early_leave_minutes?: number | null
           selfie_url?: string | null
         }
         Update: {
@@ -164,6 +166,7 @@ export type Database = {
           late_minutes?: number | null
           notes?: string | null
           overtime_minutes?: number | null
+          early_leave_minutes?: number | null
           selfie_url?: string | null
         }
         Relationships: [

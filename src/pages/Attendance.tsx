@@ -46,21 +46,45 @@ export default function Attendance() {
         ? supabase.from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30)
         : Promise.resolve({ data: [] as any[], error: null });
 
-      const fetchToday = (employee && isEmployee)
-        ? supabase.from("attendance").select("*").eq("employee_id", employee.id).eq("date", today).maybeSingle()
-        : Promise.resolve({ data: null, error: null });
-
-      const [globalRes, personalRes, todayRes] = await supabaseFetchWithTimeout(
-        Promise.all([fetchGlobal, fetchPersonal, fetchToday])
+      const [globalRes, personalRes] = await supabaseFetchWithTimeout(
+        Promise.all([fetchGlobal, fetchPersonal])
       );
 
       if (globalRes.error) throw globalRes.error;
       if (personalRes.error) throw personalRes.error;
-      if (todayRes.error) throw todayRes.error;
+
+      // Active Session Logic (Loophole #5)
+      let todayResData = null;
+      if (employee && isEmployee) {
+        const { data: recent, error: recentErr } = await supabase
+          .from("attendance")
+          .select("*")
+          .eq("employee_id", employee.id)
+          .order("date", { ascending: false })
+          .order("created_at", { ascending: false }) // ensure latest record is grabbed
+          .limit(1)
+          .maybeSingle();
+
+        if (recentErr) throw recentErr;
+
+        if (recent) {
+          if (recent.date === today) {
+             todayResData = recent;
+          } else if (!recent.check_out && recent.check_in) {
+             const checkInTime = new Date(recent.check_in).getTime();
+             const now = new Date().getTime();
+             const hoursDiff = (now - checkInTime) / (1000 * 60 * 60);
+             // Batas kadaluarsa sesi adalah 18 jam
+             if (hoursDiff <= 18) {
+               todayResData = recent;
+             }
+          }
+        }
+      }
 
       setGlobalRecords(globalRes.data ?? []);
       setPersonalRecords(personalRes.data ?? []);
-      setTodayRecord(todayRes.data);
+      setTodayRecord(todayResData);
     } catch (err) {
       console.error("Attendance: Fetch error", err);
     } finally {

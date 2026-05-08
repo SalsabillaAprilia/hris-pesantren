@@ -202,9 +202,6 @@ export default function AdminAccounts() {
             <ShieldCheck className="h-6 w-6 text-primary" />
             Manajemen Akun Admin
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Kelola akun Super Admin dan HR sistem
-          </p>
         </div>
         <Button
           size="sm"

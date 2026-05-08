@@ -133,7 +133,11 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                 records.map((r) => {
                   const isPast = new Date(r.date) < todayStart;
                   const isMangkir = !r.check_in && isPast;
-                  const statusLabel = r.daily_status || (isMangkir ? "Mangkir" : r.check_in ? "Hadir" : "Belum mulai");
+                  
+                  // Lupa check-out jika sudah ada check-in tapi belum check-out dan sudah lewat 18 jam
+                  const isLupaCheckOut = r.check_in && !r.check_out && ((new Date().getTime() - new Date(r.check_in).getTime()) > 18 * 60 * 60 * 1000);
+                  
+                  const statusLabel = r.daily_status || (isMangkir ? "Mangkir" : isLupaCheckOut ? "Lupa Check-out" : r.check_in ? "Hadir" : "Belum mulai");
                   
                   return (
                     <TableRow key={r.id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-sm">
@@ -158,11 +162,16 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                         ) : null}
                       </TableCell>
                       <TableCell className="text-slate-900 py-1.5">
-                        {r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}
+                        {r.check_out ? format(new Date(r.check_out), "HH:mm") : (isLupaCheckOut ? <span className="text-rose-500 text-xs italic">Lupa absen</span> : "—")}
+                        {r.early_leave_minutes && r.early_leave_minutes > 0 ? (
+                          <span className="ml-2 text-[10px] text-rose-600 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">-{r.early_leave_minutes}m</span>
+                        ) : null}
                       </TableCell>
                       <TableCell className="text-slate-900 py-1.5 text-center">
                         {isMangkir ? (
                           <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">Mangkir</span>
+                        ) : isLupaCheckOut ? (
+                          <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">Lupa Check-out</span>
                         ) : statusLabel.toLowerCase() === "hadir" ? (
                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">Hadir</span>
                         ) : statusLabel === "Belum mulai" ? (
