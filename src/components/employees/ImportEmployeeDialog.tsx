@@ -12,14 +12,16 @@ interface ImportEmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   units: any[];
+  positions: any[];
   onSuccess: () => void;
 }
 
-export function ImportEmployeeDialog({ open, onOpenChange, units, onSuccess }: ImportEmployeeDialogProps) {
+export function ImportEmployeeDialog({ open, onOpenChange, units, positions, onSuccess }: ImportEmployeeDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
+  const [positionsCache, setPositionsCache] = useState<any[]>(positions);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const EXPECTED_HEADERS = ["Nama", "Email", "Password", "ID_Karyawan", "Jenis_Kelamin", "Jabatan", "Unit", "Role"];
@@ -148,12 +150,32 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, onSuccess }: I
            if (matchedUnit) unitId = matchedUnit.id;
         }
 
-        // 3. Update Employee Profile (Trigger already creates the row)
+        // 3. Resolve Jabatan name → position_id (case-insensitive, auto-create if missing)
+        let positionId = null;
+        if (row.Jabatan && row.Jabatan.trim()) {
+          const jabatanLower = row.Jabatan.trim().toLowerCase();
+          let matched = positionsCache.find((p: any) => p.name.toLowerCase() === jabatanLower);
+          if (!matched) {
+            // Auto-create jabatan baru ke master
+            const { data: newPos, error: posErr } = await (supabase as any)
+              .from("positions")
+              .insert([{ name: row.Jabatan.trim() }])
+              .select()
+              .single();
+            if (!posErr && newPos) {
+              matched = newPos;
+              setPositionsCache(prev => [...prev, newPos]);
+            }
+          }
+          if (matched) positionId = matched.id;
+        }
+
+        // 4. Update Employee Profile (Trigger already creates the row)
         const profileUpdates = {
           name: row.Nama,
           employee_id_number: row.ID_Karyawan || null,
           gender: row.Jenis_Kelamin || 'Laki-laki',
-          position: row.Jabatan || null,
+          position_id: positionId,
           unit_id: unitId,
           status: 'active' as const
         };
@@ -165,7 +187,7 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, onSuccess }: I
 
         if (profileError) throw profileError;
 
-        // 4. Set Role
+        // 5. Set Role
         const roleStr = row.Role && ["employee", "unit_leader"].includes(row.Role.toLowerCase()) ? row.Role.toLowerCase() : "employee";
         
         const { error: roleError } = await (supabase as any)

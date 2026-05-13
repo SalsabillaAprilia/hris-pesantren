@@ -27,6 +27,7 @@ interface UnitFormDialogProps {
   unitMembers: Employee[];
   onSubmit: (data: any) => Promise<void>;
   loading: boolean;
+  onCancel?: () => void;
 }
 
 export function UnitFormDialog({
@@ -36,7 +37,8 @@ export function UnitFormDialog({
   initialData,
   unitMembers,
   onSubmit,
-  loading
+  loading,
+  onCancel
 }: UnitFormDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -65,7 +67,7 @@ export function UnitFormDialog({
             </DialogTitle>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-8 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-bold text-muted-foreground/90">Nama Unit *</Label>
               <Input
@@ -73,7 +75,7 @@ export function UnitFormDialog({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="h-10 text-sm text-slate-900 shadow-sm"
+                className="h-9 text-sm text-slate-900 shadow-sm"
                 placeholder="Masukkan nama unit"
               />
             </div>
@@ -93,7 +95,7 @@ export function UnitFormDialog({
               <div className="space-y-2">
                 <Label htmlFor="leader" className="text-sm font-bold text-muted-foreground/90">Kepala Unit</Label>
                 <Select value={leaderId} onValueChange={setLeaderId}>
-                  <SelectTrigger className="h-10 text-sm text-slate-900 shadow-sm">
+                  <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm">
                     <SelectValue placeholder="Pilih Kepala Unit" />
                   </SelectTrigger>
                   <SelectContent>
@@ -112,14 +114,14 @@ export function UnitFormDialog({
             ) : (
               <div className="p-4 bg-muted/50 rounded-xl border border-dashed border-muted-foreground/20">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Penunjukan <strong>Kepala Unit</strong> dapat dilakukan melalui tombol <strong>Edit</strong> setelah unit ini berhasil dibuat dan memiliki anggota.
+                  Penunjukan <strong>Kepala Unit</strong> dapat dilakukan melalui tombol <strong>Edit</strong> setelah unit memiliki anggota.
                 </p>
               </div>
             )}
           </div>
 
           <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
-            <Button type="button" variant="outline" className="min-w-[120px] h-10 text-sm" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button type="button" variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => onCancel ? onCancel() : onOpenChange(false)} disabled={loading}>
               Batal
             </Button>
             <Button type="submit" disabled={loading} className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">

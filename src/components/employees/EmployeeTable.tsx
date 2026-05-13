@@ -203,7 +203,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
                     <TableCell className="text-slate-900 py-1.5">{emp.employee_id_number || "—"}</TableCell>
                     <TableCell className="py-1.5 scale-90 origin-left">{getStatusBadge(emp.status)}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.units?.name || "—"}</TableCell>
-                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.position || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.positions?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
                       {emp.join_date ? new Date(emp.join_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>

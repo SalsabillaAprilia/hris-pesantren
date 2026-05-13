@@ -41,26 +41,23 @@ export function UnitDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-primary/5">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-white border-2 border-white shadow-md flex items-center justify-center">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
+              <div className="h-16 w-16 rounded-2xl bg-white border-2 border-white shadow-md flex items-center justify-center shrink-0">
                 <Building2 className="h-8 w-8 text-primary" />
               </div>
-              <div className="space-y-1 py-1">
-                <DialogTitle className="text-2xl font-bold tracking-tight">{unit.name}</DialogTitle>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground line-clamp-1">{unit.description || "Tidak ada deskripsi"}</p>
-                </div>
+              <div className="space-y-1 py-1 min-w-0">
+                <DialogTitle className="text-2xl font-bold tracking-tight truncate">{unit.name}</DialogTitle>
               </div>
             </div>
             {isAdminOrHr && (
-              <div className="flex gap-2 pr-8">
-                <Button variant="outline" size="sm" onClick={onEdit} className="gap-2 h-8 text-sm">
-                  <Edit className="h-3.5 w-3.5" /> Edit
+              <div className="flex items-center gap-2 pr-6 shrink-0">
+                <Button variant="outline" size="sm" onClick={onEdit} className="gap-1.5 font-semibold text-slate-700 hover:text-primary">
+                  <Edit className="h-3.5 w-3.5 text-slate-400" /> Edit Data
                 </Button>
-                <Button variant="destructive" size="sm" onClick={onDelete} className="gap-2 h-8 text-sm">
+                <Button variant="outline" size="sm" onClick={onDelete} className="gap-1.5 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none">
                   <Trash className="h-3.5 w-3.5" /> Hapus
                 </Button>
               </div>
@@ -69,6 +66,17 @@ export function UnitDetailDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          {/* Deskripsi */}
+          {unit.description ? (
+            <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 break-words">
+              {unit.description}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl px-4 py-3">
+              Tidak ada deskripsi untuk unit ini.
+            </p>
+          )}
+
           {/* Stats Section */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">

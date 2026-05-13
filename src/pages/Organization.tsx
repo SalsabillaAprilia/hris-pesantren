@@ -48,6 +48,7 @@ export default function Organization() {
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [unitToDelete, setUnitToDelete] = useState<any>(null);
+  const [isPositionFormOpen, setIsPositionFormOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -172,56 +173,53 @@ export default function Organization() {
     <DashboardLayout>
       <div className="flex flex-col space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Struktur Organisasi</h1>
-          </div>
-          {isAdminOrHr && activeTab === "units" && (
-            <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium">
-              <Plus className="h-4 w-4" /> Tambah Unit
+          <h1 className="text-2xl font-bold">Struktur Organisasi</h1>
+          {isAdminOrHr && (
+            <Button
+              onClick={() => activeTab === "units" ? handleOpenForm("create") : setIsPositionFormOpen(true)}
+              size="sm"
+              className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium"
+              id="btn-tambah-org"
+            >
+              <Plus className="h-4 w-4" />
+              {activeTab === "units" ? "Tambah Unit" : "Tambah Jabatan"}
             </Button>
           )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-slate-100/80 border p-1 rounded-lg">
-            <TabsTrigger value="units" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 font-medium text-slate-600 data-[state=active]:text-primary gap-2">
-              <Building2 className="h-4 w-4" />
-              Unit Kerja
-            </TabsTrigger>
-            <TabsTrigger value="positions" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 font-medium text-slate-600 data-[state=active]:text-primary gap-2">
-              <Network className="h-4 w-4" />
-              Master Jabatan
-            </TabsTrigger>
+          <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
+            <TabsTrigger value="units" className="text-xs">Unit Kerja</TabsTrigger>
+            <TabsTrigger value="positions" className="text-xs">Master Jabatan</TabsTrigger>
           </TabsList>
 
           <TabsContent value="units" className="m-0 outline-none">
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-             Array.from({ length: 6 }).map((_, i) => (
-               <div key={i} className="h-40 rounded-xl bg-slate-100 animate-pulse" />
-             ))
-          ) : units.length > 0 ? (
-            units.map((u) => (
-              <UnitCard 
-                key={u.id} 
-                unit={u} 
-                employeeCount={u.employeeCount} 
-                leaderName={u.leader?.name}
-                onClick={() => openUnitDetail(u)}
-              />
-            ))
-          ) : (
-            <div className="col-span-full py-20 text-center border-2 border-dashed rounded-2xl border-slate-200">
-               <Building2 className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-               <p className="text-slate-500 font-medium">Belum ada unit yang terdaftar</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-40 rounded-xl bg-slate-100 animate-pulse" />
+                ))
+              ) : units.length > 0 ? (
+                units.map((u) => (
+                  <UnitCard
+                    key={u.id}
+                    unit={u}
+                    employeeCount={u.employeeCount}
+                    leaderName={u.leader?.name}
+                    onClick={() => openUnitDetail(u)}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full py-20 text-center border-2 border-dashed rounded-2xl border-slate-200">
+                  <Building2 className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 font-medium">Belum ada unit yang terdaftar</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
           </TabsContent>
 
           <TabsContent value="positions" className="m-0 outline-none">
-            <PositionTab isAdminOrHr={isAdminOrHr} />
+            <PositionTab isAdminOrHr={isAdminOrHr} onAdd={() => setIsPositionFormOpen(true)} isFormOpen={isPositionFormOpen} onFormOpenChange={setIsPositionFormOpen} />
           </TabsContent>
         </Tabs>
       </div>
@@ -235,6 +233,7 @@ export default function Organization() {
         unitMembers={employees.filter(e => e.unit_id === editingUnit?.id)}
         onSubmit={handleFormSubmit}
         loading={isActionLoading}
+        onCancel={formMode === "edit" ? () => { setIsFormOpen(false); setIsDetailOpen(true); } : undefined}
       />
 
       <UnitDetailDialog 
@@ -257,23 +256,23 @@ export default function Organization() {
       />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent className="shadow-2xl border-none p-0 overflow-hidden">
-          <div className="p-6">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold">Hapus Unit?</AlertDialogTitle>
-              <AlertDialogDescription className="pt-2 text-slate-600 leading-relaxed">
-                Tindakan ini tidak dapat dibatalkan. Pastikan unit <strong className="text-slate-900">"{unitToDelete?.name}"</strong> memang sudah tidak diperlukan lagi.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-          </div>
-          <AlertDialogFooter className="p-6 pt-0 gap-3 sm:gap-2">
-            <AlertDialogCancel className="h-10 text-sm flex-1 sm:flex-none min-w-[100px] border-slate-200">Batal</AlertDialogCancel>
-            <AlertDialogAction 
+        <AlertDialogContent className="shadow-2xl border-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Konfirmasi Penghapusan</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-2">
+              <p>
+                Apakah Anda yakin ingin menghapus unit <strong>{unitToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 pt-4">
+            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">Batal</AlertDialogCancel>
+            <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              className="h-10 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold flex-1 sm:flex-none min-w-[120px] shadow-lg shadow-destructive/10"
               disabled={isActionLoading}
+              className="h-10 min-w-[120px] text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20 transition-all"
             >
-              {isActionLoading ? "Menghapus..." : "Ya, Hapus Unit"}
+              {isActionLoading ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

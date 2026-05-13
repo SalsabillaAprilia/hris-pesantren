@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, Network, Pencil, Trash2 } from "lucide-react";
+import { Plus, Network, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { PositionFormDialog } from "./PositionFormDialog";
 import {
   Table,
@@ -22,30 +23,58 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function PositionTab({ isAdminOrHr }: { isAdminOrHr: boolean }) {
+export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }: {
+  isAdminOrHr: boolean;
+  onAdd: () => void;
+  isFormOpen: boolean;
+  onFormOpenChange: (open: boolean) => void;
+}) {
   const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Dialog States
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  // Dialog States — isFormOpen dikendalikan oleh parent (Organization.tsx)
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingPosition, setEditingPosition] = useState<any>(null);
-  const [isActionLoading, setIsActionLoading] = useState(false);
-
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [positionToDelete, setPositionToDelete] = useState<any>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  
+  // Reassign on delete states
+  const [employeesCount, setEmployeesCount] = useState<number>(0);
+  const [replacementPositionId, setReplacementPositionId] = useState<string>("");
+  const [isCheckingUsage, setIsCheckingUsage] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchPositions = async () => {
     try {
       setLoading(true);
-      const { data, error } = await (supabase as any).from("positions").select("*").order("name");
-      if (error) {
-        console.error("Error fetching positions:", error);
-        // Supabase might fail if table doesn't exist yet
-        if (error.code !== "42P01") throw error; // 42P01 is relation does not exist
+      const [posRes, empRes] = await Promise.all([
+        (supabase as any).from("positions").select("*").order("name"),
+        (supabase as any).from("employees").select("position_id").not("position_id", "is", null)
+      ]);
+      
+      if (posRes.error) {
+        console.error("Error fetching positions:", posRes.error);
+        if (posRes.error.code !== "42P01") throw posRes.error;
       }
-      setPositions(data || []);
+
+      const counts: Record<string, number> = {};
+      (empRes.data || []).forEach((emp: any) => {
+        counts[emp.position_id] = (counts[emp.position_id] || 0) + 1;
+      });
+
+      const formattedData = (posRes.data || []).map((pos: any) => ({
+        ...pos,
+        employee_count: counts[pos.id] || 0
+      }));
+
+      setPositions(formattedData);
     } catch (err: any) {
       console.error(err);
       toast.error("Gagal memuat master jabatan. Pastikan script SQL sudah dijalankan.");
@@ -58,10 +87,18 @@ export function PositionTab({ isAdminOrHr }: { isAdminOrHr: boolean }) {
     fetchPositions();
   }, []);
 
+  // Reset form state when closed
+  useEffect(() => {
+    if (!isFormOpen) {
+      setFormMode("create");
+      setEditingPosition(null);
+    }
+  }, [isFormOpen]);
+
   const handleOpenForm = (mode: "create" | "edit", position?: any) => {
     setFormMode(mode);
     setEditingPosition(position || null);
-    setIsFormOpen(true);
+    onFormOpenChange(true);
   };
 
   const handleFormSubmit = async (data: any) => {
@@ -76,7 +113,7 @@ export function PositionTab({ isAdminOrHr }: { isAdminOrHr: boolean }) {
         if (error) throw error;
         toast.success("Jabatan berhasil diperbarui");
       }
-      setIsFormOpen(false);
+      onFormOpenChange(false);
       fetchPositions();
     } catch (err: any) {
       toast.error(err.message || "Gagal menyimpan jabatan");
@@ -85,26 +122,36 @@ export function PositionTab({ isAdminOrHr }: { isAdminOrHr: boolean }) {
     }
   };
 
-  const confirmDelete = (position: any) => {
+  const confirmDelete = async (position: any) => {
     setPositionToDelete(position);
     setDeleteConfirmOpen(true);
+    setReplacementPositionId("");
+    setEmployeesCount(position.employee_count || 0);
   };
 
   const handleDelete = async () => {
     try {
       setIsActionLoading(true);
-      // Optional: Check if employees use this position before deleting
-      const { data: employeesUsing } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("position", positionToDelete.name)
-        .limit(1);
-        
-      if (employeesUsing && employeesUsing.length > 0) {
-        toast.error(`Tidak bisa menghapus: Masih ada karyawan dengan jabatan "${positionToDelete.name}".`);
-        return;
+      
+      // Jika ada karyawan, pastikan mereka sudah dipindahkan
+      if (employeesCount > 0) {
+        if (!replacementPositionId) {
+          toast.error("Pilih jabatan pengganti untuk memindahkan karyawan");
+          setIsActionLoading(false);
+          return;
+        }
+
+        // Pindahkan karyawan secara massal
+        const { error: updateError } = await (supabase as any)
+          .from("employees")
+          .update({ position_id: replacementPositionId })
+          .eq("position_id", positionToDelete.id);
+          
+        if (updateError) throw updateError;
+        toast.success(`${employeesCount} karyawan berhasil dipindahkan ke jabatan baru.`);
       }
 
+      // Hapus jabatan
       const { error } = await (supabase as any).from("positions").delete().eq("id", positionToDelete.id);
       if (error) throw error;
       
@@ -118,60 +165,74 @@ export function PositionTab({ isAdminOrHr }: { isAdminOrHr: boolean }) {
     }
   };
 
+  const filteredPositions = positions.filter(pos => 
+    pos.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="bg-white rounded-xl border shadow-sm flex flex-col min-h-[400px]">
-      <div className="p-6 border-b flex items-center justify-between bg-slate-50/50 rounded-t-xl">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-            <Network className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-lg text-slate-800">Master Data Jabatan</h2>
-            <p className="text-sm text-slate-500">Kelola daftar posisi/jabatan yang tersedia untuk karyawan</p>
-          </div>
+    <div className="flex flex-col gap-4">
+      {/* Search Bar */}
+      <div className="flex items-center gap-2 max-w-sm">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Cari nama jabatan..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 border-muted-foreground/20 focus-visible:ring-primary/20 bg-white"
+          />
         </div>
-        {isAdminOrHr && (
-          <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 shadow-sm font-medium">
-            <Plus className="h-4 w-4" /> Tambah Jabatan
-          </Button>
-        )}
       </div>
 
-      <div className="p-0 overflow-x-auto flex-1">
-        {loading ? (
-          <div className="p-8 text-center text-muted-foreground animate-pulse">Memuat data jabatan...</div>
-        ) : positions.length > 0 ? (
-          <Table>
-            <TableHeader className="bg-slate-50/80">
-              <TableRow>
-                <TableHead className="w-16 text-center">No</TableHead>
-                <TableHead>Nama Jabatan</TableHead>
-                <TableHead className="w-48 text-right">Aksi</TableHead>
+      <div className="relative border rounded-md bg-white flex flex-col">
+        <div className="overflow-x-auto overflow-y-visible flex-1 h-auto relative">
+          {loading ? (
+            <div className="p-8 text-center text-muted-foreground animate-pulse">Memuat data jabatan...</div>
+          ) : filteredPositions.length > 0 ? (
+            <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0">
+            <TableHeader className="z-20 transition-none [&_th]:sticky [&_th]:top-0 [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted">
+              <TableRow className="border-none hover:bg-transparent">
+                <TableHead className="w-14 text-center font-semibold">No</TableHead>
+                <TableHead className="font-semibold">Nama Jabatan</TableHead>
+                <TableHead className="w-40 text-center font-semibold">Total Karyawan</TableHead>
+                <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {positions.map((pos, idx) => (
-                <TableRow key={pos.id} className="hover:bg-slate-50/50 transition-colors">
-                  <TableCell className="text-center font-medium text-slate-500">{idx + 1}</TableCell>
-                  <TableCell className="font-semibold text-slate-800">{pos.name}</TableCell>
-                  <TableCell className="text-right">
+              {filteredPositions.map((pos, idx) => (
+                <TableRow
+                  key={pos.id}
+                  className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
+                >
+                  <TableCell className="text-center text-slate-500 py-1.5 font-medium">{idx + 1}</TableCell>
+                  <TableCell className="font-semibold text-slate-900 py-1.5">{pos.name}</TableCell>
+                  <TableCell className="text-center py-1.5">
+                    {pos.employee_count > 0 ? (
+                      <Badge variant="secondary" className="font-normal text-[11px] px-2 py-0 h-5 bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-default">
+                        {pos.employee_count} Karyawan
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-medium">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-1.5 text-right">
                     {isAdminOrHr && (
-                      <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-primary hover:bg-primary/10"
                           onClick={() => handleOpenForm("edit", pos)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-destructive hover:bg-destructive/10"
                           onClick={() => confirmDelete(pos)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     )}
@@ -179,43 +240,80 @@ export function PositionTab({ isAdminOrHr }: { isAdminOrHr: boolean }) {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+          </table>
         ) : (
           <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-            <Network className="h-12 w-12 mb-4 text-slate-200" />
-            <p className="font-medium">Belum ada master jabatan</p>
-            <p className="text-sm">Klik "Tambah Jabatan" untuk memulai</p>
+            {searchQuery ? (
+              <>
+                <Search className="h-12 w-12 mb-4 text-slate-200" />
+                <p className="font-medium">Pencarian tidak ditemukan</p>
+                <p className="text-sm">"{searchQuery}" tidak cocok dengan jabatan manapun</p>
+              </>
+            ) : (
+              <>
+                <Network className="h-12 w-12 mb-4 text-slate-200" />
+                <p className="font-medium">Belum ada master jabatan</p>
+                <p className="text-sm">Klik "Tambah Jabatan" untuk memulai</p>
+              </>
+            )}
           </div>
         )}
       </div>
+    </div>
 
-      <PositionFormDialog 
-        open={isFormOpen} 
-        onOpenChange={setIsFormOpen} 
-        mode={formMode} 
+    <PositionFormDialog
+        open={isFormOpen}
+        onOpenChange={onFormOpenChange}
+        mode={formMode}
         initialData={editingPosition}
         onSubmit={handleFormSubmit}
         loading={isActionLoading}
       />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent className="shadow-2xl border-none p-0 overflow-hidden">
-          <div className="p-6">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold">Hapus Jabatan?</AlertDialogTitle>
-              <AlertDialogDescription className="pt-2 text-slate-600 leading-relaxed">
-                Tindakan ini tidak dapat dibatalkan. Pastikan jabatan <strong className="text-slate-900">"{positionToDelete?.name}"</strong> memang sudah tidak diperlukan lagi.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-          </div>
-          <AlertDialogFooter className="p-6 pt-0 gap-3 sm:gap-2">
-            <AlertDialogCancel className="h-10 text-sm flex-1 sm:flex-none min-w-[100px] border-slate-200">Batal</AlertDialogCancel>
-            <AlertDialogAction 
+        <AlertDialogContent className="shadow-2xl border-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Konfirmasi Penghapusan</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 pt-2 text-slate-600">
+                <p>
+                  Apakah Anda yakin ingin menghapus jabatan <strong className="text-slate-900">{positionToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+                </p>
+                
+                {employeesCount > 0 ? (
+                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
+                    <p className="text-orange-800 text-sm font-medium">
+                      ⚠️ Terdapat {employeesCount} karyawan yang saat ini menggunakan jabatan ini.
+                    </p>
+                    <div className="space-y-2">
+                      <Label className="text-orange-900 font-semibold text-sm">Pilih Jabatan Pengganti (Wajib)</Label>
+                      <Select value={replacementPositionId} onValueChange={setReplacementPositionId}>
+                        <SelectTrigger className="bg-white border-orange-200 focus:ring-orange-500 text-slate-900">
+                          <SelectValue placeholder="Pilih jabatan untuk dipindahkan..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {positions
+                            .filter(p => p.id !== positionToDelete?.id)
+                            .map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-orange-700">Karyawan terkait akan otomatis dipindahkan ke jabatan baru ini sebelum dihapus.</p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 pt-4">
+            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">Batal</AlertDialogCancel>
+            <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              className="h-10 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold flex-1 sm:flex-none min-w-[120px] shadow-lg shadow-destructive/10"
-              disabled={isActionLoading}
+              disabled={isActionLoading || (employeesCount > 0 && !replacementPositionId)}
+              className="h-10 min-w-[120px] text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20 transition-all"
             >
-              {isActionLoading ? "Menghapus..." : "Ya, Hapus"}
+              {isActionLoading ? "Memproses..." : employeesCount > 0 ? "Hapus & Pindahkan" : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

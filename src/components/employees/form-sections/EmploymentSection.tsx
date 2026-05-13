@@ -63,11 +63,11 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
         </div>
         <div className="space-y-2 font-normal">
           <Label className="text-sm font-bold text-muted-foreground/90">Jabatan</Label>
-          <Select value={form.position} onValueChange={(v) => setForm({ ...form, position: v })}>
+          <Select value={form.position_id ?? ""} onValueChange={(v) => setForm({ ...form, position_id: v || null })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
             <SelectContent>
               {positions.map((p) => (
-                <SelectItem key={p.id} value={p.name} className="text-sm">{p.name}</SelectItem>
+                <SelectItem key={p.id} value={p.id} className="text-sm">{p.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -148,7 +148,7 @@ export default function WorkSchedules() {
                   size="sm"
                   className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium"
                 >
-                  <Plus className="h-4 w-4" /> Tambah
+                  <Plus className="h-4 w-4" /> Tambah Shift
                 </Button>
               </DialogTrigger>
           <DialogContent className="max-w-md">

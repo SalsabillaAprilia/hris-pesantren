@@ -120,7 +120,7 @@ export function EmployeeDetailDialog({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
                 <DetailItem label="Unit Kerja" value={employee.units?.name} isHighlight />
-                <DetailItem label="Jabatan" value={employee.position} />
+                <DetailItem label="Jabatan" value={employee.positions?.name} />
                 <DetailItem label="Tanggal Bergabung" value={employee.join_date ? new Date(employee.join_date).toLocaleDateString("id-ID") : null} />
                 <DetailItem label="Masa Kerja" value={calculateMasaKerja(employee.join_date)} />
                 <DetailItem label="Status Karyawan" value={employee.status === "active" ? "Aktif" : (employee.status === "inactive" ? "Nonaktif" : "Cuti")} />

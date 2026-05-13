@@ -1,7 +1,9 @@
 import type { Tables } from "@/integrations/supabase/types";
 
 export type Employee = Tables<"employees"> & { 
-  units?: { name: string } | null; 
+  units?: { name: string } | null;
+  positions?: { id: string; name: string } | null;
+  position_id?: string | null;
   role?: string;
   // Field tambahan dari SQL
   employee_id_number?: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -37,35 +37,35 @@ export function PositionFormDialog({ open, onOpenChange, mode, initialData, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden shadow-2xl border-none">
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <DialogHeader className="p-6 border-b bg-muted/30">
             <DialogTitle className="text-xl font-bold tracking-tight">
               {mode === "create" ? "Tambah Jabatan Baru" : "Edit Nama Jabatan"}
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="p-6 space-y-4">
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-2">
-              <Label className="text-sm font-bold text-muted-foreground/90">Nama Jabatan <span className="text-rose-500">*</span></Label>
-              <Input 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                required 
-                placeholder="Misal: Kepala SDM"
-                className="h-10 text-slate-900 shadow-sm"
+              <Label className="text-sm font-bold text-muted-foreground/90">Nama Jabatan *</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Masukkan Nama Jabatan"
+                className="h-9 text-sm text-slate-900 shadow-sm"
               />
             </div>
           </div>
-          
-          <DialogFooter className="p-6 border-t bg-muted/10 gap-2 sm:gap-0 flex sm:justify-end">
-            <Button type="button" variant="outline" className="min-w-[120px] h-10 text-sm font-semibold" onClick={() => onOpenChange(false)} disabled={loading}>
+
+          <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
+            <Button type="button" variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => onOpenChange(false)} disabled={loading}>
               Batal
             </Button>
-            <Button type="submit" disabled={loading || !name.trim()} className="min-w-[120px] h-10 text-sm font-bold shadow-md">
-              {loading ? "Menyimpan..." : "Simpan Data"}
+            <Button type="submit" disabled={loading || !name.trim()} className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">
+              {loading ? "Menyimpan..." : (mode === "create" ? "Simpan Jabatan" : "Simpan Perubahan")}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

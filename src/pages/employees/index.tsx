@@ -51,7 +51,7 @@ export default function EmployeesPage() {
   const [activeTab, setActiveTab] = useState("personal");
   const [filters, setFilters] = useState({ unit_id: "all", position: "all", status: "all", tenure: "all", gender: "all", education: "all", religion: "all" });
   const INITIAL_FORM = { 
-    name: "", email: "", unit_id: "", position: "", password: "", role: "employee", status: "active", 
+    name: "", email: "", unit_id: "", position_id: null as string | null, password: "", role: "employee", status: "active", 
     employee_id_number: "", gender: "Laki-laki", nationality: "WNI", birth_date: "", birth_place: "", 
     religion: "", last_education: "", address: "", join_date: new Date().toISOString().split('T')[0], 
     contract_end_date: "", marital_status: "Belum Menikah", identity_card_type: "KTP", 
@@ -83,7 +83,7 @@ export default function EmployeesPage() {
     try {
       setLoading(true);
       // Fetch concurrently but handle each result safely using timeout wrapper
-      const [empRes, unitRes, shiftRes, rolesRes, posRes] = await Promise.all([
+      const [empResRaw, unitRes, shiftRes, rolesRes, posRes] = await Promise.all([
         // Unit leader hanya melihat anggota unitnya sendiri
         supabaseFetchWithTimeout(
           isUnitLeader && currentUser?.unit_id
@@ -96,6 +96,7 @@ export default function EmployeesPage() {
         supabaseFetchWithTimeout(supabase.from("user_roles").select("*"), 20000),
         supabaseFetchWithTimeout((supabase as any).from("positions").select("*").order("name"), 20000)
       ]);
+      const empRes = empResRaw as any;
 
       if (empRes.error) {
         console.error("Error fetching employees:", empRes.error);
@@ -106,17 +107,17 @@ export default function EmployeesPage() {
       if (shiftRes.error) console.error("Error fetching shifts:", shiftRes.error);
       
       const allUnits = unitRes.data || [];
+      const allPositions = (posRes as any).data || [];
       const rolesMap = rolesRes.data || [];
       
       if (empRes.data) {
-        setEmployees(empRes.data.map(emp => ({ 
+        setEmployees((empRes.data as any[]).map(emp => ({ 
           ...emp, 
-          // Petakan unit secara manual untuk menghindari join circular
-          units: allUnits.find(u => u.id === emp.unit_id) || null,
-          role: rolesMap.find(r => r.user_id === emp.user_id)?.role || "employee" 
+          units: allUnits.find((u: any) => u.id === emp.unit_id) || null,
+          positions: allPositions.find((p: any) => p.id === emp.position_id) || null,
+          role: rolesMap.find((r: any) => r.user_id === emp.user_id)?.role || "employee" 
         }))
-        // Sembunyikan akun admin & HR dari halaman karyawan — mereka bukan karyawan
-        .filter(emp => !["super_admin", "hr"].includes(emp.role)) as Employee[]);
+        .filter((emp: any) => !["super_admin", "hr"].includes(emp.role)) as Employee[]);
       }
       
       if (unitRes.data) setUnits(unitRes.data);
@@ -166,7 +167,7 @@ export default function EmployeesPage() {
         name: form.name,
         email: form.email,
         unit_id: form.unit_id || null,
-        position: form.position || null,
+        position_id: form.position_id || null,
         status: form.status,
         join_date: form.join_date || null,
         employee_id_number: form.employee_id_number || null,
@@ -361,6 +362,7 @@ export default function EmployeesPage() {
     const getVal = (emp: Employee, colId: string): string => {
       switch (colId) {
         case 'unit': return emp.units?.name || "-";
+        case 'position': return emp.positions?.name || "-";
         case 'status': return emp.status === 'active' ? 'Aktif' : emp.status === 'inactive' ? 'Nonaktif' : 'Cuti';
         case 'join_date': return emp.join_date ? new Date(emp.join_date).toLocaleDateString('id-ID') : "-";
         case 'contract_end_date': return emp.contract_end_date ? new Date(emp.contract_end_date).toLocaleDateString('id-ID') : "-";
@@ -426,8 +428,7 @@ export default function EmployeesPage() {
       (emp.employee_id_number || "").toLowerCase().includes(s);
     
     const matchesUnit = filters.unit_id === "all" || emp.unit_id === filters.unit_id;
-    const matchesPosition = filters.position === "all" || 
-      (emp.position || "").toLowerCase().includes(filters.position.toLowerCase());
+    const matchesPosition = filters.position === "all" || emp.position_id === filters.position;
     const matchesStatus = filters.status === "all" || emp.status === filters.status;
     const matchesGender = filters.gender === "all" || emp.gender === filters.gender;
     const matchesReligion = filters.religion === "all" || emp.religion === filters.religion;
@@ -490,7 +491,7 @@ export default function EmployeesPage() {
                 <UploadCloud className="h-4 w-4 text-slate-500" /> Import
               </Button>
               <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 font-medium">
-                <Plus className="h-4 w-4" /> Tambah
+                <Plus className="h-4 w-4" /> Tambah Karyawan
               </Button>
             </div>
           )}
@@ -565,6 +566,7 @@ export default function EmployeesPage() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         units={units}
+        positions={positions}
         onSuccess={fetchData}
       />
 

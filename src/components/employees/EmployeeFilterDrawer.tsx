@@ -64,7 +64,7 @@ export function EmployeeFilterDrawer({
                 <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Jabatan" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Jabatan</SelectItem>
-                  {positions.map(p => <SelectItem key={p.id} value={p.name} className="text-sm">{p.name}</SelectItem>)}
+                  {positions.map(p => <SelectItem key={p.id} value={p.id} className="text-sm">{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
