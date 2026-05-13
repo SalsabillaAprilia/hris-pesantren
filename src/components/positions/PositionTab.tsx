@@ -283,13 +283,13 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
                 {employeesCount > 0 ? (
                   <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
                     <p className="text-orange-800 text-sm font-medium">
-                      ⚠️ Terdapat {employeesCount} karyawan yang saat ini menggunakan jabatan ini.
+                      ⚠️ Terdapat {employeesCount} karyawan yang menggunakan jabatan ini.
                     </p>
                     <div className="space-y-2">
-                      <Label className="text-orange-900 font-semibold text-sm">Pilih Jabatan Pengganti (Wajib)</Label>
+                      <Label className="text-orange-900 font-semibold text-sm">Pilih Jabatan Pengganti *</Label>
                       <Select value={replacementPositionId} onValueChange={setReplacementPositionId}>
                         <SelectTrigger className="bg-white border-orange-200 focus:ring-orange-500 text-slate-900">
-                          <SelectValue placeholder="Pilih jabatan untuk dipindahkan..." />
+                          <SelectValue placeholder="Pilih Jabatan..." />
                         </SelectTrigger>
                         <SelectContent>
                           {positions
@@ -299,7 +299,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
                             ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-orange-700">Karyawan terkait akan otomatis dipindahkan ke jabatan baru ini sebelum dihapus.</p>
+                      <p className="text-xs text-orange-700">Karyawan terkait akan dipindahkan ke jabatan baru sebelum jabatan ini dihapus.</p>
                     </div>
                   </div>
                 ) : null}

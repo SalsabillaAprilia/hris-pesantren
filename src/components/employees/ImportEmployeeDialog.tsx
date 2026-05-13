@@ -323,18 +323,18 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, onS
           )}
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-muted/10 gap-2 sm:gap-0 flex sm:justify-end">
-          <Button variant="outline" className="min-w-[140px] h-10 text-sm font-semibold" onClick={handleClose} disabled={isProcessing}>
+        <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
+          <Button variant="outline" className="min-w-[140px] h-10 text-sm" onClick={handleClose} disabled={isProcessing}>
             Batal
           </Button>
           <Button 
             onClick={executeImport} 
             disabled={previewData.length === 0 || isProcessing}
-            className="min-w-[140px] h-10 text-sm font-semibold shadow-md gap-2"
+            className="min-w-[140px] h-10 text-sm gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-all transform active:scale-95"
           >
             {isProcessing ? "Sedang Mengimpor..." : "Mulai Import"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

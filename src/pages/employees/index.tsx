@@ -514,7 +514,13 @@ export default function EmployeesPage() {
             <TabsTrigger value="contact" className="text-xs">Kontak</TabsTrigger>
             <TabsTrigger value="employment" className="text-xs">Kepegawaian</TabsTrigger>
           </TabsList>
-          <EmployeeTable employees={filtered} activeTab={activeTab} loading={loading} onViewDetail={(emp) => { setViewingEmployee(emp); setViewDialogOpen(true); }} />
+          <EmployeeTable 
+            employees={filtered} 
+            activeTab={activeTab} 
+            loading={loading} 
+            onViewDetail={(emp) => { setViewingEmployee(emp); setViewDialogOpen(true); }} 
+            isSuperAdmin={isSuperAdmin}
+          />
         </Tabs>
       </div>
       <EmployeeFormDialog 

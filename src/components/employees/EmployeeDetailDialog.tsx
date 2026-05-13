@@ -32,7 +32,7 @@ export function EmployeeDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="sm:max-w-[650px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-primary/5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
@@ -80,7 +80,7 @@ export function EmployeeDetailDialog({
                 <div className="h-4 w-1 bg-primary rounded-full"></div>
                 <span className="flex items-center gap-1.5"><UserIcon className="h-3.5 w-3.5" /> Data Pribadi</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
                 <DetailItem label="Nama Lengkap" value={employee.name} />
                 <DetailItem label="ID Karyawan" value={employee.employee_id_number} />
                 <DetailItem label="Tempat Lahir" value={employee.birth_place} />
@@ -98,17 +98,13 @@ export function EmployeeDetailDialog({
                 <div className="h-4 w-1 bg-primary rounded-full"></div>
                 <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Informasi Kontak</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
                 <DetailItem label="Email" value={employee.email} />
                 <DetailItem label="Nomor WhatsApp" value={employee.whatsapp_number} isHighlight />
                 <DetailItem label="Kartu Identitas" value={employee.identity_card_type} />
                 <DetailItem label="ID Kartu Identitas" value={employee.identity_card_number} />
-                <div className="md:col-span-2">
-                  <DetailItem label="Alamat Kartu Identitas" value={employee.address} isFullWidth />
-                </div>
-                <div className="md:col-span-2">
-                  <DetailItem label="Alamat Domisili" value={employee.address_domicile} isFullWidth />
-                </div>
+                <DetailItem label="Alamat Kartu Identitas" value={employee.address} />
+                <DetailItem label="Alamat Domisili" value={employee.address_domicile} />
               </div>
             </section>
 
@@ -118,18 +114,26 @@ export function EmployeeDetailDialog({
                 <div className="h-4 w-1 bg-primary rounded-full"></div>
                 <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" /> Kepegawaian & Pendidikan</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
                 <DetailItem label="Unit Kerja" value={employee.units?.name} isHighlight />
                 <DetailItem label="Jabatan" value={employee.positions?.name} />
+                <DetailItem label="Status Karyawan" value={employee.status === "active" ? "Aktif" : (employee.status === "inactive" ? "Nonaktif" : "Cuti")} />
                 <DetailItem label="Tanggal Bergabung" value={employee.join_date ? new Date(employee.join_date).toLocaleDateString("id-ID") : null} />
                 <DetailItem label="Masa Kerja" value={calculateMasaKerja(employee.join_date)} />
-                <DetailItem label="Status Karyawan" value={employee.status === "active" ? "Aktif" : (employee.status === "inactive" ? "Nonaktif" : "Cuti")} />
                 <DetailItem label="Akhir Kontrak" value={employee.contract_end_date ? new Date(employee.contract_end_date).toLocaleDateString("id-ID") : null} />
                 <DetailItem label="Jenjang Pendidikan" value={employee.education_level} />
                 <DetailItem label="Lembaga Pendidikan" value={employee.education_institution} />
-                <div className="md:col-span-2">
-                   <DetailItem label="Program Studi" value={employee.education_major} isFullWidth />
-                </div>
+                <DetailItem label="Program Studi" value={employee.education_major} />
+                {isSuperAdmin && (
+                  <DetailItem label="Role Sistem" value={
+                    employee.role === 'super_admin' ? 'Super Admin' :
+                    employee.role === 'hr' ? 'HRD' :
+                    employee.role === 'unit_leader' ? 'Kepala Unit' :
+                    employee.role === 'employee' ? 'Karyawan' :
+                    employee.role ? employee.role.replace('_', ' ') : "—"
+                  } />
+                )}
+                
                 {employee.attachment_url && (
                    <div className="md:col-span-2 pt-4">
                      <Button variant="outline" className="gap-2" asChild>

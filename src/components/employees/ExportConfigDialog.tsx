@@ -108,7 +108,7 @@ export function ExportConfigDialog({
   }, [open, hasActiveFilters, exportScope, setExportScope]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] shadow-2xl border-none p-0 overflow-hidden bg-white max-h-[95vh] flex flex-col">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-muted/30 flex-shrink-0">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             {isPdf ? <FileText className="h-5 w-5 text-red-500" /> : <FileDown className="h-5 w-5 text-green-600" />}
@@ -148,9 +148,13 @@ export function ExportConfigDialog({
             </h4>
             <div className="flex gap-1">
               {!isPdf && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-primary hover:bg-primary/10" onClick={selectAll}>Pilih Semua</Button>
+                <Button variant="outline" size="sm" className="h-7 px-3 text-xs font-semibold text-slate-700 hover:text-primary" onClick={selectAll}>
+                  Pilih Semua
+                </Button>
               )}
-              <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-destructive hover:bg-destructive/10" onClick={deselectAll}>Hapus Semua</Button>
+              <Button variant="outline" size="sm" className="h-7 px-3 text-xs font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none" onClick={deselectAll}>
+                Hapus Semua
+              </Button>
             </div>
           </div>
 
@@ -177,11 +181,11 @@ export function ExportConfigDialog({
           </div>
         </div>
 
-        <div className="p-4 border-t bg-slate-50 flex gap-3 flex-shrink-0">
-          <Button variant="outline" className="flex-1 h-10 text-sm font-semibold" onClick={() => onOpenChange(false)}>
+        <div className="p-6 border-t bg-muted/30 flex justify-end gap-3 flex-shrink-0">
+          <Button variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => onOpenChange(false)}>
             Batal
           </Button>
-          <Button onClick={onDownload} className="flex-1 h-10 text-sm gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 font-bold transition-all transform active:scale-95">
+          <Button onClick={onDownload} className="min-w-[140px] h-10 text-sm gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-all transform active:scale-95">
              <Download className="h-4 w-4" /> Download Sekarang
           </Button>
         </div>

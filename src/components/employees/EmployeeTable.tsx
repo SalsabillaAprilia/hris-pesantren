@@ -8,9 +8,10 @@ interface EmployeeTableProps {
   activeTab: string;
   onViewDetail: (emp: Employee) => void;
   loading: boolean;
+  isSuperAdmin?: boolean;
 }
 
-export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: EmployeeTableProps) {
+export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isSuperAdmin }: EmployeeTableProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
@@ -126,34 +127,37 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
 
               {activeTab === "personal" && (
                 <>
-                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">ID Karyawan</TableHead>
-                  <TableHead className="w-[130px] font-semibold border-r border-gray-200">Jenis Kelamin</TableHead>
-                  <TableHead className="w-[100px] font-semibold border-r border-gray-200">Kewarganegaraan</TableHead>
-                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">Data Identitas</TableHead>
-                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">Tanggal Lahir</TableHead>
-                  <TableHead className="w-[100px] font-semibold border-r border-gray-200">Agama</TableHead>
-                  <TableHead className="w-[100px] font-semibold">Pendidikan</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">ID Karyawan</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Jenis Kelamin</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Kewarganegaraan</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Data Identitas</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Tanggal Lahir</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Agama</TableHead>
+                  <TableHead className="font-semibold whitespace-nowrap">Pendidikan</TableHead>
                 </>
               )}
 
               {activeTab === "contact" && (
                 <>
-                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">WhatsApp</TableHead>
-                  <TableHead className="w-[180px] font-semibold border-r border-gray-200">Email</TableHead>
-                  <TableHead className="w-[250px] font-semibold border-r border-gray-200">Alamat</TableHead>
-                  <TableHead className="w-[250px] font-semibold">Domisili</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">WhatsApp</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Email</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Alamat</TableHead>
+                  <TableHead className="font-semibold whitespace-nowrap">Domisili</TableHead>
                 </>
               )}
 
               {activeTab === "employment" && (
                 <>
-                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">ID Karyawan</TableHead>
-                  <TableHead className="w-[100px] font-semibold border-r border-gray-200">Status</TableHead>
-                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">Unit Kerja</TableHead>
-                  <TableHead className="w-[150px] font-semibold border-r border-gray-200">Jabatan</TableHead>
-                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">Bergabung</TableHead>
-                  <TableHead className="w-[120px] font-semibold border-r border-gray-200">Masa Kerja</TableHead>
-                  <TableHead className="w-[120px] font-semibold">Akhir Kontrak</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">ID Karyawan</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Status</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Unit Kerja</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Jabatan</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Bergabung</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Masa Kerja</TableHead>
+                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Akhir Kontrak</TableHead>
+                  {isSuperAdmin && (
+                    <TableHead className="font-semibold whitespace-nowrap">Role Sistem</TableHead>
+                  )}
                 </>
               )}
             </TableRow>
@@ -200,8 +204,8 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
 
                 {activeTab === "employment" && (
                   <>
-                    <TableCell className="text-slate-900 py-1.5">{emp.employee_id_number || "—"}</TableCell>
-                    <TableCell className="py-1.5 scale-90 origin-left">{getStatusBadge(emp.status)}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 whitespace-nowrap">{emp.employee_id_number || "—"}</TableCell>
+                    <TableCell className="py-1.5 scale-90 origin-left whitespace-nowrap">{getStatusBadge(emp.status)}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.units?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.positions?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
@@ -213,6 +217,15 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading }: E
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
                       {emp.contract_end_date ? new Date(emp.contract_end_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>
+                    {isSuperAdmin && (
+                      <TableCell className="py-1.5 text-slate-900 whitespace-nowrap">
+                        {emp.role === 'super_admin' ? 'Super Admin' :
+                         emp.role === 'hr' ? 'HRD' :
+                         emp.role === 'unit_leader' ? 'Kepala Unit' :
+                         emp.role === 'employee' ? 'Karyawan' :
+                         emp.role ? emp.role.replace('_', ' ') : "—"}
+                      </TableCell>
+                    )}
                   </>
                 )}
               </TableRow>
