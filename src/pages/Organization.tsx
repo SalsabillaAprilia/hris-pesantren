@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Building2, Plus, ArrowLeft, Network } from "lucide-react";
+import { Building2, Plus, ArrowLeft, Network, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
@@ -19,6 +19,8 @@ import {
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
 import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Modular Components
 import { UnitCard } from "@/components/units/UnitCard";
@@ -49,6 +51,7 @@ export default function Organization() {
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [unitToDelete, setUnitToDelete] = useState<any>(null);
+  const [replacementUnitId, setReplacementUnitId] = useState<string>("");
   const [isPositionFormOpen, setIsPositionFormOpen] = useState(false);
 
   const fetchData = async () => {
@@ -136,19 +139,37 @@ export default function Organization() {
   };
 
   const confirmDelete = (unit: any) => {
-    if (unit.employeeCount > 0) {
-      toast.error("Unit tidak bisa dihapus karena masih memiliki anggota aktif.");
-      return;
-    }
     setUnitToDelete(unit);
+    setReplacementUnitId("");
     setDeleteConfirmOpen(true);
   };
 
   const handleDelete = async () => {
+    if (!unitToDelete) return;
+
     try {
       setIsActionLoading(true);
+
+      // Jika ada anggota, pindahkan dulu
+      if (unitToDelete.employeeCount > 0) {
+        if (!replacementUnitId) {
+          toast.error("Pilih unit pengganti untuk memindahkan anggota");
+          setIsActionLoading(false);
+          return;
+        }
+
+        const { error: updateError } = await supabase
+          .from("employees")
+          .update({ unit_id: replacementUnitId })
+          .eq("unit_id", unitToDelete.id);
+
+        if (updateError) throw updateError;
+        toast.success(`${unitToDelete.employeeCount} anggota berhasil dipindahkan ke unit baru.`);
+      }
+
       const { error } = await supabase.from("units").delete().eq("id", unitToDelete.id);
       if (error) throw error;
+      
       toast.success("Unit berhasil dihapus");
       setDeleteConfirmOpen(false);
       setIsDetailOpen(false);
@@ -262,6 +283,43 @@ export default function Organization() {
         itemName={unitToDelete?.name}
         onConfirm={handleDelete}
         isLoading={isActionLoading}
+        description={
+          <div className="space-y-4">
+            <p>
+              Apakah Anda yakin ingin menghapus unit <strong>{unitToDelete?.name}</strong>?
+              Tindakan ini tidak dapat dibatalkan.
+            </p>
+            {unitToDelete?.employeeCount > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  Perhatian: {unitToDelete.employeeCount} Anggota Terdeteksi
+                </div>
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  Ada {unitToDelete.employeeCount} anggota yang saat ini terdaftar di unit ini. 
+                  Anda wajib memindahkan mereka ke unit lain sebelum menghapus unit ini.
+                </p>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-amber-900">Pilih Unit Pengganti:</Label>
+                  <Select value={replacementUnitId} onValueChange={setReplacementUnitId}>
+                    <SelectTrigger className="h-9 bg-white border-amber-200 text-xs text-slate-900">
+                      <SelectValue placeholder="Pilih unit baru..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {units
+                        .filter(u => u.id !== unitToDelete?.id)
+                        .map(u => (
+                          <SelectItem key={u.id} value={u.id} className="text-xs">
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
+        }
       />
     </DashboardLayout>
   );

@@ -2,13 +2,18 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
+import { AttendanceEmployeeRecordsDialog } from "./AttendanceEmployeeRecordsDialog";
 
 interface AdminSummaryAttendanceProps {
   records: any[];
   loading: boolean;
+  isAdminOrHr?: boolean;
+  onRefresh?: () => void;
 }
 
-export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttendanceProps) {
+export function AdminSummaryAttendance({ records, loading, isAdminOrHr, onRefresh }: AdminSummaryAttendanceProps) {
   const [startDate, setStartDate] = useState<string>(
     format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd")
   );
@@ -18,6 +23,8 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ name: string; id: string } | null>(null);
+  const [recordsDialogOpen, setRecordsDialogOpen] = useState(false);
 
   const recalculateSticky = () => {
     const mainEl = document.querySelector('main');
@@ -140,6 +147,7 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
                 <TableHead className="font-semibold w-[70px] text-center whitespace-nowrap">Sakit</TableHead>
                 <TableHead className="font-semibold w-[70px] text-center whitespace-nowrap">Izin</TableHead>
                 <TableHead className="font-semibold w-[80px] text-center whitespace-nowrap">Mangkir</TableHead>
+                {isAdminOrHr && <TableHead className="w-10" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -170,6 +178,22 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.sakit}</TableCell>
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.izin}</TableCell>
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.mangkir}</TableCell>
+                    {isAdminOrHr && (
+                      <TableCell className="py-1.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-primary hover:bg-primary/10"
+                          onClick={() => {
+                            setSelectedEmployee({ name: stat.name, id: stat.employee_id });
+                            setRecordsDialogOpen(true);
+                          }}
+                          title={`Lihat & koreksi rekam ${stat.name}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -177,6 +201,21 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
           </table>
         </div>
       </div>
+
+      {isAdminOrHr && (
+        <AttendanceEmployeeRecordsDialog
+          open={recordsDialogOpen}
+          onOpenChange={setRecordsDialogOpen}
+          employeeName={selectedEmployee?.name ?? ""}
+          records={records.filter(
+            (r) =>
+              r.employee_id === selectedEmployee?.id &&
+              r.date >= startDate &&
+              r.date <= endDate
+          )}
+          onRefresh={() => onRefresh?.()}
+        />
+      )}
     </div>
   );
 }

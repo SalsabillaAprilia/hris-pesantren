@@ -195,7 +195,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead className="w-14 text-center font-semibold">No</TableHead>
                 <TableHead className="font-semibold">Nama Jabatan</TableHead>
-                <TableHead className="w-40 text-center font-semibold">Total Karyawan</TableHead>
+                <TableHead className="w-40 text-center font-semibold">Personel</TableHead>
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>

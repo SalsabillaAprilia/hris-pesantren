@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,28 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   const [approvals, setApprovals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ type: "leave" as "leave" | "permission" | "overtime", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
+  const [form, setForm] = useState({ type: "leave" as "leave" | "permission" | "overtime" | "wfa", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
+
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1).padStart(2, "0"));
+  const [selectedYear, setSelectedYear] = useState<string>(String(now.getFullYear()));
+
+  const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - i));
+  const months = [
+    { value: "01", label: "Januari" }, { value: "02", label: "Februari" },
+    { value: "03", label: "Maret" }, { value: "04", label: "April" },
+    { value: "05", label: "Mei" }, { value: "06", label: "Juni" },
+    { value: "07", label: "Juli" }, { value: "08", label: "Agustus" },
+    { value: "09", label: "September" }, { value: "10", label: "Oktober" },
+    { value: "11", label: "November" }, { value: "12", label: "Desember" },
+  ];
+
+  const filteredApprovals = useMemo(() => {
+    return approvals.filter(a => {
+      const d = a.start_date?.slice(0, 7); // "yyyy-MM"
+      return d === `${selectedYear}-${selectedMonth}`;
+    });
+  }, [approvals, selectedMonth, selectedYear]);
 
   const fetchData = async () => {
     if (!employee) return;
@@ -49,7 +70,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
     if (!employee) return;
     const { error } = await supabase.from("approvals").insert({
       employee_id: employee.id,
-      type: form.type,
+      type: form.type as any,
       start_date: form.start_date,
       end_date: form.type === "overtime" ? form.start_date : form.end_date,
       start_time: form.type === "overtime" ? form.start_time : null,
@@ -79,8 +100,28 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4">
-        <div className="flex items-center gap-3">
-          <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap">Riwayat Pengajuan Saya</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap mr-2">Riwayat Pengajuan</h3>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm border-primary/20 w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-[200px]">
+              {months.map(m => (
+                <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm border-primary/20 w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(y => (
+                <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -159,10 +200,10 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Memuat...</TableCell></TableRow>
-              ) : approvals.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Belum ada riwayat pengajuan</TableCell></TableRow>
+              ) : filteredApprovals.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Tidak ada pengajuan untuk bulan ini</TableCell></TableRow>
               ) : (
-                approvals.map((a, index) => (
+                filteredApprovals.map((a, index) => (
                   <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm">
                     <TableCell className="text-slate-500 py-1.5 text-center">{index + 1}</TableCell>
                     <TableCell className="text-slate-900 py-1.5 font-medium">

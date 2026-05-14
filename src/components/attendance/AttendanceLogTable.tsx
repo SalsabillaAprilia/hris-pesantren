@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AttendanceLogTableProps {
   records: any[];
@@ -9,9 +11,29 @@ interface AttendanceLogTableProps {
 }
 
 export function AttendanceLogTable({ records, loading, isAdminOrHr }: AttendanceLogTableProps) {
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1).padStart(2, "0"));
+  const [selectedYear, setSelectedYear] = useState<string>(String(now.getFullYear()));
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
+
+  const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - i));
+  const months = [
+    { value: "01", label: "Januari" }, { value: "02", label: "Februari" },
+    { value: "03", label: "Maret" }, { value: "04", label: "April" },
+    { value: "05", label: "Mei" }, { value: "06", label: "Juni" },
+    { value: "07", label: "Juli" }, { value: "08", label: "Agustus" },
+    { value: "09", label: "September" }, { value: "10", label: "Oktober" },
+    { value: "11", label: "November" }, { value: "12", label: "Desember" },
+  ];
+
+  const filteredRecords = useMemo(() => {
+    return records.filter(r => {
+      const d = r.date?.slice(0, 7); // "yyyy-MM"
+      return d === `${selectedYear}-${selectedMonth}`;
+    });
+  }, [records, selectedMonth, selectedYear]);
 
   const recalculateSticky = () => {
     const mainEl = document.querySelector('main');
@@ -56,18 +78,38 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
     }
   };
 
-  const totalHadir = records.filter(r => r.check_in).length;
-  const totalTelat = records.filter(r => r.late_minutes && r.late_minutes > 0).length;
+  const totalHadir = filteredRecords.filter(r => r.check_in).length;
+  const totalTelat = filteredRecords.filter(r => r.late_minutes && r.late_minutes > 0).length;
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const totalMangkir = records.filter(r => !r.check_in && new Date(r.date) < todayStart).length;
+  const totalMangkir = filteredRecords.filter(r => !r.check_in && new Date(r.date) < todayStart).length;
 
   return (
     <div className="space-y-4">
       {!isAdminOrHr && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap">Riwayat Presensi Saya</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap mr-2">Riwayat Presensi</h3>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm border-primary/20 w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[200px]">
+                {months.map(m => (
+                  <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm border-primary/20 w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(y => (
+                  <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-2 flex-wrap">
             <div className="px-3 h-9 flex items-center bg-[hsl(142,45%,96%)] text-[hsl(142,45%,25%)] border border-[hsl(142,45%,90%)] rounded-md text-xs font-semibold">
@@ -124,14 +166,14 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                     Memuat...
                   </TableCell>
                 </TableRow>
-              ) : records.length === 0 ? (
+              ) : filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isAdminOrHr ? 7 : 6} className="text-center py-8 text-sm text-muted-foreground">
-                    Belum ada data absensi
+                    Tidak ada data untuk bulan ini
                   </TableCell>
                 </TableRow>
               ) : (
-                records.map((r) => {
+                filteredRecords.map((r) => {
                   const isPast = new Date(r.date) < todayStart;
                   const isMangkir = !r.check_in && isPast;
                   
@@ -143,7 +185,7 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                   return (
                     <TableRow key={r.id} className="hover:bg-muted/50 transition-colors h-11 group border-b text-sm">
                       <TableCell className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[40px] max-w-[40px] min-w-[40px] group-hover:bg-[#f8fafc] py-1.5 text-slate-500 ${!isAdminOrHr && isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : ''}`}>
-                        {records.indexOf(r) + 1}
+                        {filteredRecords.indexOf(r) + 1}
                       </TableCell>
                       {isAdminOrHr && (
                         <TableCell

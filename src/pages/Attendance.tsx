@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { CalendarClock } from "lucide-react";
+import { Clock, Coffee } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { CheckInOutWidget } from "@/components/attendance/CheckInOutWidget";
@@ -100,13 +100,13 @@ export default function Attendance() {
         <h1 className="page-title">Kehadiran</h1>
         {isAdminOrHr && (
           <div className="flex gap-2 shrink-0">
-            <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all font-medium" onClick={() => navigate("/work-schedules")}>
-              <CalendarClock className="h-4 w-4 text-primary" />
+            <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all transform active:scale-95 font-medium" onClick={() => navigate("/work-schedules")}>
+              <Clock className="h-4 w-4 text-primary" />
               <span className="hidden sm:inline">Jadwal Kerja</span>
               <span className="sm:hidden">Jadwal</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all font-medium" onClick={() => navigate("/holidays")}>
-              <CalendarClock className="h-4 w-4 text-primary" />
+            <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all transform active:scale-95 font-medium" onClick={() => navigate("/holidays")}>
+              <Coffee className="h-4 w-4 text-primary" />
               <span className="hidden sm:inline">Hari Libur</span>
               <span className="sm:hidden">Libur</span>
             </Button>
@@ -153,7 +153,12 @@ export default function Attendance() {
               <AdminDailyAttendance records={globalRecords} loading={loading} />
             </TabsContent>
             <TabsContent value="ringkasan">
-              <AdminSummaryAttendance records={globalRecords} loading={loading} />
+              <AdminSummaryAttendance
+                records={globalRecords}
+                loading={loading}
+                isAdminOrHr={isAdminOrHr}
+                onRefresh={fetchData}
+              />
             </TabsContent>
           </>
         )}
