@@ -205,7 +205,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                 {activeTab === "employment" && (
                   <>
                     <TableCell className="text-slate-900 py-1.5 whitespace-nowrap text-left">{emp.employee_id_number || "—"}</TableCell>
-                    <TableCell className="py-1.5 scale-90 origin-center whitespace-nowrap text-center">{getStatusBadge(emp.status)}</TableCell>
+                    <TableCell className="py-1.5 origin-center whitespace-nowrap text-center">{getStatusBadge(emp.status)}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center">{emp.units?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-left">{emp.positions?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
@@ -219,11 +219,13 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell className="py-1.5 text-slate-900 whitespace-nowrap text-center">
-                        {emp.role === 'super_admin' ? 'Super Admin' :
-                         emp.role === 'hr' ? 'HRD' :
-                         emp.role === 'unit_leader' ? 'Kepala Unit' :
-                         emp.role === 'employee' ? 'Karyawan' :
-                         emp.role ? emp.role.replace('_', ' ') : "—"}
+                        <span className="text-[11px] font-semibold text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] px-2 py-0.5 rounded border border-[hsl(232,59%,90%)] whitespace-nowrap">
+                          {emp.role === 'super_admin' ? 'Super Admin' :
+                           emp.role === 'hr' ? 'HRD' :
+                           emp.role === 'unit_leader' ? 'Kepala Unit' :
+                           emp.role === 'employee' ? 'Karyawan' :
+                           emp.role ? emp.role.replace('_', ' ') : "—"}
+                        </span>
                       </TableCell>
                     )}
                   </>

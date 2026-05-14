@@ -70,13 +70,13 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
             <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap">Riwayat Presensi Saya</h3>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <div className="px-3 h-9 flex items-center bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-semibold">
+            <div className="px-3 h-9 flex items-center bg-[hsl(142,45%,96%)] text-[hsl(142,45%,25%)] border border-[hsl(142,45%,90%)] rounded-md text-xs font-semibold">
               Hadir: {totalHadir}
             </div>
-            <div className="px-3 h-9 flex items-center bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-semibold">
+            <div className="px-3 h-9 flex items-center bg-[hsl(38,55%,94%)] text-[hsl(38,55%,30%)] border border-[hsl(38,55%,88%)] rounded-md text-xs font-semibold">
               Telat: {totalTelat}
             </div>
-            <div className="px-3 h-9 flex items-center bg-rose-50 text-rose-700 border border-rose-200 rounded-md text-xs font-semibold">
+            <div className="px-3 h-9 flex items-center bg-[hsl(0,55%,96%)] text-[hsl(0,55%,35%)] border border-[hsl(0,55%,90%)] rounded-md text-xs font-semibold">
               Mangkir: {totalMangkir}
             </div>
           </div>
@@ -170,15 +170,15 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                       </TableCell>
                       <TableCell className="text-slate-900 py-1.5 text-center">
                         {isMangkir ? (
-                          <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">Mangkir</span>
+                          <span className="text-[11px] font-semibold text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] px-2 py-0.5 rounded border border-[hsl(0,55%,90%)] whitespace-nowrap">Mangkir</span>
                         ) : isLupaCheckOut ? (
-                          <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">Lupa Check-out</span>
+                          <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Lupa Check-out</span>
                         ) : statusLabel.toLowerCase() === "hadir" ? (
-                           <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">Hadir</span>
+                           <span className="text-[11px] font-semibold text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] px-2 py-0.5 rounded border border-[hsl(142,45%,90%)] whitespace-nowrap">Hadir</span>
                         ) : statusLabel === "Belum mulai" ? (
                            <span className="text-xs font-semibold text-slate-500">—</span>
                         ) : (
-                           <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">{statusLabel}</span>
+                           <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">{statusLabel}</span>
                         )}
                       </TableCell>
                       <TableCell className="text-slate-500 py-1.5 truncate max-w-[200px]" title={r.notes || undefined}>

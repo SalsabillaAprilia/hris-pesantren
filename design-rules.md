@@ -27,11 +27,12 @@ Tabel dirancang dengan tampilan bersih, menggunakan *sticky header* dan *horizon
 ```
 
 **Table Head (Header Columns):**
-Kolom biasa:
+Gunakan `text-left` untuk data teks (Nama, Jabatan, Alamat, dll) dan `text-center` untuk data pendek/angka (No, Unit, Pendidikan, Status).
 ```tsx
-<TableHead className="font-semibold border-r border-gray-200">Nama Kolom</TableHead>
+<TableHead className="font-semibold text-center whitespace-nowrap">Kolom Pendek</TableHead>
+<TableHead className="font-semibold text-left whitespace-nowrap">Kolom Teks</TableHead>
 ```
-> *Catatan: Atur `w-[px]` atau `min-w-[px]` sesuai kebutuhan pada setiap `TableHead`.*
+> *Catatan: Jangan gunakan `border-r` pada header untuk menjaga tampilan tetap bersih (clean). Gunakan `whitespace-nowrap` agar judul kolom tidak turun ke bawah.*
 
 **Table Row (Baris Data):**
 ```tsx
@@ -175,3 +176,45 @@ Tab digunakan untuk membagi konten di dalam satu halaman atau komponen tanpa per
 **Panduan Class Tailwind pada Tabs:**
 - **TabsList**: Gunakan `grid grid-cols-[jumlah-tab]` (misal: `grid-cols-3`), beri margin bawah `mb-3`, warna dasar abu-abu redup `bg-muted/50`, tinggi presisi `h-9`, dan kelengkungan `rounded-lg`.
 - **TabsTrigger**: Gunakan `text-xs` (atau `text-sm`) untuk label agar ukurannya pas di dalam container `h-9` tanpa berpotensi bergeser.
+
+---
+
+## 5. Status Badges (Premium Palette)
+
+Gunakan palet warna HSL "Sophisticated Traffic Light" untuk memberikan kesan premium namun tetap informatif. Jangan gunakan gaya `uppercase`.
+
+**Ukuran Badge di Tabel:**
+`text-[11px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap`
+
+**Variasi Warna:**
+*   **Hadir / Aktif / Disetujui (Positive - Hijau Forest):**
+    `text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] border-[hsl(142,45%,90%)]`
+*   **Telat / Pending / Izin (Warning - Amber Gold):**
+    `text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] border-[hsl(38,55%,88%)]`
+*   **Mangkir / Ditolak / Nonaktif (Negative - Deep Crimson):**
+    `text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] border-[hsl(0,55%,90%)]`
+*   **Role / Info Penting (Neutral - Navy):**
+    `text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] border-[hsl(232,59%,90%)]`
+
+---
+
+## 6. Summary Containers (Statistik Header)
+
+Container untuk menampilkan ringkasan data di atas tabel (seperti di tab Presensi).
+
+**Container Luar:**
+`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4`
+
+**Kotak Statistik (Box):**
+Gunakan `h-9` agar tingginya sinkron dengan input filter/tombol di sekitarnya.
+`px-3 h-9 flex items-center rounded-md text-xs font-semibold border`
+*(Gunakan variasi warna yang sama dengan Status Badges di atas)*.
+
+---
+
+## 7. Jarak Antar Elemen (Spacing)
+
+Untuk menjaga konsistensi kepadatan informasi:
+- Gunakan `space-y-4` antara Container Statistik/Filter dan Tabel Utama.
+- Gunakan `py-1.5` pada `TableCell` agar baris tabel tidak terlalu tebal.
+- Gunakan `gap-2` antar badge atau tombol kecil yang berjejer.

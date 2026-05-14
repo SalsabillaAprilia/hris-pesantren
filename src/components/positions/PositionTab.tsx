@@ -180,7 +180,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
             placeholder="Cari nama jabatan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 border-muted-foreground/20 focus-visible:ring-primary/20 bg-white"
+            className="pl-9 h-9 border-primary/40 focus-visible:ring-primary/20 bg-white"
           />
         </div>
       </div>
@@ -209,9 +209,9 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
                   <TableCell className="font-semibold text-slate-900 py-1.5">{pos.name}</TableCell>
                   <TableCell className="text-center py-1.5">
                     {pos.employee_count > 0 ? (
-                      <Badge variant="secondary" className="font-normal text-[11px] px-2 py-0 h-5 bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-default">
+                      <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">
                         {pos.employee_count} Karyawan
-                      </Badge>
+                      </span>
                     ) : (
                       <span className="text-xs text-slate-400 font-medium">—</span>
                     )}

@@ -64,14 +64,16 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   };
 
   const statusBadge = (status: string) => {
-    const map: Record<string, { variant: "default" | "secondary" | "destructive"; label: string }> = {
-      pending: { variant: "secondary", label: "Pending" },
-      approved_unit_leader: { variant: "default", label: "Disetujui Ketua Unit" },
-      approved_hr: { variant: "default", label: "Disetujui HR" },
-      rejected: { variant: "destructive", label: "Ditolak" },
-    };
-    const m = map[status] ?? { variant: "secondary" as const, label: status };
-    return <Badge variant={m.variant}>{m.label}</Badge>;
+    if (status === 'approved_hr' || status === 'approved_unit_leader') {
+      return <span className="text-[11px] font-semibold text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] px-2 py-0.5 rounded border border-[hsl(142,45%,90%)] whitespace-nowrap">Disetujui</span>;
+    }
+    if (status === 'rejected') {
+      return <span className="text-[11px] font-semibold text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] px-2 py-0.5 rounded border border-[hsl(0,55%,90%)] whitespace-nowrap">Ditolak</span>;
+    }
+    if (status === 'pending') {
+      return <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Pending</span>;
+    }
+    return <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">{status}</span>;
   };
 
   return (
@@ -97,9 +99,10 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                   <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as any })}>
                     <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="leave">Cuti</SelectItem>
-                      <SelectItem value="permission">Izin</SelectItem>
-                      <SelectItem value="overtime">Lembur</SelectItem>
+                      <SelectItem value="leave" className="text-sm">Cuti</SelectItem>
+                      <SelectItem value="permission" className="text-sm">Izin</SelectItem>
+                      <SelectItem value="overtime" className="text-sm">Lembur</SelectItem>
+                      <SelectItem value="wfa" className="text-sm">WFA / WFH</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -133,7 +136,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                 </div>
               </div>
               <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
-                <Button type="button" variant="outline" className="min-w-[120px] h-10 text-sm" onClick={() => setDialogOpen(false)}>Batal</Button>
+                <Button type="button" variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => setDialogOpen(false)}>Batal</Button>
                 <Button type="submit" className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">Simpan Pengajuan</Button>
               </div>
             </form>
@@ -163,7 +166,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                   <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm">
                     <TableCell className="text-slate-500 py-1.5 text-center">{index + 1}</TableCell>
                     <TableCell className="text-slate-900 py-1.5 font-medium">
-                      {a.type === "leave" ? "Cuti" : a.type === "overtime" ? "Lembur" : "Izin"}
+                      {a.type === "leave" ? "Cuti" : a.type === "overtime" ? "Lembur" : a.type === "wfa" ? "WFA" : "Izin"}
                       {a.type === "overtime" && a.start_time && <span className="block text-xs text-muted-foreground">{a.start_time.slice(0,5)} - {a.end_time?.slice(0,5)}</span>}
                     </TableCell>
                     <TableCell className="text-slate-900 py-1.5">

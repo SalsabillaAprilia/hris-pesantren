@@ -14,18 +14,19 @@ export const calculateMasaKerja = (joinDate: string | null) => {
 };
 
 export const getStatusBadge = (status: string) => {
-  const variants: Record<string, "default" | "secondary" | "destructive"> = {
-    active: "default",
-    inactive: "destructive",
-    on_leave: "secondary",
-  };
-  const labels: Record<string, string> = { active: "Aktif", inactive: "Nonaktif", on_leave: "Cuti" };
+  if (status === 'active') {
+    return <span className="text-[11px] font-semibold text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] px-2 py-0.5 rounded border border-[hsl(142,45%,90%)] whitespace-nowrap">Aktif</span>;
+  }
+  if (status === 'inactive') {
+    return <span className="text-[11px] font-semibold text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] px-2 py-0.5 rounded border border-[hsl(0,55%,90%)] whitespace-nowrap">Nonaktif</span>;
+  }
+  if (status === 'on_leave') {
+    return <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Cuti</span>;
+  }
   
-  // Import components inside to satisfy React rendering if needed, 
-  // but here we just return the Badge component.
   return (
-    <Badge variant={variants[status] ?? "secondary"} className="whitespace-nowrap">
-      {labels[status] ?? status}
-    </Badge>
+    <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">
+      {status}
+    </span>
   );
 };

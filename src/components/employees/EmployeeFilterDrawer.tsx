@@ -50,7 +50,7 @@ export function EmployeeFilterDrawer({
             <div className="space-y-2.5">
               <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">Unit Kerja</Label>
               <Select value={filters.unit_id} onValueChange={(v) => setFilters({ ...filters, unit_id: v })}>
-                <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Unit" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm text-slate-900 border-primary/40 focus:ring-primary/20"><SelectValue placeholder="Semua Unit" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Unit</SelectItem>
                   {units.map(u => <SelectItem key={u.id} value={u.id} className="text-sm">{u.name}</SelectItem>)}
@@ -61,7 +61,7 @@ export function EmployeeFilterDrawer({
             <div className="space-y-2.5">
               <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">Jabatan</Label>
               <Select value={filters.position} onValueChange={(v) => setFilters({ ...filters, position: v })}>
-                <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Jabatan" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm text-slate-900 border-primary/40 focus:ring-primary/20"><SelectValue placeholder="Semua Jabatan" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Jabatan</SelectItem>
                   {positions.map(p => <SelectItem key={p.id} value={p.id} className="text-sm">{p.name}</SelectItem>)}
@@ -72,7 +72,7 @@ export function EmployeeFilterDrawer({
             <div className="space-y-2.5">
               <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">Status Karyawan</Label>
               <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
-                <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Status" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm text-slate-900 border-primary/40 focus:ring-primary/20"><SelectValue placeholder="Semua Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Status</SelectItem>
                   <SelectItem value="active" className="text-sm">Aktif</SelectItem>
@@ -85,7 +85,7 @@ export function EmployeeFilterDrawer({
             <div className="space-y-2.5">
               <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">Masa Kerja</Label>
               <Select value={filters.tenure} onValueChange={(v) => setFilters({ ...filters, tenure: v })}>
-                <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Masa Kerja" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm text-slate-900 border-primary/40 focus:ring-primary/20"><SelectValue placeholder="Semua Masa Kerja" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Masa Kerja</SelectItem>
                   <SelectItem value="< 1" className="text-sm">&lt; 1 Tahun</SelectItem>
@@ -99,7 +99,7 @@ export function EmployeeFilterDrawer({
             <div className="space-y-2.5">
               <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">Jenjang Pendidikan</Label>
               <Select value={filters.education} onValueChange={(v) => setFilters({ ...filters, education: v })}>
-                <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Jenjang" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm text-slate-900 border-primary/40 focus:ring-primary/20"><SelectValue placeholder="Semua Jenjang" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Jenjang</SelectItem>
                   <SelectItem value="SMA/SMK" className="text-sm">SMA/SMK</SelectItem>
@@ -114,7 +114,7 @@ export function EmployeeFilterDrawer({
             <div className="space-y-2.5">
               <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">Jenis Kelamin</Label>
               <Select value={filters.gender} onValueChange={(v) => setFilters({ ...filters, gender: v })}>
-                <SelectTrigger className="h-10 text-sm text-slate-900 border-muted-foreground/20 focus:ring-primary/20"><SelectValue placeholder="Semua Gender" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm text-slate-900 border-primary/40 focus:ring-primary/20"><SelectValue placeholder="Semua Gender" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Jenis Kelamin</SelectItem>
                   <SelectItem value="Laki-laki" className="text-sm">Laki-laki</SelectItem>

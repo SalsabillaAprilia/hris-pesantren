@@ -473,8 +473,8 @@ export default function EmployeesPage() {
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 font-medium">
-                    <Download className="h-4 w-4 text-slate-500" /> Export
+                  <Button variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all transform active:scale-95 font-medium">
+                    <Download className="h-4 w-4 text-primary" /> Export
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -486,10 +486,10 @@ export default function EmployeesPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={() => setImportDialogOpen(true)} variant="outline" size="sm" className="gap-2 font-medium">
-                <UploadCloud className="h-4 w-4 text-slate-500" /> Import
+              <Button onClick={() => setImportDialogOpen(true)} variant="outline" size="sm" className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all transform active:scale-95 font-medium">
+                <UploadCloud className="h-4 w-4 text-primary" /> Import
               </Button>
-              <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 font-medium">
+              <Button onClick={() => handleOpenForm("create")} size="sm" className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium">
                 <Plus className="h-4 w-4" /> Tambah Karyawan
               </Button>
             </div>
@@ -502,7 +502,7 @@ export default function EmployeesPage() {
               placeholder="Cari nama atau ID..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
-              className="pl-9 h-9 text-sm shadow-sm border-muted-foreground/20" 
+              className="pl-9 h-9 text-sm shadow-sm border-primary/40" 
             />
           </div>
           <EmployeeFilterDrawer filters={filters} setFilters={setFilters} units={units} positions={positions} hasActiveFilters={Object.values(filters).some(v => v !== "all")} onReset={() => setFilters({ unit_id: "all", position: "all", status: "all", tenure: "all", gender: "all", education: "all", religion: "all" })} />
