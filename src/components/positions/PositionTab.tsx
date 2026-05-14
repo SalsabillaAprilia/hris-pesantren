@@ -23,6 +23,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -270,54 +271,45 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
         loading={isActionLoading}
       />
 
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent className="shadow-2xl border-none">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Konfirmasi Penghapusan</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4 pt-2 text-slate-600">
-                <p>
-                  Apakah Anda yakin ingin menghapus jabatan <strong className="text-slate-900">{positionToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+      <ConfirmDeleteDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        onConfirm={handleDelete}
+        isLoading={isActionLoading}
+        title="Konfirmasi Penghapusan"
+        description={
+          <div className="space-y-4 pt-2 text-slate-600">
+            <p>
+              Apakah Anda yakin ingin menghapus jabatan <strong className="text-slate-900">{positionToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            
+            {employeesCount > 0 ? (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
+                <p className="text-orange-800 text-sm font-medium">
+                  ⚠️ Terdapat {employeesCount} karyawan yang menggunakan jabatan ini.
                 </p>
-                
-                {employeesCount > 0 ? (
-                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
-                    <p className="text-orange-800 text-sm font-medium">
-                      ⚠️ Terdapat {employeesCount} karyawan yang menggunakan jabatan ini.
-                    </p>
-                    <div className="space-y-2">
-                      <Label className="text-orange-900 font-semibold text-sm">Pilih Jabatan Pengganti *</Label>
-                      <Select value={replacementPositionId} onValueChange={setReplacementPositionId}>
-                        <SelectTrigger className="bg-white border-orange-200 focus:ring-orange-500 text-slate-900">
-                          <SelectValue placeholder="Pilih Jabatan..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {positions
-                            .filter(p => p.id !== positionToDelete?.id)
-                            .map(p => (
-                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-orange-700">Karyawan terkait akan dipindahkan ke jabatan baru sebelum jabatan ini dihapus.</p>
-                    </div>
-                  </div>
-                ) : null}
+                <div className="space-y-2">
+                  <Label className="text-orange-900 font-semibold text-sm">Pilih Jabatan Pengganti *</Label>
+                  <Select value={replacementPositionId} onValueChange={setReplacementPositionId}>
+                    <SelectTrigger className="bg-white border-orange-200 focus:ring-orange-500 text-slate-900">
+                      <SelectValue placeholder="Pilih Jabatan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {positions
+                        .filter(p => p.id !== positionToDelete?.id)
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-orange-700">Karyawan terkait akan dipindahkan ke jabatan baru sebelum jabatan ini dihapus.</p>
+                </div>
               </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 pt-4">
-            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              disabled={isActionLoading || (employeesCount > 0 && !replacementPositionId)}
-              className="h-10 min-w-[120px] text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20 transition-all"
-            >
-              {isActionLoading ? "Memproses..." : employeesCount > 0 ? "Hapus & Pindahkan" : "Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            ) : null}
+          </div>
+        }
+        confirmText={employeesCount > 0 ? "Hapus & Pindahkan" : "Hapus"}
+      />
     </div>
   );
 }

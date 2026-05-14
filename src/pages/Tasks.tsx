@@ -12,6 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, ClipboardCheck, Pencil, Trash2, Search } from "lucide-react";
@@ -480,28 +481,14 @@ export default function Tasks() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Dialog Hapus ── */}
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="shadow-2xl border-none p-0 overflow-hidden">
-          <div className="p-6">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold">Hapus Tugas?</AlertDialogTitle>
-              <AlertDialogDescription className="pt-2 text-slate-600 leading-relaxed">
-                Tugas <strong className="text-slate-900">"{deletingTask?.title}"</strong> akan dihapus permanen.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-          </div>
-          <AlertDialogFooter className="p-6 pt-0 gap-3 sm:gap-2">
-            <AlertDialogCancel className="h-10 text-sm flex-1 sm:flex-none min-w-[100px] border-slate-200">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              disabled={isDeleting}
-              className="h-10 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold flex-1 sm:flex-none min-w-[120px]">
-              {isDeleting ? "Menghapus..." : "Ya, Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        itemName={deletingTask?.title}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        title="Hapus Tugas?"
+      />
     </DashboardLayout>
   );
 }

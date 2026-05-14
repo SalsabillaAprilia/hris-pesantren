@@ -15,10 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, ShieldCheck, Pencil, Trash2 } from "lucide-react";
@@ -50,7 +47,6 @@ export default function AdminAccounts() {
   const [deletingAccount, setDeletingAccount] = useState<AdminAccount | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const INITIAL_FORM = { name: "", email: "", password: "", role: "hr" as "super_admin" | "hr" };
   const [form, setForm] = useState(INITIAL_FORM);
@@ -173,7 +169,7 @@ export default function AdminAccounts() {
   };
 
   const handleDelete = async () => {
-    if (!deletingAccount || deleteConfirmText !== "HAPUS") return;
+    if (!deletingAccount) return;
     setIsDeleting(true);
     try {
       // Hapus role dari user_roles
@@ -190,7 +186,6 @@ export default function AdminAccounts() {
       toast.error("Gagal menghapus akun: " + err.message);
     } finally {
       setIsDeleting(false);
-      setDeleteConfirmText("");
     }
   };
 
@@ -270,7 +265,7 @@ export default function AdminAccounts() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          onClick={() => { setDeletingAccount(acc); setDeleteConfirmText(""); setDeleteDialogOpen(true); }}
+                          onClick={() => { setDeletingAccount(acc); setDeleteDialogOpen(true); }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -357,39 +352,16 @@ export default function AdminAccounts() {
         </DialogContent>
       </Dialog>
 
-      {/* Konfirmasi Hapus */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="shadow-2xl border-none">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Hapus Akun?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 pt-2">
-              <p>
-                Anda akan menghapus akun <strong>{deletingAccount?.name}</strong> ({deletingAccount?.email}).
-                Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="space-y-2 p-4 bg-destructive/5 rounded-lg border border-destructive/10">
-                <p className="text-xs text-muted-foreground">Ketik <strong>HAPUS</strong> untuk melanjutkan:</p>
-                <Input
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="HAPUS"
-                  className="h-9 text-sm border-destructive/20 focus-visible:ring-destructive"
-                />
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="h-10 text-sm">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              disabled={deleteConfirmText !== "HAPUS" || isDeleting}
-              className="h-10 text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20"
-            >
-              {isDeleting ? "Menghapus..." : "Hapus Akun"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        title="Hapus Akun?"
+        itemName={`${deletingAccount?.name} (${deletingAccount?.email})`}
+        requireConfirmationText={true}
+        confirmText="Hapus Akun"
+      />
     </DashboardLayout>
   );
 }

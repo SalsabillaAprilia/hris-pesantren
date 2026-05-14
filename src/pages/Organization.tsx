@@ -18,6 +18,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 
 // Modular Components
 import { UnitCard } from "@/components/units/UnitCard";
@@ -255,28 +256,13 @@ export default function Organization() {
         isAdminOrHr={isAdminOrHr}
       />
 
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent className="shadow-2xl border-none">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Konfirmasi Penghapusan</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 pt-2">
-              <p>
-                Apakah Anda yakin ingin menghapus unit <strong>{unitToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 pt-4">
-            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              disabled={isActionLoading}
-              className="h-10 min-w-[120px] text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20 transition-all"
-            >
-              {isActionLoading ? "Menghapus..." : "Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        itemName={unitToDelete?.name}
+        onConfirm={handleDelete}
+        isLoading={isActionLoading}
+      />
     </DashboardLayout>
   );
 }

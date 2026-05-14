@@ -11,6 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { CalendarDays, Plus, Pencil, Trash2, CheckCircle2, XCircle, Search } from "lucide-react";
@@ -441,27 +442,13 @@ export default function Agendas() {
       </Dialog>
 
       {/* ── Dialog Hapus ── */}
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="shadow-2xl border-none p-0 overflow-hidden">
-          <div className="p-6">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold">Hapus Agenda?</AlertDialogTitle>
-              <AlertDialogDescription className="pt-2 text-slate-600">
-                Agenda <strong className="text-slate-900">"{deletingItem?.activity}"</strong> akan dihapus permanen.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-          </div>
-          <AlertDialogFooter className="p-6 pt-0 gap-2">
-            <AlertDialogCancel className="h-10 text-sm min-w-[100px]">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              disabled={isDeleting}
-              className="h-10 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold min-w-[120px]">
-              {isDeleting ? "Menghapus..." : "Ya, Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        itemName={deletingItem?.activity}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+      />
     </DashboardLayout>
   );
 }

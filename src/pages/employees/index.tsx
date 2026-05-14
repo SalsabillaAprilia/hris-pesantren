@@ -30,6 +30,7 @@ import { EmployeeDetailDialog } from "@/components/employees/EmployeeDetailDialo
 import { EmployeeFilterDrawer } from "@/components/employees/EmployeeFilterDrawer";
 import { ExportConfigDialog, COLUMNS_MAP } from "@/components/employees/ExportConfigDialog";
 import { ImportEmployeeDialog } from "@/components/employees/ImportEmployeeDialog";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { uploadFile } from "@/utils/supabase-storage";
 
 import jsPDF from "jspdf";
@@ -74,7 +75,6 @@ export default function EmployeesPage() {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [returnToDetailOnClose, setReturnToDetailOnClose] = useState(false);
@@ -314,12 +314,11 @@ export default function EmployeesPage() {
   
   const handleDelete = (emp: Employee) => {
     setDeletingEmployee(emp);
-    setDeleteConfirmText("");
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!deletingEmployee || deleteConfirmText !== "HAPUS") return;
+    if (!deletingEmployee) return;
     try {
       setIsDeleting(true);
       console.log("Mencoba menghapus karyawan:", deletingEmployee.id);
@@ -576,40 +575,14 @@ export default function EmployeesPage() {
         onSuccess={fetchData}
       />
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="shadow-2xl border-none">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Konfirmasi Penghapusan</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 pt-2">
-              <p>
-                Apakah Anda yakin ingin menghapus data <strong>{deletingEmployee?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="space-y-2 p-4 bg-destructive/5 rounded-lg border border-destructive/10">
-                <p className="text-xs text-muted-foreground">Ketik <strong>HAPUS</strong> di bawah ini untuk melanjutkan:</p>
-                <Input 
-                  value={deleteConfirmText} 
-                  onChange={(e) => setDeleteConfirmText(e.target.value)} 
-                  placeholder="HAPUS"
-                  className="h-9 text-sm border-destructive/20 focus-visible:ring-destructive"
-                />
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 pt-4">
-            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">Batal</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDelete();
-              }}
-              disabled={deleteConfirmText !== "HAPUS" || isDeleting}
-              className="h-10 min-w-[120px] text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold shadow-lg shadow-destructive/20 transition-all"
-            >
-              {isDeleting ? "Menghapus..." : "Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        itemName={deletingEmployee?.name}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        requireConfirmationText={true}
+      />
     </DashboardLayout>
   );
 }
