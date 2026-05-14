@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Camera, Clock, LogIn, LogOut } from "lucide-react";
 import { format } from "date-fns";
@@ -15,6 +16,7 @@ interface CheckInOutWidgetProps {
 
 export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOutWidgetProps) {
   const [capturing, setCapturing] = useState(false);
+  const [notes, setNotes] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
@@ -35,6 +37,7 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setCapturing(false);
+    setNotes("");
   };
 
   const captureAndCheckIn = async () => {
@@ -121,9 +124,10 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
         check_in_method: 'selfie',
         selfie_url: publicUrl,
         late_minutes,
-        daily_status
+        daily_status,
+        notes: notes.trim() ? `[Datang]: ${notes.trim()}` : null
       });
-      
+
       if (late_minutes && late_minutes > 0) {
         toast.warning(`Check-in berhasil! Tercatat terlambat ${late_minutes} menit.`);
       } else if (daily_status === 'Hadir (Tanpa Shift)') {
@@ -180,12 +184,22 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
         console.error("Error calculating overtime:", err);
       }
 
+      let finalNotes = todayRecord.notes || null;
+      if (notes.trim()) {
+        if (finalNotes) {
+          finalNotes += `\n[Pulang]: ${notes.trim()}`;
+        } else {
+          finalNotes = `[Pulang]: ${notes.trim()}`;
+        }
+      }
+
       await supabase.from("attendance").update({
         check_out: secureDateObj.toISOString(),
         check_out_location: locationStr,
         check_out_method: 'selfie',
         overtime_minutes,
-        early_leave_minutes
+        early_leave_minutes,
+        notes: finalNotes
       }).eq("id", todayRecord.id);
       
       if (early_leave_minutes && early_leave_minutes > 0) {
@@ -217,6 +231,12 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
         ) : capturing ? (
           <div className="space-y-4">
             <video ref={videoRef} autoPlay playsInline muted className="rounded-lg w-full max-w-sm mx-auto aspect-video bg-muted object-cover" />
+            <Textarea
+              placeholder={todayRecord ? "Opsional catatan pulang (misal: alasan pulang cepat)..." : "Opsional catatan presensi (misal: alasan telat)..."}
+              className="w-full max-w-sm mx-auto text-sm resize-none h-20"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
             <div className="flex gap-2 justify-center">
               <Button onClick={captureAndCheckIn}>
                 <Camera className="h-4 w-4 mr-2" />

@@ -75,7 +75,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap">Riwayat Pengajuan Saya</h3>
@@ -146,11 +146,11 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
           <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[700px]">
             <TableHeader className="z-20 transition-none [&_th]:sticky [&_th]:top-0 [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted">
               <TableRow className="border-none hover:bg-transparent">
-                <TableHead className="font-semibold border-r border-gray-200 w-[60px] text-center bg-muted">No.</TableHead>
-                <TableHead className="font-semibold border-r border-gray-200 w-[120px] bg-muted">Jenis</TableHead>
-                <TableHead className="font-semibold border-r border-gray-200 w-[180px] bg-muted">Tanggal</TableHead>
-                <TableHead className="font-semibold border-r border-gray-200 bg-muted">Alasan</TableHead>
-                <TableHead className="font-semibold border-gray-200 w-[180px] text-center bg-muted">Status</TableHead>
+                <TableHead className="font-semibold w-[60px] text-center whitespace-nowrap">No.</TableHead>
+                <TableHead className="font-semibold w-[120px] text-left whitespace-nowrap">Jenis</TableHead>
+                <TableHead className="font-semibold w-[180px] text-left whitespace-nowrap">Tanggal</TableHead>
+                <TableHead className="font-semibold text-left whitespace-nowrap">Alasan</TableHead>
+                <TableHead className="font-semibold w-[180px] text-center whitespace-nowrap">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

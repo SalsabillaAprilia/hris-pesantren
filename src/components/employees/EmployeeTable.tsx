@@ -127,36 +127,36 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
 
               {activeTab === "personal" && (
                 <>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">ID Karyawan</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Jenis Kelamin</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Kewarganegaraan</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Data Identitas</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Tanggal Lahir</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Agama</TableHead>
-                  <TableHead className="font-semibold whitespace-nowrap">Pendidikan</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">ID Karyawan</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">Jenis Kelamin</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Kewarganegaraan</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Data Identitas</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Tanggal Lahir</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Agama</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Pendidikan</TableHead>
                 </>
               )}
 
               {activeTab === "contact" && (
                 <>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">WhatsApp</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Email</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Alamat</TableHead>
-                  <TableHead className="font-semibold whitespace-nowrap">Domisili</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">WhatsApp</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">Email</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">Alamat</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">Domisili</TableHead>
                 </>
               )}
 
               {activeTab === "employment" && (
                 <>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">ID Karyawan</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Status</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Unit Kerja</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Jabatan</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Bergabung</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Masa Kerja</TableHead>
-                  <TableHead className="font-semibold border-r border-gray-200 whitespace-nowrap">Akhir Kontrak</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">ID Karyawan</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Status</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Unit</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">Jabatan</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Bergabung</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Masa Kerja</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Akhir Kontrak</TableHead>
                   {isSuperAdmin && (
-                    <TableHead className="font-semibold whitespace-nowrap">Role Sistem</TableHead>
+                    <TableHead className="font-semibold text-center whitespace-nowrap">Role Sistem</TableHead>
                   )}
                 </>
               )}
@@ -179,46 +179,46 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
 
                 {activeTab === "personal" && (
                   <>
-                    <TableCell className="text-slate-900 py-1.5">{emp.employee_id_number || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-slate-900">{emp.gender || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-slate-900">{emp.nationality || "—"}</TableCell>
-                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">
+                    <TableCell className="text-slate-900 py-1.5 text-left">{emp.employee_id_number || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 text-left">{emp.gender || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 text-center">{emp.nationality || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center">
                       {emp.identity_card_type && `${emp.identity_card_type}: `}{emp.identity_card_number || "—"}
                     </TableCell>
-                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {emp.birth_date ? new Date(emp.birth_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>
-                    <TableCell className="py-1.5 text-slate-900">{emp.religion || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-slate-900">{emp.education_level || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 text-center">{emp.religion || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 text-center">{emp.education_level || "—"}</TableCell>
                   </>
                 )}
 
                 {activeTab === "contact" && (
                   <>
-                    <TableCell className="text-slate-900 py-1.5">{emp.whatsapp_number || "—"}</TableCell>
-                    <TableCell className="py-1.5 truncate max-w-[180px] text-slate-900">{emp.email || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-slate-900 truncate max-w-[200px]">{emp.address || "—"}</TableCell>
-                    <TableCell className="py-1.5 text-slate-900 truncate max-w-[200px]">{emp.address_domicile || "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 text-center">{emp.whatsapp_number || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[180px] text-slate-900 text-left">{emp.email || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 truncate max-w-[200px] text-left">{emp.address || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-slate-900 truncate max-w-[200px] text-left">{emp.address_domicile || "—"}</TableCell>
                   </>
                 )}
 
                 {activeTab === "employment" && (
                   <>
-                    <TableCell className="text-slate-900 py-1.5 whitespace-nowrap">{emp.employee_id_number || "—"}</TableCell>
-                    <TableCell className="py-1.5 scale-90 origin-left whitespace-nowrap">{getStatusBadge(emp.status)}</TableCell>
-                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.units?.name || "—"}</TableCell>
-                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900">{emp.positions?.name || "—"}</TableCell>
-                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="text-slate-900 py-1.5 whitespace-nowrap text-left">{emp.employee_id_number || "—"}</TableCell>
+                    <TableCell className="py-1.5 scale-90 origin-center whitespace-nowrap text-center">{getStatusBadge(emp.status)}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center">{emp.units?.name || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-left">{emp.positions?.name || "—"}</TableCell>
+                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {emp.join_date ? new Date(emp.join_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>
-                    <TableCell className="font-normal py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="font-normal py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {calculateMasaKerja(emp.join_date)}
                     </TableCell>
-                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900">
+                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {emp.contract_end_date ? new Date(emp.contract_end_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>
                     {isSuperAdmin && (
-                      <TableCell className="py-1.5 text-slate-900 whitespace-nowrap">
+                      <TableCell className="py-1.5 text-slate-900 whitespace-nowrap text-center">
                         {emp.role === 'super_admin' ? 'Super Admin' :
                          emp.role === 'hr' ? 'HRD' :
                          emp.role === 'unit_leader' ? 'Kepala Unit' :

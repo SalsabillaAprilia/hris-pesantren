@@ -65,18 +65,18 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
   return (
     <div className="space-y-4">
       {!isAdminOrHr && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-semibold text-slate-700 whitespace-nowrap">Riwayat Presensi Saya</h3>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <div className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-semibold">
+            <div className="px-3 h-9 flex items-center bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-semibold">
               Hadir: {totalHadir}
             </div>
-            <div className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-semibold">
+            <div className="px-3 h-9 flex items-center bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-semibold">
               Telat: {totalTelat}
             </div>
-            <div className="px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-md text-xs font-semibold">
+            <div className="px-3 h-9 flex items-center bg-rose-50 text-rose-700 border border-rose-200 rounded-md text-xs font-semibold">
               Mangkir: {totalMangkir}
             </div>
           </div>
@@ -97,35 +97,36 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
             >
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead 
-                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center
+                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center whitespace-nowrap
                     ${isScrolled ? 'bg-muted' : ''}`}
                 >
                   No.
                 </TableHead>
                 {isAdminOrHr && (
                   <TableHead
-                    className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
+                    className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold whitespace-nowrap
                       ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
                   >
                     Karyawan
                   </TableHead>
                 )}
-                <TableHead className="font-semibold">Tanggal</TableHead>
-                <TableHead className="font-semibold">Check-in</TableHead>
-                <TableHead className="font-semibold">Check-out</TableHead>
-                <TableHead className="font-semibold text-center w-[120px]">Status</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap text-left">Tanggal</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap text-center">Check-in</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap text-center">Check-out</TableHead>
+                <TableHead className="font-semibold text-center w-[120px] whitespace-nowrap">Status</TableHead>
+                <TableHead className="font-semibold w-[200px] whitespace-nowrap">Catatan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={isAdminOrHr ? 6 : 5} className="text-center py-8 text-sm text-muted-foreground">
+                  <TableCell colSpan={isAdminOrHr ? 7 : 6} className="text-center py-8 text-sm text-muted-foreground">
                     Memuat...
                   </TableCell>
                 </TableRow>
               ) : records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdminOrHr ? 6 : 5} className="text-center py-8 text-sm text-muted-foreground">
+                  <TableCell colSpan={isAdminOrHr ? 7 : 6} className="text-center py-8 text-sm text-muted-foreground">
                     Belum ada data absensi
                   </TableCell>
                 </TableRow>
@@ -155,13 +156,13 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                       <TableCell className="text-slate-900 py-1.5 font-medium">
                         {format(new Date(r.date), "dd MMM yyyy")}
                       </TableCell>
-                      <TableCell className="text-slate-900 py-1.5">
+                      <TableCell className="text-slate-900 py-1.5 text-center font-medium">
                         {r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}
                         {r.late_minutes && r.late_minutes > 0 ? (
                           <span className="ml-2 text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">+{r.late_minutes}m</span>
                         ) : null}
                       </TableCell>
-                      <TableCell className="text-slate-900 py-1.5">
+                      <TableCell className="text-slate-900 py-1.5 text-center font-medium">
                         {r.check_out ? format(new Date(r.check_out), "HH:mm") : (isLupaCheckOut ? <span className="text-rose-500 text-xs italic">Lupa absen</span> : "—")}
                         {r.early_leave_minutes && r.early_leave_minutes > 0 ? (
                           <span className="ml-2 text-[10px] text-rose-600 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">-{r.early_leave_minutes}m</span>
@@ -179,6 +180,9 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                         ) : (
                            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">{statusLabel}</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-slate-500 py-1.5 truncate max-w-[200px]" title={r.notes || undefined}>
+                        {r.notes ?? "—"}
                       </TableCell>
                     </TableRow>
                   );

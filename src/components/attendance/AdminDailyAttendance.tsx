@@ -84,7 +84,7 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
           onScroll={handleHorizontalScroll}
           className="overflow-x-auto overflow-y-visible flex-1 h-auto relative"
         >
-          <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[1200px]">
+          <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[1250px]">
             <TableHeader
               ref={headerRef}
               className="z-20 transition-none [&_th]:sticky [&_th]:top-[var(--sticky-offset)] [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted"
@@ -92,28 +92,28 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
             >
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead
-                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center
+                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center whitespace-nowrap
                     ${isScrolled ? 'bg-muted' : ''}`}
                 >
                   No.
                 </TableHead>
                 <TableHead
-                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
+                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold whitespace-nowrap
                     ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
                 >
                   Nama
                 </TableHead>
-                <TableHead className="font-semibold w-[120px]">ID Karyawan</TableHead>
-                <TableHead className="font-semibold w-[130px]">Unit</TableHead>
-                <TableHead className="font-semibold w-[130px]">Jabatan</TableHead>
-                <TableHead className="font-semibold w-[100px]">Masuk</TableHead>
-                <TableHead className="font-semibold w-[100px]">Keluar</TableHead>
-                <TableHead className="font-semibold w-[90px]">Lembur</TableHead>
-                <TableHead className="font-semibold w-[90px]">Terlambat</TableHead>
-                <TableHead className="font-semibold w-[100px]">Plg Cepat</TableHead>
-                <TableHead className="font-semibold w-[90px]">Status</TableHead>
-                <TableHead className="font-semibold w-[120px]">Lokasi</TableHead>
-                <TableHead className="font-semibold">Catatan</TableHead>
+                <TableHead className="font-semibold w-[120px] whitespace-nowrap text-left">ID Karyawan</TableHead>
+                <TableHead className="font-semibold w-[130px] whitespace-nowrap text-center">Unit</TableHead>
+                <TableHead className="font-semibold w-[130px] whitespace-nowrap text-left">Jabatan</TableHead>
+                <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Masuk</TableHead>
+                <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Keluar</TableHead>
+                <TableHead className="font-semibold w-[90px] whitespace-nowrap text-center">Lembur</TableHead>
+                <TableHead className="font-semibold w-[90px] whitespace-nowrap text-center">Terlambat</TableHead>
+                <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Pulang Cepat</TableHead>
+                <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Status</TableHead>
+                <TableHead className="font-semibold w-[120px] whitespace-nowrap text-center">Lokasi</TableHead>
+                <TableHead className="font-semibold w-[200px] whitespace-nowrap">Catatan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -133,21 +133,35 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                     >
                       {r.employees?.name ?? "—"}
                     </TableCell>
-                    <TableCell className="text-slate-900 py-1.5">{r.employees?.employee_id_number ?? "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px]">{r.employees?.units?.name ?? "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px]">{r.employees?.position ?? "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5">{r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5">{r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5">{r.overtime_minutes ? `${r.overtime_minutes}mnt` : "—"}</TableCell>
-                    <TableCell className="py-1.5">
-                      {r.late_minutes ? <span className="text-red-500 font-medium">{r.late_minutes}mnt</span> : "—"}
+                    <TableCell className="text-slate-900 py-1.5 text-left">{r.employees?.employee_id_number ?? "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px] text-center">{r.employees?.units?.name ?? "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px] text-left">{r.employees?.position ?? "—"}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 text-center font-medium">
+                      {r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}
                     </TableCell>
-                    <TableCell className="py-1.5">
-                      {r.early_leave_minutes ? <span className="text-rose-500 font-medium">{r.early_leave_minutes}mnt</span> : "—"}
+                    <TableCell className="text-slate-900 py-1.5 text-center font-medium">
+                      {r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}
                     </TableCell>
-                    <TableCell className="text-slate-900 py-1.5">{r.daily_status ?? "Hadir"}</TableCell>
-                    <TableCell className="py-1.5">
-                      <div className="flex gap-1.5">
+                    <TableCell className="text-slate-900 py-1.5 text-center">
+                      {r.overtime_minutes ? `${r.overtime_minutes}mnt` : "—"}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-center">
+                      {r.late_minutes ? <span className="text-rose-500 font-medium">{r.late_minutes}mnt</span> : "—"}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-center">
+                      {r.early_leave_minutes ? <span className="text-amber-500 font-medium">{r.early_leave_minutes}mnt</span> : "—"}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-center">
+                      <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                        r.daily_status === 'Hadir' ? 'bg-emerald-100 text-emerald-700' : 
+                        r.daily_status?.includes('Hadir') ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {r.daily_status || 'Hadir'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-1.5 text-center">
+                      <div className="flex gap-1.5 justify-center">
                         {r.check_in_location && r.check_in_location !== "Location not available" ? (
                           <a href={`https://www.google.com/maps/search/?api=1&query=${r.check_in_location}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-semibold text-[10px] bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">Masuk</a>
                         ) : null}
@@ -157,7 +171,7 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                         {!r.check_in_location && !r.check_out_location && <span className="text-slate-400 text-xs">—</span>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-500 py-1.5 truncate max-w-[120px]">{r.notes ?? "—"}</TableCell>
+                    <TableCell className="text-slate-500 py-1.5 truncate max-w-[200px]" title={r.notes || undefined}>{r.notes ?? "—"}</TableCell>
                   </TableRow>
                 ))
               )}

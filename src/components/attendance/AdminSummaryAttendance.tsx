@@ -120,26 +120,26 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
             >
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead
-                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center
+                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center whitespace-nowrap
                     ${isScrolled ? 'bg-muted' : ''}`}
                 >
                   No.
                 </TableHead>
                 <TableHead
-                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold
+                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold whitespace-nowrap
                     ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
                 >
                   Nama
                 </TableHead>
-                <TableHead className="font-semibold w-[120px]">ID Karyawan</TableHead>
-                <TableHead className="font-semibold w-[80px] text-center">Hadir</TableHead>
-                <TableHead className="font-semibold w-[80px] text-center">Terlambat</TableHead>
-                <TableHead className="font-semibold w-[110px] text-center">Durasi Telat</TableHead>
-                <TableHead className="font-semibold w-[90px] text-center">Lembur</TableHead>
-                <TableHead className="font-semibold w-[70px] text-center">Cuti</TableHead>
-                <TableHead className="font-semibold w-[70px] text-center">Sakit</TableHead>
-                <TableHead className="font-semibold w-[70px] text-center">Izin</TableHead>
-                <TableHead className="font-semibold w-[80px] text-center">Mangkir</TableHead>
+                <TableHead className="font-semibold w-[120px] whitespace-nowrap text-left">ID Karyawan</TableHead>
+                <TableHead className="font-semibold w-[80px] text-center whitespace-nowrap">Hadir</TableHead>
+                <TableHead className="font-semibold w-[80px] text-center whitespace-nowrap">Terlambat</TableHead>
+                <TableHead className="font-semibold w-[110px] text-center whitespace-nowrap">Durasi Telat</TableHead>
+                <TableHead className="font-semibold w-[90px] text-center whitespace-nowrap">Lembur</TableHead>
+                <TableHead className="font-semibold w-[70px] text-center whitespace-nowrap">Cuti</TableHead>
+                <TableHead className="font-semibold w-[70px] text-center whitespace-nowrap">Sakit</TableHead>
+                <TableHead className="font-semibold w-[70px] text-center whitespace-nowrap">Izin</TableHead>
+                <TableHead className="font-semibold w-[80px] text-center whitespace-nowrap">Mangkir</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -159,7 +159,7 @@ export function AdminSummaryAttendance({ records, loading }: AdminSummaryAttenda
                     >
                       {stat.name}
                     </TableCell>
-                    <TableCell className="text-slate-900 py-1.5">{stat.employee_id_number}</TableCell>
+                    <TableCell className="text-slate-900 py-1.5 text-left">{stat.employee_id_number}</TableCell>
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.hadir}</TableCell>
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.telat}</TableCell>
                     <TableCell className="text-sm py-1.5 text-center">
