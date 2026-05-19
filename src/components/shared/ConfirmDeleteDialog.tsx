@@ -23,6 +23,7 @@ interface ConfirmDeleteDialogProps {
   requireConfirmationText?: boolean;
   confirmationTextValue?: string;
   itemName?: string;
+  disableConfirm?: boolean;
 }
 
 export function ConfirmDeleteDialog({
@@ -37,6 +38,7 @@ export function ConfirmDeleteDialog({
   requireConfirmationText = false,
   confirmationTextValue = "HAPUS",
   itemName,
+  disableConfirm = false,
 }: ConfirmDeleteDialogProps) {
   const [userInput, setUserInput] = useState("");
 
@@ -47,7 +49,7 @@ export function ConfirmDeleteDialog({
     }
   }, [open]);
 
-  const isConfirmDisabled = isLoading || (requireConfirmationText && userInput !== confirmationTextValue);
+  const isConfirmDisabled = isLoading || disableConfirm || (requireConfirmationText && userInput !== confirmationTextValue);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

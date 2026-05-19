@@ -309,6 +309,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
           </div>
         }
         confirmText={employeesCount > 0 ? "Hapus & Pindahkan" : "Hapus"}
+        disableConfirm={employeesCount > 0 && !replacementPositionId}
       />
     </div>
   );

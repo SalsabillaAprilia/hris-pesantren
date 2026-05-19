@@ -419,42 +419,38 @@ export default function WorkSchedules() {
         isLoading={isDeleting}
         itemName={shiftToDelete?.name}
         description={
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2 text-slate-600">
             <p>
-              Apakah Anda yakin ingin menghapus jadwal <strong>{shiftToDelete?.name}</strong>?
-              Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus jadwal <strong className="text-slate-900">{shiftToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
             </p>
-            {shiftToDelete?.employee_count > 0 && (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
-                <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  Perhatian: {shiftToDelete.employee_count} Personel Terdeteksi
-                </div>
-                <p className="text-xs text-amber-700 leading-relaxed">
-                  Ada {shiftToDelete.employee_count} personel yang saat ini menggunakan jadwal ini. 
-                  Anda wajib memindahkan mereka ke jadwal lain sebelum menghapus jadwal ini.
+            
+            {shiftToDelete?.employee_count > 0 ? (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
+                <p className="text-orange-800 text-sm font-medium">
+                  ⚠️ Terdapat {shiftToDelete.employee_count} personel yang menggunakan jadwal ini.
                 </p>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-amber-900">Pilih Jadwal Pengganti:</Label>
+                <div className="space-y-2">
+                  <Label className="text-orange-900 font-semibold text-sm">Pilih Jadwal Pengganti *</Label>
                   <Select value={replacementShiftId} onValueChange={setReplacementShiftId}>
-                    <SelectTrigger className="h-9 bg-white border-amber-200 text-xs text-slate-900">
-                      <SelectValue placeholder="Pilih jadwal baru..." />
+                    <SelectTrigger className="bg-white border-orange-200 focus:ring-orange-500 text-slate-900">
+                      <SelectValue placeholder="Pilih Jadwal..." />
                     </SelectTrigger>
                     <SelectContent>
                       {shifts
                         .filter(s => s.id !== shiftToDelete?.id)
                         .map(s => (
-                          <SelectItem key={s.id} value={s.id} className="text-xs">
-                            {s.name}
-                          </SelectItem>
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-orange-700">Personel terkait akan dipindahkan ke jadwal baru sebelum jadwal ini dihapus.</p>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         }
+        confirmText={shiftToDelete?.employee_count > 0 ? "Hapus & Pindahkan" : "Hapus"}
+        disableConfirm={shiftToDelete?.employee_count > 0 && !replacementShiftId}
       />
     </DashboardLayout>
   );

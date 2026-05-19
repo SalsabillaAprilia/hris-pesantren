@@ -284,42 +284,38 @@ export default function Organization() {
         onConfirm={handleDelete}
         isLoading={isActionLoading}
         description={
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2 text-slate-600">
             <p>
-              Apakah Anda yakin ingin menghapus unit <strong>{unitToDelete?.name}</strong>?
-              Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus unit <strong className="text-slate-900">{unitToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
             </p>
-            {unitToDelete?.employeeCount > 0 && (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
-                <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  Perhatian: {unitToDelete.employeeCount} Anggota Terdeteksi
-                </div>
-                <p className="text-xs text-amber-700 leading-relaxed">
-                  Ada {unitToDelete.employeeCount} anggota yang saat ini terdaftar di unit ini. 
-                  Anda wajib memindahkan mereka ke unit lain sebelum menghapus unit ini.
+            
+            {unitToDelete?.employeeCount > 0 ? (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
+                <p className="text-orange-800 text-sm font-medium">
+                  ⚠️ Terdapat {unitToDelete.employeeCount} anggota yang terdaftar di unit ini.
                 </p>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-amber-900">Pilih Unit Pengganti:</Label>
+                <div className="space-y-2">
+                  <Label className="text-orange-900 font-semibold text-sm">Pilih Unit Pengganti *</Label>
                   <Select value={replacementUnitId} onValueChange={setReplacementUnitId}>
-                    <SelectTrigger className="h-9 bg-white border-amber-200 text-xs text-slate-900">
-                      <SelectValue placeholder="Pilih unit baru..." />
+                    <SelectTrigger className="bg-white border-orange-200 focus:ring-orange-500 text-slate-900">
+                      <SelectValue placeholder="Pilih Unit..." />
                     </SelectTrigger>
                     <SelectContent>
                       {units
                         .filter(u => u.id !== unitToDelete?.id)
                         .map(u => (
-                          <SelectItem key={u.id} value={u.id} className="text-xs">
-                            {u.name}
-                          </SelectItem>
+                          <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-orange-700">Anggota terkait akan dipindahkan ke unit baru sebelum unit ini dihapus.</p>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         }
+        confirmText={unitToDelete?.employeeCount > 0 ? "Hapus & Pindahkan" : "Hapus"}
+        disableConfirm={unitToDelete?.employeeCount > 0 && !replacementUnitId}
       />
     </DashboardLayout>
   );

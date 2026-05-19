@@ -17,6 +17,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function NationalHolidays() {
   const navigate = useNavigate();
@@ -25,6 +36,12 @@ export default function NationalHolidays() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState<any>(null);
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [holidayToDelete, setHolidayToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
+  const [isFetchingApi, setIsFetchingApi] = useState(false);
   
   const [formData, setFormData] = useState({
     date: "",
@@ -117,28 +134,37 @@ export default function NationalHolidays() {
     fetchHolidays();
   };
 
-  const handleDelete = async (holidayId: string) => {
-    if (!confirm("Yakin ingin menghapus hari libur ini?")) return;
+  const handleDeleteClick = (holiday: any) => {
+    setHolidayToDelete(holiday);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!holidayToDelete) return;
     
-    const { error } = await supabase.from("national_holidays").delete().eq("id", holidayId);
-    if (error) toast.error("Gagal menghapus hari libur");
-    else {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("national_holidays").delete().eq("id", holidayToDelete.id);
+      if (error) throw error;
+      
       toast.success("Hari libur berhasil dihapus");
       fetchHolidays();
+    } catch (error) {
+      toast.error("Gagal menghapus hari libur");
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setHolidayToDelete(null);
     }
   };
 
-  const [isFetchingApi, setIsFetchingApi] = useState(false);
-
   const handleFetchHolidaysFromApi = async () => {
     const year = new Date().getFullYear();
-    if (!confirm(`Tarik data hari libur nasional tahun ${year} dari internet?`)) return;
-
     setIsFetchingApi(true);
     try {
       // Menggunakan API Nager.Date yang gratis dan stabil
       const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ID`);
-      if (!res.ok) throw new Error("Gagal mengambil data dari API");
+      if (!res.ok) throw new Error("Gagal mengambil data dari internet");
       
       const apiData = await res.json();
       
@@ -154,13 +180,14 @@ export default function NationalHolidays() {
         }));
 
       if (newHolidays.length === 0) {
-        toast.info("Semua hari libur nasional dari API sudah terdaftar");
+        toast.info("Semua hari libur nasional sudah terdaftar");
       } else {
         const { error } = await supabase.from("national_holidays").insert(newHolidays);
         if (error) throw error;
         toast.success(`Berhasil menarik ${newHolidays.length} data hari libur nasional!`);
         fetchHolidays();
       }
+      setIsFetchDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Terjadi kesalahan saat menarik data");
     } finally {
@@ -174,7 +201,6 @@ export default function NationalHolidays() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <CalendarDays className="h-6 w-6 text-primary" />
               Kalender Hari Libur
             </h1>
           </div>
@@ -183,20 +209,24 @@ export default function NationalHolidays() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all font-medium" 
+              className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all transform active:scale-95 font-medium" 
               onClick={() => navigate("/attendance")}
             >
               <ArrowLeft className="h-4 w-4 text-primary" /> Kembali
             </Button>
             
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
-              onClick={handleFetchHolidaysFromApi}
+              onClick={() => setIsFetchDialogOpen(true)}
               disabled={isFetchingApi}
-              className="gap-2 font-medium"
+              className="gap-2 bg-white/50 shadow-sm border-primary/20 transition-all transform active:scale-95 font-medium"
             >
-              {isFetchingApi ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <CalendarDays className="h-4 w-4" />}
+              {isFetchingApi ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <CalendarDays className="h-4 w-4 text-primary" />
+              )}
               Tarik Data Otomatis
             </Button>
             
@@ -205,71 +235,94 @@ export default function NationalHolidays() {
                 <Button 
                   onClick={() => handleOpenDialog()} 
                   size="sm"
-                  className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all font-medium"
+                  className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium"
                 >
                   <Plus className="h-4 w-4" /> Tambah Manual
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingHoliday ? "Edit Hari Libur" : "Tambah Hari Libur"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSave} className="space-y-4 pt-4">
-                {!editingHoliday ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Tanggal Mulai</Label>
-                      <Input 
-                        type="date"
-                        value={formData.date} 
-                        onChange={(e) => setFormData({...formData, date: e.target.value})} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tanggal Selesai (Opsional)</Label>
-                      <Input 
-                        type="date"
-                        value={formData.endDate} 
-                        onChange={(e) => setFormData({...formData, endDate: e.target.value})} 
-                      />
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                <DialogHeader className="p-6 border-b bg-muted/30">
+                  <DialogTitle className="text-xl font-bold tracking-tight">
+                    {editingHoliday ? "Edit Hari Libur" : "Tambah Hari Libur"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {!editingHoliday ? (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal Mulai</Label>
+                            <Input 
+                              type="date"
+                              value={formData.date} 
+                              onChange={(e) => setFormData({...formData, date: e.target.value})} 
+                              className="h-9 text-sm text-slate-900 shadow-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal Selesai (Opsional)</Label>
+                            <Input 
+                              type="date"
+                              value={formData.endDate} 
+                              onChange={(e) => setFormData({...formData, endDate: e.target.value})} 
+                              className="h-9 text-sm text-slate-900 shadow-sm"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal Libur</Label>
+                          <Input 
+                            type="date"
+                            value={formData.date} 
+                            onChange={(e) => setFormData({...formData, date: e.target.value})} 
+                            className="h-9 text-sm text-slate-900 shadow-sm"
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-2 md:col-span-2">
+                        <Label className="text-sm text-muted-foreground/90 font-bold">Keterangan Libur</Label>
+                        <Input 
+                          value={formData.description} 
+                          onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                          placeholder="Contoh: Idul Fitri 1446 H" 
+                          className="h-9 text-sm text-slate-900 shadow-sm"
+                        />
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Tanggal Libur</Label>
-                    <Input 
-                      type="date"
-                      value={formData.date} 
-                      onChange={(e) => setFormData({...formData, date: e.target.value})} 
-                    />
+                  <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setIsDialogOpen(false)}
+                      className="min-w-[140px] h-10 text-sm"
+                    >
+                      Batal
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6"
+                    >
+                      {editingHoliday ? "Simpan Perubahan" : "Simpan Hari Libur"}
+                    </Button>
                   </div>
-                )}
-                <div className="space-y-2">
-                  <Label>Keterangan / Nama Libur</Label>
-                  <Input 
-                    value={formData.description} 
-                    onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                    placeholder="Contoh: Idul Fitri 1446 H" 
-                  />
-                </div>
-                <div className="pt-4 flex justify-end">
-                  <Button type="submit">Simpan</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
         <div className="relative border rounded-md bg-white flex flex-col">
           <div className="overflow-x-auto overflow-y-visible flex-1 h-auto relative">
             <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[600px]">
-              <TableHeader className="bg-muted transition-none">
+              <TableHeader className="z-20 transition-none [&_th]:sticky [&_th]:top-0 [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted">
                 <TableRow className="border-none hover:bg-transparent">
-                  <TableHead className="w-[80px] text-center font-semibold text-slate-900 py-3 border-b border-r border-gray-200">No.</TableHead>
-                  <TableHead className="font-semibold text-slate-900 py-3 border-b border-r border-gray-200">Tanggal</TableHead>
-                  <TableHead className="font-semibold text-slate-900 py-3 border-b border-r border-gray-200">Keterangan</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-900 py-3 border-b">Tindakan</TableHead>
+                  <TableHead className="w-14 text-center font-semibold text-slate-900 whitespace-nowrap">No.</TableHead>
+                  <TableHead className="font-semibold text-slate-900 whitespace-nowrap">Tanggal</TableHead>
+                  <TableHead className="font-semibold text-slate-900 whitespace-nowrap">Keterangan Libur</TableHead>
+                  <TableHead className="w-24 font-semibold text-slate-900 whitespace-nowrap" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -292,30 +345,32 @@ export default function NationalHolidays() {
                   holidays.map((holiday, index) => (
                     <TableRow 
                       key={holiday.id} 
-                      className="hover:bg-muted/50 transition-colors h-12 group border-b border-gray-200"
+                      className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                     >
-                      <TableCell className="text-center text-slate-500 py-2 border-r border-gray-100">{index + 1}</TableCell>
-                      <TableCell className="font-semibold text-slate-900 py-2 border-r border-gray-100 whitespace-nowrap">
+                      <TableCell className="text-center text-slate-500 py-1.5 font-medium">{index + 1}</TableCell>
+                      <TableCell className="font-semibold text-slate-900 py-1.5 whitespace-nowrap">
                         {format(parseISO(holiday.date), "dd MMMM yyyy", { locale: id })}
                       </TableCell>
-                      <TableCell className="text-slate-700 py-2 border-r border-gray-100">{holiday.description}</TableCell>
-                      <TableCell className="text-right py-2 space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8 hover:bg-blue-50 hover:border-blue-200 transition-colors"
-                          onClick={() => handleOpenDialog(holiday)}
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-blue-600" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8 hover:bg-red-50 hover:border-red-200 transition-colors"
-                          onClick={() => handleDelete(holiday.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                        </Button>
+                      <TableCell className="text-slate-700 py-1.5">{holiday.description}</TableCell>
+                      <TableCell className="py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-primary hover:bg-primary/10"
+                            onClick={() => handleOpenDialog(holiday)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteClick(holiday)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -325,6 +380,61 @@ export default function NationalHolidays() {
           </div>
         </div>
       </div>
+      <ConfirmDeleteDialog 
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        itemName={holidayToDelete?.description}
+        description={
+          <div className="space-y-4 pt-2 text-slate-600">
+            <p>
+              Apakah Anda yakin ingin menghapus hari libur <strong className="text-slate-900">{holidayToDelete?.description}</strong> pada tanggal <strong className="text-slate-900">{holidayToDelete ? format(parseISO(holidayToDelete.date), "dd MMMM yyyy", { locale: id }) : ""}</strong>?
+              Tindakan ini tidak dapat dibatalkan.
+            </p>
+          </div>
+        }
+      />
+
+      <AlertDialog open={isFetchDialogOpen} onOpenChange={setIsFetchDialogOpen}>
+        <AlertDialogContent className="shadow-2xl border-none max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Tarik Data Otomatis</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 pt-2 text-slate-600">
+                <p>
+                  Apakah Anda yakin ingin menarik data hari libur nasional tahun <strong className="text-slate-900">{new Date().getFullYear()}</strong> dari internet?
+                </p>
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700 leading-relaxed">
+                  Sistem akan otomatis mengambil daftar hari libur resmi dan menambahkannya ke kalender. Hari libur yang sudah ada tidak akan ditambahkan lagi.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 pt-4">
+            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleFetchHolidaysFromApi();
+              }}
+              disabled={isFetchingApi}
+              className="h-10 min-w-[120px] text-sm bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+            >
+              {isFetchingApi ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Memproses...
+                </>
+              ) : (
+                "Tarik Data"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
