@@ -16,8 +16,16 @@ export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
+  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [resetEmail, setResetEmail] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "forgot") {
+      handleResetPassword();
+      return;
+    }
+
     setLoading(true);
     
     // Handle "Remember Me" for email
@@ -38,6 +46,29 @@ export default function Login() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetEmail) {
+      toast.error("Harap masukkan email Anda");
+      return;
+    }
+    setLoading(true);
+    try {
+      // Import supabase client dynamically or use the existing one if available.
+      // We will use the auth context's underlying mechanism, but we need the supabase client here.
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin + "/reset-password",
+      });
+      if (error) throw error;
+      toast.success("Link reset password telah dikirim ke email Anda!");
+      setMode("login");
+    } catch (err: any) {
+      toast.error("Gagal mengirim link: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-blue-100/80 via-white to-indigo-100/80 p-4 overflow-hidden">
       {/* Background decorative elements */}
@@ -51,49 +82,91 @@ export default function Login() {
           </div>
           <h1 className="text-2xl font-bold text-foreground">Pesantren HRIS</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Masuk ke akun Anda
+            {mode === "login" ? "Masuk ke akun Anda" : "Reset Password Anda"}
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@pesantren.sch.id"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="remember" 
-                checked={rememberMe} 
-                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-              />
-              <Label 
-                htmlFor="remember" 
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Ingat saya
-              </Label>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Memproses..." : "Masuk"}
-            </Button>
+            {mode === "login" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@pesantren.sch.id"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <button
+                      type="button"
+                      onClick={() => setMode("forgot")}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Lupa Password?
+                    </button>
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="remember" 
+                    checked={rememberMe} 
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <Label 
+                    htmlFor="remember" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Ingat saya
+                  </Label>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Memproses..." : "Masuk"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2 mb-2">
+                  <Label htmlFor="resetEmail">Email Anda</Label>
+                  <Input
+                    id="resetEmail"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="email@pesantren.sch.id"
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                    Sistem akan mengirimkan link untuk membuat password baru ke email ini.
+                  </p>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Mengirim..." : "Kirim Link Reset"}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  className="w-full mt-2 text-sm" 
+                  onClick={() => setMode("login")}
+                  disabled={loading}
+                >
+                  Kembali ke Login
+                </Button>
+              </>
+            )}
           </form>
           <p className="text-xs text-muted-foreground text-center mt-6">
             Akun dibuat oleh Admin/HR. Hubungi administrator jika belum memiliki akun.

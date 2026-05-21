@@ -127,7 +127,13 @@ export default function ProfilePage() {
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground font-semibold">Role Sistem</Label>
                 <div className="h-9 flex items-center px-3 rounded-md bg-muted/40 border text-sm text-slate-600">
-                  {roles.map((r) => ROLE_LABEL[r]?.label ?? r).join(", ")}
+                  {roles.map((r) => {
+                    const labels: Record<string, string> = {
+                      super_admin: "Super Admin", hr: "HR", director: "Direktur", 
+                      unit_leader: "Kepala Unit", employee: "Karyawan"
+                    };
+                    return labels[r] || r;
+                  }).join(", ")}
                 </div>
               </div>
             </div>

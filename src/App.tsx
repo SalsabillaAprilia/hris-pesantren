@@ -19,6 +19,7 @@ import NationalHolidays from "./pages/NationalHolidays";
 import AdminAccounts from "./pages/AdminAccounts";
 import MyData from "./pages/MyData";
 import Profile from "./pages/Profile";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,10 +78,11 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Halaman publik */}
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        {/* Public routes */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Semua role yang login bisa akses */}
+        {/* Semua role yang login bisa akses */}
       <Route path="/"          element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
