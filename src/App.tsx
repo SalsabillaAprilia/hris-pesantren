@@ -17,6 +17,8 @@ import Reports from "./pages/Reports";
 import WorkSchedules from "./pages/WorkSchedules";
 import NationalHolidays from "./pages/NationalHolidays";
 import AdminAccounts from "./pages/AdminAccounts";
+import MyData from "./pages/MyData";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,10 +66,13 @@ function AppRoutes() {
   const { isAdminOrHr, isSuperAdmin, isHr, hasRole } = useAuth();
   const isUnitLeader = hasRole("unit_leader");
   const isEmployee = hasRole("employee");
+  const isDirector = hasRole("director");
+  const isEmployeeOrLeader = isEmployee || isUnitLeader;
 
   // Alias untuk keterbacaan kode
   const adminOrHr       = isAdminOrHr;                    // super_admin & hr
   const adminHrOrLeader = isAdminOrHr || isUnitLeader;     // super_admin, hr, unit_leader
+  const adminHrLeaderOrDirector = adminHrOrLeader || isDirector;
   const allRoles        = true;                            // semua role yang sudah login
 
   return (
@@ -77,6 +82,7 @@ function AppRoutes() {
 
       {/* Semua role yang login bisa akses */}
       <Route path="/"          element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
       <Route path="/tasks"     element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
       <Route path="/agenda"    element={<ProtectedRoute><Agendas /></ProtectedRoute>} />
@@ -85,7 +91,7 @@ function AppRoutes() {
       {/* Admin/HR + Unit Leader (tidak untuk employee biasa) */}
       <Route path="/employees" element={<GuardedRoute allowed={adminHrOrLeader}><Employees /></GuardedRoute>} />
       <Route path="/approvals" element={<GuardedRoute allowed={adminHrOrLeader}><Approvals /></GuardedRoute>} />
-      <Route path="/reports"   element={<GuardedRoute allowed={adminHrOrLeader}><Reports /></GuardedRoute>} />
+      <Route path="/reports"   element={<GuardedRoute allowed={adminHrLeaderOrDirector}><Reports /></GuardedRoute>} />
 
       {/* Khusus Admin/HR saja */}
       <Route path="/organization"   element={<GuardedRoute allowed={adminOrHr}><Organization /></GuardedRoute>} />
@@ -94,6 +100,9 @@ function AppRoutes() {
 
       {/* Khusus Super Admin */}
       <Route path="/admin-accounts" element={<GuardedRoute allowed={isSuperAdmin}><AdminAccounts /></GuardedRoute>} />
+
+      {/* Khusus Employee & Unit Leader: data diri */}
+      <Route path="/my-data" element={<GuardedRoute allowed={isEmployeeOrLeader}><MyData /></GuardedRoute>} />
 
       {/* Halaman tidak ditemukan */}
       <Route path="*" element={<NotFound />} />

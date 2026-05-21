@@ -27,13 +27,14 @@ interface AdminAccount {
   user_id: string;
   name: string;
   email: string;
-  role: "super_admin" | "hr";
+  role: "super_admin" | "hr" | "director";
   created_at: string;
 }
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
   hr: "HR",
+  director: "Direktur",
 };
 
 export default function AdminAccounts() {
@@ -48,7 +49,7 @@ export default function AdminAccounts() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const INITIAL_FORM = { name: "", email: "", password: "", role: "hr" as "super_admin" | "hr" };
+  const INITIAL_FORM = { name: "", email: "", password: "", role: "hr" as "super_admin" | "hr" | "director" };
   const [form, setForm] = useState(INITIAL_FORM);
 
   const fetchData = async () => {
@@ -57,7 +58,7 @@ export default function AdminAccounts() {
       const [empRes, rolesRes] = await supabaseFetchWithTimeout(
         Promise.all([
           supabase.from("employees").select("id, user_id, name, email, created_at").order("name"),
-          supabase.from("user_roles").select("user_id, role").in("role", ["super_admin", "hr"]),
+          supabase.from("user_roles").select("user_id, role").in("role", ["super_admin", "hr", "director"]),
         ])
       );
 
@@ -75,7 +76,7 @@ export default function AdminAccounts() {
           user_id: emp.user_id,
           name: emp.name,
           email: emp.email,
-          role: rolesMap[emp.user_id] as "super_admin" | "hr",
+          role: rolesMap[emp.user_id] as "super_admin" | "hr" | "director",
           created_at: emp.created_at,
         }));
 
@@ -242,6 +243,10 @@ export default function AdminAccounts() {
                         <Badge className="bg-primary/10 text-primary border border-primary/20 font-semibold text-[10px]">
                           Super Admin
                         </Badge>
+                      ) : acc.role === "director" ? (
+                        <Badge className="bg-amber-100 text-amber-700 border border-amber-300 font-semibold text-[10px]">
+                          Direktur
+                        </Badge>
                       ) : (
                         <Badge className="bg-accent text-accent-foreground border border-accent font-semibold text-[10px]">
                           HR
@@ -325,12 +330,13 @@ export default function AdminAccounts() {
               )}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground/90 font-bold">Role</Label>
-                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "super_admin" | "hr" })}>
+                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "super_admin" | "hr" | "director" })}>
                   <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="hr">HR</SelectItem>
+                    <SelectItem value="director">Direktur</SelectItem>
                     <SelectItem value="super_admin">Super Admin</SelectItem>
                   </SelectContent>
                 </Select>

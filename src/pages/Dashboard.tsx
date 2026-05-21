@@ -1,12 +1,20 @@
 import { useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Clock, FileCheck, ListTodo } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { CheckInOutWidget } from "@/components/attendance/CheckInOutWidget";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
+import { ManagerialDashboard } from "@/components/dashboard/ManagerialDashboard";
+import { EmployeeDashboard } from "@/components/dashboard/EmployeeDashboard";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 11) return "Selamat Pagi";
+  if (hour < 15) return "Selamat Siang";
+  if (hour < 18) return "Selamat Sore";
+  return "Selamat Malam";
+}
 
 interface Stats {
   totalEmployees: number;
@@ -16,7 +24,9 @@ interface Stats {
 }
 
 export default function Dashboard() {
-  const { employee, isAdminOrHr, isSuperAdmin, isEmployee } = useAuth();
+  const { employee, isAdminOrHr, isEmployee, hasRole, isDirector } = useAuth();
+  const isUnitLeader = hasRole("unit_leader");
+
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     presentToday: 0,
@@ -26,92 +36,175 @@ export default function Dashboard() {
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
+  // Data untuk chart & card
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
+  const [approvals, setApprovals] = useState<any[]>([]);
+  const [agendas, setAgendas] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  // Riwayat presensi personal (untuk karyawan)
+  const [personalAttendance, setPersonalAttendance] = useState<any[]>([]);
+  const [personalApprovals, setPersonalApprovals] = useState<any[]>([]);
+
+  const fetchData = useCallback(async () => {
     try {
       const today = format(new Date(), "yyyy-MM-dd");
-      
-      const fetchGlobalStats = async () => {
-        const emp = await supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active");
-        if (!emp.error) setStats(prev => ({ ...prev, totalEmployees: emp.count ?? 0 }));
-        
-        const att = await supabase.from("attendance").select("id", { count: "exact", head: true }).eq("date", today);
-        if (!att.error) setStats(prev => ({ ...prev, presentToday: att.count ?? 0 }));
 
-        const appr = await supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending");
-        if (!appr.error) setStats(prev => ({ ...prev, pendingApprovals: appr.count ?? 0 }));
+      if (isAdminOrHr || isDirector) {
+        // ========= DATA MANAJERIAL =========
+        const [empRes, attRes, apprRes, tasksRes, unitsRes, agendasRes] = await Promise.all([
+          supabaseFetchWithTimeout(
+            supabase.from("employees").select("*").eq("status", "active"),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("attendance").select("*").gte("date", format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd")).order("date", { ascending: false }),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("approvals").select("*, employees(name)").order("created_at", { ascending: false }).limit(20),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("tasks").select("*").in("status", ["todo", "in_progress"]),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("units").select("*"),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("agendas").select("*, employees(name)").eq("date", today).order("time", { ascending: true }),
+            20000
+          ),
+        ]);
 
-        const tasks = await supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["todo", "in_progress"]);
-        if (!tasks.error) setStats(prev => ({ ...prev, activeTasks: tasks.count ?? 0 }));
-      };
+        const activeEmps = empRes?.data || [];
+        const attData = attRes?.data || [];
+        const apprData = apprRes?.data || [];
+        const tasksData = tasksRes?.data || [];
+        const unitsData = unitsRes?.data || [];
+        const agendasData = agendasRes?.data || [];
 
-      const fetchUserAttendance = async () => {
-        // Hanya fetch jika user adalah karyawan (punya data di tabel employees)
-        if (employee && isEmployee) {
-          const { data } = await supabase
-            .from("attendance")
-            .select("*")
-            .eq("employee_id", employee.id)
-            .eq("date", today)
-            .maybeSingle();
-          setTodayRecord(data);
+        setEmployees(activeEmps);
+        setAttendanceRecords(attData);
+        setApprovals(apprData);
+        setTasks(tasksData);
+        setUnits(unitsData);
+        setAgendas(agendasData);
+
+        // Stat cards
+        const todayAtt = attData.filter((r: any) => r.date === today);
+        const pendingAppr = apprData.filter((r: any) => r.status === "pending");
+        setStats({
+          totalEmployees: activeEmps.length,
+          presentToday: todayAtt.length,
+          pendingApprovals: pendingAppr.length,
+          activeTasks: tasksData.length,
+        });
+      }
+
+      if (isEmployee && employee) {
+        // ========= DATA KARYAWAN PRIBADI =========
+        const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
+
+        const [personalAttRes, personalApprRes, personalTasksRes, personalAgendasRes] = await Promise.all([
+          supabaseFetchWithTimeout(
+            supabase.from("attendance").select("*").eq("employee_id", employee.id).gte("date", thirtyDaysAgo).order("date", { ascending: false }),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("approvals").select("*").eq("employee_id", employee.id).order("created_at", { ascending: false }).limit(10),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("tasks").select("*").eq("assigned_to", employee.id).in("status", ["todo", "in_progress"]).order("due_date", { ascending: true }),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            supabase.from("agendas").select("*, employees(name)").eq("employee_id", employee.id).eq("date", today).order("time", { ascending: true }),
+            20000
+          ),
+        ]);
+
+        setPersonalAttendance(personalAttRes?.data || []);
+        setPersonalApprovals(personalApprRes?.data || []);
+        setTasks(personalTasksRes?.data || []);
+        setAgendas(personalAgendasRes?.data || []);
+
+        // Fetch today's attendance record untuk check-in widget
+        const { data: recent } = await supabase
+          .from("attendance")
+          .select("*")
+          .eq("employee_id", employee.id)
+          .order("date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recent) {
+          if (recent.date === today) {
+            setTodayRecord(recent);
+          } else if (!recent.check_out && recent.check_in) {
+            const checkInTime = new Date(recent.check_in).getTime();
+            const now = new Date().getTime();
+            const hoursDiff = (now - checkInTime) / (1000 * 60 * 60);
+            if (hoursDiff <= 18) {
+              setTodayRecord(recent);
+            }
+          }
         }
-      };
-
-      await Promise.all([fetchGlobalStats(), fetchUserAttendance()]);
+      }
     } catch (err) {
       console.error("Dashboard: Unexpected error", err);
     } finally {
       setLoading(false);
     }
-  }, [employee]);
+  }, [employee, isAdminOrHr, isEmployee, isDirector]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  const statCards = [
-    { label: "Total Karyawan", value: stats.totalEmployees, icon: Users, color: "text-primary" },
-    { label: "Hadir Hari Ini", value: stats.presentToday, icon: Clock, color: "text-success" },
-    { label: "Pending Approval", value: stats.pendingApprovals, icon: FileCheck, color: "text-warning" },
-    { label: "Tugas Aktif", value: stats.activeTasks, icon: ListTodo, color: "text-accent-foreground" },
-  ];
+    fetchData();
+  }, [fetchData]);
 
   return (
     <DashboardLayout>
       <div className="page-header">
-        <h1 className="page-title">
-          {isEmployee ? `Selamat Datang, ${employee?.name?.split(" ")[0] ?? ""} 👋` : "Dashboard"}
-        </h1>
+        <div>
+          <h1 className="page-title">
+            {`${getGreeting()}, ${employee?.name?.split(" ")[0] ?? "Admin"} 👋`}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {format(new Date(), "EEEE, dd MMMM yyyy", { locale: localeId })}
+          </p>
+        </div>
       </div>
 
-      {/* Widget Check-in hanya untuk karyawan (employee & unit_leader) */}
-      {isEmployee && (
-        <div className="mb-8 max-w-2xl">
-          <CheckInOutWidget 
-            employee={employee} 
-            todayRecord={todayRecord} 
-            onSuccess={fetchStats} 
-          />
-        </div>
+      {/* Dashboard Manajerial: super_admin & hr & director */}
+      {(isAdminOrHr || isDirector) && (
+        <ManagerialDashboard
+          stats={stats}
+          attendanceRecords={attendanceRecords}
+          employees={employees}
+          units={units}
+          approvals={approvals}
+          agendas={agendas}
+          loading={loading}
+        />
       )}
 
-      {/* Stat cards hanya untuk Admin & HR, bukan untuk karyawan */}
-      {isAdminOrHr && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((s) => (
-            <Card key={s.label} className="stat-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
-                <s.icon className={`h-5 w-5 ${s.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {loading ? "—" : s.value}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {/* Dashboard Karyawan Pribadi: employee & unit_leader */}
+      {isEmployee && employee && (
+        <EmployeeDashboard
+          employee={employee}
+          todayRecord={todayRecord}
+          attendanceRecords={personalAttendance}
+          tasks={tasks}
+          agendas={agendas}
+          approvals={personalApprovals}
+          loading={loading}
+          onCheckInSuccess={fetchData}
+        />
       )}
     </DashboardLayout>
   );
