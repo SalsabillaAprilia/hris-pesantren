@@ -11,9 +11,11 @@ import { useAuth, Institution } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Building2, Plus, Pencil, Trash2, UploadCloud, Map } from "lucide-react";
 import { uploadFile } from "@/utils/supabase-storage";
+import { useSearchParams } from "react-router-dom";
 
 export default function Branches() {
   const { isSuperAdmin, refreshInstitutions } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [branches, setBranches] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +57,14 @@ export default function Branches() {
   useEffect(() => {
     fetchBranches();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("action") === "create" && !dialogOpen) {
+      openCreate();
+      // Remove query param clean up
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   const openCreate = () => {
     setDialogMode("create");

@@ -18,14 +18,36 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Maximize, Minimize, LogOut, User, CheckCheck, FileCheck, FileText, Building2 } from "lucide-react";
+import { Bell, BellRing, Maximize, Minimize, LogOut, User, UserCog, CheckCheck, FileCheck, FileText, Building2, ChevronDown, Plus, Globe, Settings, ListTodo } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { formatDistanceToNow } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { QuickAttendanceDialog } from "../attendance/QuickAttendanceDialog";
+import React from "react";
+
+type BreadcrumbSegment = { name: string; path?: string };
+
+const BREADCRUMB_MAP: Record<string, BreadcrumbSegment[]> = {
+  "/": [{ name: "Dashboard" }],
+  "/dashboard": [{ name: "Dashboard" }],
+  "/employees": [{ name: "Karyawan" }],
+  "/organization": [{ name: "Organisasi" }],
+  "/work-schedules": [{ name: "Kehadiran", path: "/attendance" }, { name: "Jadwal Kerja" }],
+  "/holidays": [{ name: "Organisasi", path: "/organization" }, { name: "Libur Nasional" }],
+  "/attendance": [{ name: "Kehadiran" }],
+  "/approvals": [{ name: "Persetujuan" }],
+  "/tasks": [{ name: "Tugas" }],
+  "/agenda": [{ name: "Agenda" }],
+  "/kpi": [{ name: "KPI" }],
+  "/reports": [{ name: "Laporan" }],
+  "/my-data": [{ name: "Data Diri" }],
+  "/branches": [{ name: "Manajemen Cabang" }],
+  "/admin-accounts": [{ name: "Akun Admin" }],
+  "/profile": [{ name: "Profil" }]
+};
 
 interface NotifItem {
   id: string;
@@ -35,26 +57,16 @@ interface NotifItem {
   read: boolean;
 }
 
+const toTitleCase = (str: string) => {
+  if (!str) return "";
+  return str.toLowerCase().replace(/\b\w/g, (s) => s.toUpperCase());
+};
+
 export function AppHeader() {
   const { employee, isEmployee, isAdminOrHr, isDirector, signOut, isGlobalRole, allInstitutions, selectedInstansiId, setSelectedInstansiId } = useAuth();
   const navigate = useNavigate();
-
-  // ── Fullscreen ──────────────────────────────────────────
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onFsChange);
-    return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
-  };
+  const location = useLocation();
+  const breadcrumbs = BREADCRUMB_MAP[location.pathname] || [{ name: "Sistem" }];
 
   // ── Notifikasi ───────────────────────────────────────────
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
@@ -147,61 +159,90 @@ export function AppHeader() {
 
   return (
     <header className="h-14 flex items-center justify-between border-b bg-card px-4 shrink-0 gap-2">
-      {/* Kiri: Sidebar toggle + Branch Selector (hanya akun Global) */}
-      <div className="flex items-center gap-2">
-        <SidebarTrigger />
-        {isGlobalRole && (
-          <div className="flex items-center gap-1.5 ml-1">
-            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Select
-              value={selectedInstansiId ?? "all"}
-              onValueChange={(v) => setSelectedInstansiId(v === "all" ? null : v)}
-            >
-              <SelectTrigger className="h-8 text-xs w-[180px] border-dashed">
-                <SelectValue placeholder="Semua Cabang" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">🌐 Semua Cabang</SelectItem>
-                {allInstitutions.map((inst) => (
-                  <SelectItem key={inst.id} value={inst.id} className="text-xs">
-                    {inst.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+      {/* Kiri: Sidebar toggle + Breadcrumbs */}
+      <div className="flex items-center gap-4">
+        <SidebarTrigger className="h-9 w-9 text-slate-500" />
+        <div className="hidden sm:flex items-center text-xs font-medium text-slate-500">
+          <Link to="/" className="hover:text-slate-900 transition-colors">Beranda</Link> 
+          {breadcrumbs.map((bc, idx) => (
+            <React.Fragment key={idx}>
+              <span className="mx-2 text-slate-300">/</span>
+              {bc.path ? (
+                <Link to={bc.path} className="hover:text-slate-900 transition-colors">
+                  {bc.name}
+                </Link>
+              ) : (
+                <span className="text-slate-800 font-bold">{bc.name}</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       {/* Kanan: Action items */}
-      <div className="flex items-center gap-1">
-        {/* Presensi cepat (hanya employee & unit_leader) */}
+      <div className="flex items-center gap-2">
+        {isGlobalRole && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-9 px-3 flex items-center gap-2 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors group">
+                <span className="font-bold text-xs uppercase tracking-wider text-slate-700 hidden sm:inline group-hover:text-slate-900">
+                  {selectedInstansiId ? allInstitutions.find(i => i.id === selectedInstansiId)?.name : "SEMUA CABANG"}
+                </span>
+                <Building2 className="h-4 w-4 text-slate-700 sm:hidden group-hover:text-slate-900" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-slate-900" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[260px] shadow-xl border-slate-100">
+              <DropdownMenuItem 
+                onClick={() => setSelectedInstansiId(null)}
+                className="gap-2 cursor-pointer"
+              >
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="truncate flex-1">Semua Cabang</span>
+                {selectedInstansiId === null && <CheckCheck className="h-4 w-4 text-primary" />}
+              </DropdownMenuItem>
+              
+              {allInstitutions.map(inst => (
+                <DropdownMenuItem 
+                  key={inst.id}
+                  onClick={() => setSelectedInstansiId(inst.id)}
+                  className="gap-2 cursor-pointer"
+                >
+                  {inst.logo_url ? (
+                    <img src={inst.logo_url} alt="Logo" className="w-4 h-4 rounded object-cover border border-slate-100 shrink-0" />
+                  ) : (
+                    <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="truncate flex-1">{toTitleCase(inst.name)}</span>
+                  {selectedInstansiId === inst.id && <CheckCheck className="h-4 w-4 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                onClick={() => navigate("/branches")}
+                className="gap-2 cursor-pointer"
+              >
+                <Settings className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span>Kelola Cabang</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Presensi cepat (hanya employee) */}
         {isEmployee && <QuickAttendanceDialog />}
-
-        {/* Fullscreen toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          onClick={toggleFullscreen}
-          title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-        >
-          {isFullscreen
-            ? <Minimize className="h-4 w-4" />
-            : <Maximize className="h-4 w-4" />}
-        </Button>
-
-        {/* Notifikasi */}
         <DropdownMenu open={notifsOpen} onOpenChange={(o) => { setNotifsOpen(o); if (o) fetchNotifs(); }}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground relative"
+              className="h-9 w-9 rounded-full border border-slate-200 bg-white shadow-sm text-slate-700 transition-colors relative group"
             >
-              <Bell className="h-4 w-4" />
+              <BellRing className="h-[18px] w-[18px] text-slate-500 group-hover:text-slate-900 transition-colors" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white leading-none">
+                <span className="absolute -top-1 -right-1 h-[14px] min-w-[14px] flex items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white leading-none border-[1.5px] border-white px-0.5">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -238,7 +279,7 @@ export function AppHeader() {
                     <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${n.type === "approval" ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"}`}>
                       {n.type === "approval"
                         ? <FileCheck className="h-3.5 w-3.5" />
-                        : <CheckCheck className="h-3.5 w-3.5" />}
+                        : <ListTodo className="h-3.5 w-3.5" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs leading-snug ${!n.read ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
@@ -261,30 +302,27 @@ export function AppHeader() {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 pl-1 pr-2 gap-2 hover:bg-muted/60">
-              <Avatar className="h-6 w-6 border border-border">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full ml-1 border border-slate-200 bg-white shadow-sm text-slate-700 relative p-0 overflow-hidden transition-colors group">
+              <Avatar className="h-full w-full">
                 <AvatarImage src={employee?.avatar_url || ""} className="object-cover" />
-                <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
-                  {employee?.name?.charAt(0) ?? "U"}
+                <AvatarFallback className="bg-transparent text-slate-500 flex items-center justify-center group-hover:text-slate-900 transition-colors">
+                  <User className="h-4 w-4" />
                 </AvatarFallback>
               </Avatar>
-              <span className="text-xs font-medium text-foreground max-w-[100px] truncate hidden sm:inline">
-                {employee?.name?.split(" ")[0] ?? "Pengguna"}
-              </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 shadow-xl">
-            <DropdownMenuLabel className="py-2">
-              <p className="text-sm font-semibold truncate">{employee?.name ?? "Pengguna"}</p>
-              <p className="text-[11px] text-muted-foreground font-normal truncate">{employee?.email}</p>
+          <DropdownMenuContent align="end" className="w-52 shadow-xl border-slate-100">
+            <DropdownMenuLabel className="py-2 flex flex-col items-center text-center">
+              <p className="text-sm font-semibold truncate w-full">{employee?.name ?? "Pengguna"}</p>
+              <p className="text-[11px] text-muted-foreground font-normal truncate w-full">{employee?.email}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="gap-2 cursor-pointer"
               onClick={() => navigate("/profile")}
             >
-              <User className="h-4 w-4" />
-              Profil Akun
+              <UserCog className="h-4 w-4" />
+              Ubah Profil
             </DropdownMenuItem>
             {isEmployee && (
               <DropdownMenuItem

@@ -49,10 +49,8 @@ export function AppSidebar() {
     { title: "Agenda", url: "/agenda", icon: CalendarDays, show: !isDirector },
     { title: "KPI", url: "/kpi", icon: BarChart3, show: !isDirector },
     { title: "Laporan", url: "/reports", icon: FileText, show: isAdminOrHr || isUnitLeader || isDirector },
-    { title: "Data Diri", url: "/my-data", icon: ClipboardList, show: isUnitLeader || (!isAdminOrHr && !isDirector) },
     // Menu khusus Super Admin
     { title: "Manajemen Akun", url: "/admin-accounts", icon: ShieldCheck, show: isSuperAdmin },
-    { title: "Cabang Institusi", url: "/branches", icon: Building2, show: isSuperAdmin },
   ].filter(item => item.show);
 
   return (

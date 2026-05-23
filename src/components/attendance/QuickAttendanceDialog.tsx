@@ -48,8 +48,8 @@ export function QuickAttendanceDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 bg-primary/5 hover:bg-primary/10 text-primary border-primary/20 shadow-sm transition-all active:scale-95">
-          <Clock className="h-4 w-4" />
+        <Button variant="ghost" className="h-9 px-4 gap-2 border border-slate-200 bg-white text-slate-700 shadow-sm transition-all active:scale-95 rounded-full text-sm font-semibold group">
+          <Clock className="h-4 w-4 text-slate-500 group-hover:text-slate-900" />
           <span className="hidden sm:inline">Presensi</span>
         </Button>
       </DialogTrigger>
