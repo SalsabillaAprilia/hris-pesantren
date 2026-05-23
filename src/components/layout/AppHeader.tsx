@@ -209,7 +209,7 @@ export function AppHeader() {
                   className="gap-2 cursor-pointer"
                 >
                   {inst.logo_url ? (
-                    <img src={inst.logo_url} alt="Logo" className="w-4 h-4 rounded object-cover border border-slate-100 shrink-0" />
+                    <img src={inst.logo_url} alt="Logo" className="w-4 h-4 rounded object-contain shrink-0" />
                   ) : (
                     <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}

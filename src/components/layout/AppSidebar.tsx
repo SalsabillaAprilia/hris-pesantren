@@ -20,6 +20,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -55,25 +56,27 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
+      <SidebarHeader className="pt-6 pb-2 px-4">
+        <div className="flex items-center gap-3">
+          <div className={`h-11 w-11 rounded-lg flex items-center justify-center font-bold text-2xl shrink-0 overflow-hidden ${currentInstitution?.logo_url ? 'bg-transparent' : 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'}`}>
+            {currentInstitution?.logo_url ? (
+              <img src={currentInstitution.logo_url} alt="Logo" className="w-full h-full object-contain" />
+            ) : (
+              instInitial
+            )}
+          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] leading-[1.3] font-bold text-sidebar-foreground line-clamp-2" title={instName}>
+                {instName}
+              </p>
+            </div>
+          )}
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted text-xs uppercase tracking-wider mb-2">
-            {!collapsed && (
-              <div className="flex items-center gap-2 px-2 py-3">
-                <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm shrink-0 overflow-hidden">
-                  {currentInstitution?.logo_url ? (
-                    <img src={currentInstitution.logo_url} alt="Logo" className="w-full h-full object-cover bg-white" />
-                  ) : (
-                    instInitial
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-sidebar-accent-foreground truncate" title={instName}>{instName}</p>
-                </div>
-              </div>
-            )}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="mt-2">
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
