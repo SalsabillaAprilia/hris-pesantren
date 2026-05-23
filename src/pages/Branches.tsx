@@ -27,7 +27,6 @@ export default function Branches() {
 
   // Form State
   const [name, setName] = useState("");
-  const [primaryColor, setPrimaryColor] = useState("#0f172a");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -70,7 +69,6 @@ export default function Branches() {
     setDialogMode("create");
     setEditingId(null);
     setName("");
-    setPrimaryColor("#0f172a");
     setLogoFile(null);
     setLogoPreview(null);
     setDialogOpen(true);
@@ -80,7 +78,6 @@ export default function Branches() {
     setDialogMode("edit");
     setEditingId(branch.id);
     setName(branch.name);
-    setPrimaryColor(branch.primary_color || "#0f172a");
     setLogoFile(null);
     setLogoPreview(branch.logo_url);
     setDialogOpen(true);
@@ -121,7 +118,6 @@ export default function Branches() {
 
       const payload = {
         name,
-        primary_color: primaryColor,
         logo_url: finalLogoUrl !== logoPreview ? finalLogoUrl : (logoPreview || null),
       };
 
@@ -191,7 +187,7 @@ export default function Branches() {
         <div>
           <h1 className="page-title flex items-center gap-2">
             <Map className="h-6 w-6 text-primary" />
-            Manajemen Cabang
+            Pengaturan Cabang
           </h1>
         </div>
         <Button onClick={openCreate} className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 font-medium">
@@ -206,20 +202,19 @@ export default function Branches() {
               <TableHead className="w-[60px] text-center font-semibold">No.</TableHead>
               <TableHead className="font-semibold">Logo</TableHead>
               <TableHead className="font-semibold">Nama Cabang / Institusi</TableHead>
-              <TableHead className="font-semibold w-[150px]">Tema Warna</TableHead>
               <TableHead className="text-center font-semibold w-[120px]">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                   Memuat data cabang...
                 </TableCell>
               </TableRow>
             ) : branches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                   Belum ada cabang terdaftar.
                 </TableCell>
               </TableRow>
@@ -237,15 +232,6 @@ export default function Branches() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{branch.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-4 h-4 rounded-full border shadow-sm" 
-                        style={{ backgroundColor: branch.primary_color || "#0f172a" }}
-                      />
-                      <span className="text-xs text-muted-foreground">{branch.primary_color || "Default"}</span>
-                    </div>
-                  </TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => openEdit(branch)}>
@@ -265,14 +251,14 @@ export default function Branches() {
 
       {/* Dialog Form */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 border-b bg-muted/30">
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 border-b bg-muted/30 shrink-0">
             <DialogTitle className="text-xl font-bold">
               {dialogMode === "create" ? "Tambah Cabang Baru" : "Edit Cabang"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="p-6 space-y-5">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <div className="p-6 space-y-5 overflow-y-auto">
               
               <div className="space-y-2">
                 <Label className="font-bold text-sm">Logo Institusi</Label>
@@ -314,28 +300,8 @@ export default function Branches() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="font-bold text-sm">Warna Tema (Primary Color)</Label>
-                <div className="flex items-center gap-3">
-                  <Input 
-                    type="color" 
-                    value={primaryColor} 
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="w-12 h-10 p-1 cursor-pointer"
-                  />
-                  <Input 
-                    type="text" 
-                    value={primaryColor} 
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="h-9 shadow-sm font-mono text-sm uppercase flex-1"
-                    placeholder="#0F172A"
-                  />
-                </div>
-                <p className="text-[10px] text-muted-foreground">Warna ini akan digunakan untuk Sidebar dan Navbar cabang ini nanti.</p>
-              </div>
-
             </div>
-            <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
+            <div className="p-6 border-t bg-muted/30 flex justify-end gap-3 shrink-0">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
                 Batal
               </Button>

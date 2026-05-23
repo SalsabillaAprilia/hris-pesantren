@@ -56,9 +56,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="pt-6 pb-2 px-4">
-        <div className="flex items-center gap-3">
-          <div className={`h-11 w-11 rounded-lg flex items-center justify-center font-bold text-2xl shrink-0 overflow-hidden ${currentInstitution?.logo_url ? 'bg-transparent' : 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'}`}>
+      <SidebarHeader className={`pt-6 pb-2 transition-all ${collapsed ? 'px-2' : 'px-4'}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center w-full' : 'gap-3'}`}>
+          <div className={`rounded-lg flex items-center justify-center font-bold shrink-0 overflow-hidden transition-all ${collapsed ? 'h-8 w-8 text-lg' : 'h-11 w-11 text-2xl'} ${currentInstitution?.logo_url ? 'bg-transparent' : 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'}`}>
             {currentInstitution?.logo_url ? (
               <img src={currentInstitution.logo_url} alt="Logo" className="w-full h-full object-contain" />
             ) : (
