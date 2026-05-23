@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { toast } from "sonner";
 import { Plus, Search, Download, FileDown, FileText, UploadCloud } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -38,6 +39,7 @@ import autoTable from "jspdf-autotable";
 
 export default function EmployeesPage() {
   const { isAdminOrHr, isSuperAdmin, isHr, isEmployee, hasRole, employee: currentUser } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [units, setUnits] = useState<Tables<"units">[]>([]);
@@ -86,14 +88,33 @@ export default function EmployeesPage() {
       const [empResRaw, unitRes, shiftRes, rolesRes, posRes] = await Promise.all([
         // Unit leader hanya melihat anggota unitnya sendiri
         supabaseFetchWithTimeout(
-          isUnitLeader && currentUser?.unit_id
-            ? supabase.from("employees").select("*").eq("unit_id", currentUser.unit_id).order("name")
-            : supabase.from("employees").select("*").order("name"),
+          (() => {
+            let q = isUnitLeader && currentUser?.unit_id
+              ? supabase.from("employees").select("*").eq("unit_id", currentUser.unit_id).order("name")
+              : supabase.from("employees").select("*").order("name");
+            if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
+            return q;
+          })(),
           20000
         ),
-        supabaseFetchWithTimeout(supabase.from("units").select("*"), 20000),
-        supabaseFetchWithTimeout(supabase.from("work_shifts").select("*").order("name"), 20000),
-        supabaseFetchWithTimeout(supabase.from("user_roles").select("*"), 20000),
+        supabaseFetchWithTimeout(
+          effectiveInstansiId
+            ? supabase.from("units").select("*").eq("instansi_id", effectiveInstansiId)
+            : supabase.from("units").select("*"),
+          20000
+        ),
+        supabaseFetchWithTimeout(
+          effectiveInstansiId
+            ? supabase.from("work_shifts").select("*").order("name").eq("instansi_id", effectiveInstansiId)
+            : supabase.from("work_shifts").select("*").order("name"),
+          20000
+        ),
+        supabaseFetchWithTimeout(
+          effectiveInstansiId
+            ? supabase.from("user_roles").select("*").eq("instansi_id", effectiveInstansiId)
+            : supabase.from("user_roles").select("*"),
+          20000
+        ),
         supabaseFetchWithTimeout((supabase as any).from("positions").select("*").order("name"), 20000)
       ]);
       const empRes = empResRaw as any;
@@ -131,7 +152,7 @@ export default function EmployeesPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [effectiveInstansiId]);
 
   const handleOpenForm = (mode: "create" | "edit", emp?: Employee) => {
     setDialogMode(mode);

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { toast } from "sonner";
 import { Plus, ClipboardCheck, Pencil, Trash2, Search } from "lucide-react";
 import { format, isWithinInterval, parseISO } from "date-fns";
@@ -23,6 +24,7 @@ const EMPTY_FORM = { title: "", description: "", assigned_to: "", due_date: "" }
 
 export default function Tasks() {
   const { user, isAdminOrHr, isEmployee, hasRole, employee: currentUser } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
 
   // ── Role flags ──────────────────────────────────────────────────────────────
@@ -60,11 +62,19 @@ export default function Tasks() {
     try {
       const [taskRes, empRes, rolesRes] = await supabaseFetchWithTimeout(
         Promise.all([
-          supabase
-            .from("tasks")
-            .select("*, employees!tasks_assigned_to_fkey(name, user_id, unit_id)")
-            .order("created_at", { ascending: false }),
-          supabase.from("employees").select("id, name, user_id, unit_id").eq("status", "active"),
+          (() => {
+            let q = supabase
+              .from("tasks")
+              .select("*, employees!tasks_assigned_to_fkey(name, user_id, unit_id)")
+              .order("created_at", { ascending: false });
+            if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
+            return q;
+          })(),
+          (() => {
+            let q = supabase.from("employees").select("id, name, user_id, unit_id").eq("status", "active");
+            if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+            return q;
+          })(),
           supabase.from("user_roles").select("user_id, role"),
         ])
       );
@@ -105,7 +115,7 @@ export default function Tasks() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [effectiveInstansiId]);
 
   // ── Filtered tasks (client-side) ────────────────────────────────────────────
 

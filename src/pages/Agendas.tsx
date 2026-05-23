@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { toast } from "sonner";
 import { CalendarDays, Plus, Pencil, Trash2, CheckCircle2, XCircle, Search } from "lucide-react";
 import { format } from "date-fns";
@@ -22,6 +23,7 @@ const EMPTY_FORM = { date: format(new Date(), "yyyy-MM-dd"), time: format(new Da
 
 export default function Agendas() {
   const { employee, user, isAdminOrHr, hasRole } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
 
   // ── Role flags ──────────────────────────────────────────────────────────────
@@ -55,12 +57,14 @@ export default function Agendas() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Selalu fetch semua agenda (filter di render)
-      const { data: allData, error: allErr } = await supabase
+      // Fetch semua agenda dengan filter instansi jika applicable
+      let q = supabase
         .from("agendas")
         .select("*, employees(name, unit_id)")
         .order("date", { ascending: false })
         .order("time", { ascending: false });
+      if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
+      const { data: allData, error: allErr } = await q;
 
       if (allErr) throw allErr;
       setAllAgendas(allData ?? []);
@@ -87,7 +91,7 @@ export default function Agendas() {
   useEffect(() => {
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employee?.id]);
+  }, [employee?.id, effectiveInstansiId]);
 
   // ── Filtered allAgendas (client-side) ────────────────────────────────────────
 

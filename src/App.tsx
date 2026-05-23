@@ -17,6 +17,7 @@ import Reports from "./pages/Reports";
 import WorkSchedules from "./pages/WorkSchedules";
 import NationalHolidays from "./pages/NationalHolidays";
 import AdminAccounts from "./pages/AdminAccounts";
+import Branches from "./pages/Branches";
 import MyData from "./pages/MyData";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
@@ -102,6 +103,7 @@ function AppRoutes() {
 
       {/* Khusus Super Admin */}
       <Route path="/admin-accounts" element={<GuardedRoute allowed={isSuperAdmin}><AdminAccounts /></GuardedRoute>} />
+      <Route path="/branches"       element={<GuardedRoute allowed={isSuperAdmin}><Branches /></GuardedRoute>} />
 
       {/* Khusus Employee & Unit Leader: data diri */}
       <Route path="/my-data" element={<GuardedRoute allowed={isEmployeeOrLeader}><MyData /></GuardedRoute>} />

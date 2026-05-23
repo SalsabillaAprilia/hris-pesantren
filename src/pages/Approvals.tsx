@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { toast } from "sonner";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { ApprovalInboxTable } from "@/components/approvals/ApprovalInboxTable";
@@ -8,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function Approvals() {
   const { user, employee, isAdminOrHr, isSuperAdmin, hasRole } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const [approvals, setApprovals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,12 +17,12 @@ export default function Approvals() {
 
   const fetchData = async () => {
     try {
-      const res = await supabaseFetchWithTimeout<any>(
-        supabase
-          .from("approvals")
-          .select("*, employees(name, unit_id)")
-          .order("created_at", { ascending: false })
-      );
+      let q = supabase
+        .from("approvals")
+        .select("*, employees(name, unit_id)")
+        .order("created_at", { ascending: false });
+      if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
+      const res = await supabaseFetchWithTimeout<any>(q);
       
       if (res.error) throw res.error;
 
@@ -40,7 +42,7 @@ export default function Approvals() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [effectiveInstansiId]);
 
   const handleApprove = async (id: string, currentStatus: string) => {
     if (!user) return;

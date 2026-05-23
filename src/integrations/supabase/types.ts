@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      institutions: {
+        Row: {
+          id: string
+          name: string
+          logo_url: string | null
+          primary_color: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          logo_url?: string | null
+          primary_color?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       agendas: {
         Row: {
           id: string
@@ -23,6 +47,7 @@ export type Database = {
           activity: string
           status: Database["public"]["Enums"]["agenda_status"]
           created_at: string
+          instansi_id: string | null
         }
         Insert: {
           id?: string
@@ -32,6 +57,7 @@ export type Database = {
           activity: string
           status?: Database["public"]["Enums"]["agenda_status"]
           created_at?: string
+          instansi_id?: string | null
         }
         Update: {
           id?: string
@@ -41,6 +67,7 @@ export type Database = {
           activity?: string
           status?: Database["public"]["Enums"]["agenda_status"]
           created_at?: string
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -69,6 +96,7 @@ export type Database = {
           type: Database["public"]["Enums"]["approval_type"]
           unit_leader_notes: string | null
           updated_at: string
+          instansi_id: string | null
         }
         Insert: {
           approved_by_hr?: string | null
@@ -86,6 +114,7 @@ export type Database = {
           type: Database["public"]["Enums"]["approval_type"]
           unit_leader_notes?: string | null
           updated_at?: string
+          instansi_id?: string | null
         }
         Update: {
           approved_by_hr?: string | null
@@ -103,6 +132,7 @@ export type Database = {
           type?: Database["public"]["Enums"]["approval_type"]
           unit_leader_notes?: string | null
           updated_at?: string
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -133,6 +163,7 @@ export type Database = {
           early_leave_minutes: number | null
           selfie_url: string | null
           admin_notes: string | null
+          instansi_id: string | null
         }
         Insert: {
           check_in?: string | null
@@ -152,6 +183,7 @@ export type Database = {
           early_leave_minutes?: number | null
           selfie_url?: string | null
           admin_notes?: string | null
+          instansi_id?: string | null
         }
         Update: {
           check_in?: string | null
@@ -171,6 +203,7 @@ export type Database = {
           early_leave_minutes?: number | null
           selfie_url?: string | null
           admin_notes?: string | null
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -213,6 +246,7 @@ export type Database = {
           education_major: string | null
           contract_end_date: string | null
           attachment_url: string | null
+          instansi_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -244,6 +278,7 @@ export type Database = {
           education_major?: string | null
           contract_end_date?: string | null
           attachment_url?: string | null
+          instansi_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -275,6 +310,7 @@ export type Database = {
           education_major?: string | null
           contract_end_date?: string | null
           attachment_url?: string | null
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -296,6 +332,7 @@ export type Database = {
           template_id: string
           total_score: number | null
           updated_at: string
+          instansi_id: string | null
         }
         Insert: {
           created_at?: string
@@ -306,6 +343,7 @@ export type Database = {
           template_id: string
           total_score?: number | null
           updated_at?: string
+          instansi_id?: string | null
         }
         Update: {
           created_at?: string
@@ -316,6 +354,7 @@ export type Database = {
           template_id?: string
           total_score?: number | null
           updated_at?: string
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -341,6 +380,7 @@ export type Database = {
           name: string
           template_id: string
           weight: number
+          instansi_id: string | null
         }
         Insert: {
           created_at?: string
@@ -348,6 +388,7 @@ export type Database = {
           name: string
           template_id: string
           weight: number
+          instansi_id?: string | null
         }
         Update: {
           created_at?: string
@@ -355,6 +396,7 @@ export type Database = {
           name?: string
           template_id?: string
           weight?: number
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -373,6 +415,7 @@ export type Database = {
           id: string
           indicator_id: string
           score: number
+          instansi_id: string | null
         }
         Insert: {
           created_at?: string
@@ -380,6 +423,7 @@ export type Database = {
           id?: string
           indicator_id: string
           score: number
+          instansi_id?: string | null
         }
         Update: {
           created_at?: string
@@ -387,6 +431,7 @@ export type Database = {
           id?: string
           indicator_id?: string
           score?: number
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -413,6 +458,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+          instansi_id: string | null
         }
         Insert: {
           created_at?: string
@@ -421,6 +467,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Update: {
           created_at?: string
@@ -429,6 +476,7 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Relationships: []
       }
@@ -438,18 +486,21 @@ export type Database = {
           date: string
           description: string
           created_at: string
+          instansi_id: string | null
         }
         Insert: {
           id?: string
           date: string
           description: string
           created_at?: string
+          instansi_id?: string | null
         }
         Update: {
           id?: string
           date?: string
           description?: string
           created_at?: string
+          instansi_id?: string | null
         }
         Relationships: []
       }
@@ -464,6 +515,7 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
+          instansi_id: string | null
         }
         Insert: {
           assigned_by: string
@@ -475,6 +527,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Update: {
           assigned_by?: string
@@ -486,6 +539,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Relationships: [
           {
@@ -504,6 +558,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+          instansi_id: string | null
         }
         Insert: {
           created_at?: string
@@ -511,6 +566,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Update: {
           created_at?: string
@@ -518,6 +574,7 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Relationships: []
       }
@@ -526,16 +583,19 @@ export type Database = {
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
+          instansi_id: string | null
         }
         Insert: {
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
+          instansi_id?: string | null
         }
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+          instansi_id?: string | null
         }
         Relationships: []
       }
@@ -548,6 +608,7 @@ export type Database = {
           name: string
           start_time: string
           updated_at: string
+          instansi_id: string | null
         }
         Insert: {
           created_at?: string
@@ -557,6 +618,7 @@ export type Database = {
           name: string
           start_time: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Update: {
           created_at?: string
@@ -566,6 +628,7 @@ export type Database = {
           name?: string
           start_time?: string
           updated_at?: string
+          instansi_id?: string | null
         }
         Relationships: []
       }

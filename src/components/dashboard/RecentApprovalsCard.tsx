@@ -55,7 +55,7 @@ export function RecentApprovalsCard({ approvals, loading }: RecentApprovalsCardP
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <FileCheck className="h-4 w-4 text-primary" />
-          Pengajuan Terbaru
+          Menunggu Persetujuan
         </CardTitle>
       </CardHeader>
       <CardContent>

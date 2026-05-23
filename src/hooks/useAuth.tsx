@@ -1,10 +1,18 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import type { User } from "@supabase/supabase-js";
 import type { Tables } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 type AppRole = "super_admin" | "hr" | "unit_leader" | "employee" | "director";
+
+export type Institution = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  primary_color: string | null;
+};
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +27,14 @@ interface AuthContextType {
   isHr: boolean;
   isEmployee: boolean;
   isDirector: boolean;
+  // Multi-Cabang: Identitas institusi user yang sedang login
+  instansiId: string | null;           // instansi_id dari user_roles (NULL = akun Global)
+  isGlobalRole: boolean;               // true jika instansiId === null
+  currentInstitution: Institution | null; // Profil institusi yang sedang aktif (branding)
+  allInstitutions: Institution[];      // Daftar semua institusi (hanya untuk akun Global)
+  selectedInstansiId: string | null;   // Filter cabang yang dipilih akun Global
+  setSelectedInstansiId: (id: string | null) => void;
+  refreshInstitutions: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,14 +44,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [employee, setEmployee] = useState<Tables<"employees"> | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [lastRefresh, setLastRefresh] = useState<number>(0);
+
+  // Multi-Cabang state
+  const [instansiId, setInstansiId] = useState<string | null>(null);
+  const [currentInstitution, setCurrentInstitution] = useState<Institution | null>(null);
+  const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
+  const [selectedInstansiId, setSelectedInstansiId] = useState<string | null>(null);
+
+  // Fetch institution profile by id (or first institution if global)
+  const fetchInstitution = useCallback(async (id: string | null) => {
+    try {
+      if (id) {
+        // Akun lokal: ambil profil institusinya sendiri
+        const { data } = await supabaseFetchWithTimeout(
+          supabase.from("institutions").select("*").eq("id", id).single(),
+          10000
+        );
+        if (data) setCurrentInstitution(data as Institution);
+      } else {
+        // Akun Global: ambil semua institusi untuk Branch Selector
+        const { data } = await supabaseFetchWithTimeout(
+          supabase.from("institutions").select("*").order("name"),
+          10000
+        );
+        if (data) setAllInstitutions(data as Institution[]);
+        setCurrentInstitution(null); // Global tidak terikat 1 institusi
+      }
+    } catch (err) {
+      console.error("Auth: Failed to fetch institution:", err);
+    }
+  }, []);
+
+  const refreshInstitutions = useCallback(async () => {
+    try {
+      if (instansiId === null) {
+        const { data } = await supabaseFetchWithTimeout(
+          supabase.from("institutions").select("*").order("name"),
+          10000
+        );
+        if (data) setAllInstitutions(data as Institution[]);
+      } else {
+        await fetchInstitution(instansiId);
+      }
+    } catch (err) {
+      console.error("Auth: Failed to refresh institutions:", err);
+    }
+  }, [instansiId, fetchInstitution]);
 
   const refreshSession = async (force: boolean = false) => {
     const now = Date.now();
     
-    // Performance Optimization: Skip full refresh if it was done recently (< 5 minutes)
-    // and we already have the user and employee data.
     if (!force && lastRefresh > 0 && (now - lastRefresh < 300000) && user && employee) {
       console.log("Auth: Session is fresh, skipping metadata fetch.");
       setLoading(false);
@@ -47,24 +106,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = session?.user ?? null;
       
       if (u) {
-        // Only fetch profile metadata if missing, forced, or specifically user changed
         if (!employee || !roles.length || force || u.id !== user?.id) {
           console.log("Auth: Fetching profile metadata...");
           const [empRes, rolesRes] = await Promise.all([
             supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("user_id", u.id).single(), 20000),
-            supabaseFetchWithTimeout(supabase.from("user_roles").select("role").eq("user_id", u.id), 20000),
+            supabaseFetchWithTimeout(supabase.from("user_roles").select("role, instansi_id").eq("user_id", u.id), 20000),
           ]);
-          
-          if (empRes?.data) setEmployee(empRes.data);
-          if (rolesRes?.data) setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
+          if (empRes?.data) {
+            if (empRes.data.status === "inactive") {
+              await supabase.auth.signOut();
+              toast.error("Akses ditolak: Akun Anda telah dinonaktifkan.");
+              setUser(null); setEmployee(null); setRoles([]);
+              setLoading(false); return;
+            }
+            setEmployee(empRes.data);
+          }
+          if (rolesRes?.data) {
+            setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
+            // Ambil instansi_id dari row pertama user_roles
+            const userInstansiId = rolesRes.data[0]?.instansi_id ?? null;
+            setInstansiId(userInstansiId);
+            await fetchInstitution(userInstansiId);
+          }
         }
         
         setUser(u);
         setLastRefresh(now);
       } else {
-        setUser(null);
-        setEmployee(null);
-        setRoles([]);
+        setUser(null); setEmployee(null); setRoles([]);
+        setInstansiId(null); setCurrentInstitution(null);
       }
     } catch (err) {
       console.error("Auth: Session refresh failed:", err);
@@ -78,7 +148,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let visibilityTimeout: NodeJS.Timeout;
 
-    // Initial session check (forced)
     refreshSession(true);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -87,17 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Auth Event:", event);
         
         if (event === 'SIGNED_OUT' || !session) {
-          setUser(null);
-          setEmployee(null);
-          setRoles([]);
-          setLoading(false);
-          setLastRefresh(0);
+          setUser(null); setEmployee(null); setRoles([]);
+          setInstansiId(null); setCurrentInstitution(null); setAllInstitutions([]);
+          setSelectedInstansiId(null);
+          setLoading(false); setLastRefresh(0);
           return;
         }
 
         const u = session.user;
         try {
-          // Optimization: If it's just a token refresh and we already have data, don't block
           if (event === 'TOKEN_REFRESHED' && employee && u.id === user?.id) {
             setUser(u);
             return;
@@ -105,11 +172,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           const [empRes, rolesRes] = await Promise.all([
             supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("user_id", u.id).single(), 20000),
-            supabaseFetchWithTimeout(supabase.from("user_roles").select("role").eq("user_id", u.id), 20000),
+            supabaseFetchWithTimeout(supabase.from("user_roles").select("role, instansi_id").eq("user_id", u.id), 20000),
           ]);
-          
-          if (empRes?.data) setEmployee(empRes.data);
-          if (rolesRes?.data) setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
+          if (empRes?.data) {
+            if (empRes.data.status === "inactive") {
+              await supabase.auth.signOut();
+              toast.error("Akses ditolak: Akun Anda telah dinonaktifkan.");
+              setUser(null); setEmployee(null); setRoles([]);
+              setLoading(false); return;
+            }
+            setEmployee(empRes.data);
+          }
+          if (rolesRes?.data) {
+            setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
+            const userInstansiId = rolesRes.data[0]?.instansi_id ?? null;
+            setInstansiId(userInstansiId);
+            await fetchInstitution(userInstansiId);
+          }
           setUser(u);
           setLastRefresh(Date.now());
         } catch (err) {
@@ -123,7 +202,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && mounted) {
-        // Small debounce to prevent rapid re-triggering and give browser time to wake up
         clearTimeout(visibilityTimeout);
         visibilityTimeout = setTimeout(() => {
           console.log("Tab focused, performed smart refresh check.");
@@ -142,6 +220,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Ketika akun Global memilih cabang, update branding secara reaktif
+  useEffect(() => {
+    if (instansiId !== null) return; // Akun lokal, tidak perlu ini
+    if (selectedInstansiId) {
+      const inst = allInstitutions.find(i => i.id === selectedInstansiId) || null;
+      setCurrentInstitution(inst);
+    } else {
+      setCurrentInstitution(null);
+    }
+  }, [selectedInstansiId, allInstitutions, instansiId]);
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error as Error | null };
@@ -158,9 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       localStorage.clear();
       sessionStorage.clear();
-      setUser(null);
-      setEmployee(null);
-      setRoles([]);
+      setUser(null); setEmployee(null); setRoles([]);
+      setInstansiId(null); setCurrentInstitution(null);
       window.location.href = "/login";
     }
   };
@@ -170,11 +258,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isHr = hasRole("hr");
   const isDirector = hasRole("director");
   const isAdminOrHr = isSuperAdmin || isHr;
-  // isEmployee = true untuk karyawan biasa dan kepala unit (mereka punya data di tabel employees)
   const isEmployee = hasRole("employee") || hasRole("unit_leader");
+  const isGlobalRole = instansiId === null && (isSuperAdmin || isDirector);
 
   return (
-    <AuthContext.Provider value={{ user, employee, roles, loading, signIn, signOut, hasRole, isAdminOrHr, isSuperAdmin, isHr, isEmployee, isDirector }}>
+    <AuthContext.Provider value={{
+      user, employee, roles, loading,
+      signIn, signOut, hasRole,
+      isAdminOrHr, isSuperAdmin, isHr, isEmployee, isDirector,
+      instansiId, isGlobalRole, currentInstitution, allInstitutions,
+      selectedInstansiId, setSelectedInstansiId, refreshInstitutions,
+    }}>
       {children}
     </AuthContext.Provider>
   );

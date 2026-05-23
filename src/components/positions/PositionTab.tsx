@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Network, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { PositionFormDialog } from "./PositionFormDialog";
 import {
   Table,
@@ -36,6 +37,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
 }) {
   const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { effectiveInstansiId } = useInstansiFilter();
   
   // Dialog States — isFormOpen dikendalikan oleh parent (Organization.tsx)
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -55,10 +57,13 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
   const fetchPositions = async () => {
     try {
       setLoading(true);
-      const [posRes, empRes] = await Promise.all([
-        (supabase as any).from("positions").select("*").order("name"),
-        (supabase as any).from("employees").select("position_id").not("position_id", "is", null)
-      ]);
+      let posQuery = (supabase as any).from("positions").select("*").order("name");
+      if (effectiveInstansiId) posQuery = posQuery.eq("instansi_id", effectiveInstansiId);
+      
+      let empQuery = (supabase as any).from("employees").select("position_id").not("position_id", "is", null);
+      if (effectiveInstansiId) empQuery = empQuery.eq("instansi_id", effectiveInstansiId);
+
+      const [posRes, empRes] = await Promise.all([ posQuery, empQuery ]);
       
       if (posRes.error) {
         console.error("Error fetching positions:", posRes.error);
@@ -86,7 +91,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
 
   useEffect(() => {
     fetchPositions();
-  }, []);
+  }, [effectiveInstansiId]);
 
   // Reset form state when closed
   useEffect(() => {

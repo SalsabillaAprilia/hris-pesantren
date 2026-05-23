@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { toast } from "sonner";
 import { 
   AlertDialog, 
@@ -32,6 +33,7 @@ import { PositionTab } from "@/components/positions/PositionTab";
 
 export default function Organization() {
   const { isAdminOrHr } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const [units, setUnits] = useState<(Tables<"units"> & { employeeCount: number, leader?: Employee | null })[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,17 +59,27 @@ export default function Organization() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const empRes = await supabase.from("employees").select("*").order("name");
+      
+      let empQuery = supabase.from("employees").select("*").order("name");
+      if (effectiveInstansiId) empQuery = (empQuery as any).eq("instansi_id", effectiveInstansiId);
+      const empRes = await empQuery;
+      
       if (empRes.error) {
         console.error("Error fetching employees:", empRes.error);
         if (empRes.error.code !== "PGRST116") throw empRes.error;
       }
 
-      const unitRes = await supabase.from("units").select("*").order("name");
+      let unitQuery = supabase.from("units").select("*").order("name");
+      if (effectiveInstansiId) unitQuery = (unitQuery as any).eq("instansi_id", effectiveInstansiId);
+      const unitRes = await unitQuery;
+      
       if (unitRes.error) console.error("Error fetching units:", unitRes.error);
       
       const allUnits = unitRes.data || [];
-      const rolesRes = await supabase.from("user_roles").select("*");
+      
+      let rolesQuery = supabase.from("user_roles").select("*");
+      if (effectiveInstansiId) rolesQuery = (rolesQuery as any).eq("instansi_id", effectiveInstansiId);
+      const rolesRes = await rolesQuery;
       
       if (empRes.data) {
         const rolesMap = rolesRes.data || [];
@@ -106,7 +118,7 @@ export default function Organization() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [effectiveInstansiId]);
 
   const handleOpenForm = (mode: "create" | "edit", unit?: any) => {
     setFormMode(mode);

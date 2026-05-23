@@ -4,6 +4,7 @@ import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { ManagerialDashboard } from "@/components/dashboard/ManagerialDashboard";
 import { EmployeeDashboard } from "@/components/dashboard/EmployeeDashboard";
@@ -25,6 +26,7 @@ interface Stats {
 
 export default function Dashboard() {
   const { employee, isAdminOrHr, isEmployee, hasRole, isDirector } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
 
   const [stats, setStats] = useState<Stats>({
@@ -39,6 +41,7 @@ export default function Dashboard() {
   // Data untuk chart & card
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]);
   const [approvals, setApprovals] = useState<any[]>([]);
   const [agendas, setAgendas] = useState<any[]>([]);
@@ -53,34 +56,73 @@ export default function Dashboard() {
 
       if (isAdminOrHr || isDirector) {
         // ========= DATA MANAJERIAL =========
-        const [empRes, attRes, apprRes, tasksRes, unitsRes, agendasRes] = await Promise.all([
+        const [empRes, attRes, apprRes, tasksRes, unitsRes, agendasRes, rolesRes] = await Promise.all([
           supabaseFetchWithTimeout(
-            supabase.from("employees").select("*").eq("status", "active"),
+            (() => {
+              let q = supabase.from("employees").select("*").in("status", ["active", "on_leave"]);
+              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              return q;
+            })(),
             20000
           ),
           supabaseFetchWithTimeout(
-            supabase.from("attendance").select("*").gte("date", format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd")).order("date", { ascending: false }),
+            (() => {
+              let q = supabase.from("attendance").select("*").gte("date", format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd")).order("date", { ascending: false });
+              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              return q;
+            })(),
             20000
           ),
           supabaseFetchWithTimeout(
-            supabase.from("approvals").select("*, employees(name)").order("created_at", { ascending: false }).limit(20),
+            (() => {
+              let q = supabase.from("approvals").select("*, employees(name)").order("created_at", { ascending: false }).limit(20);
+              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              return q;
+            })(),
             20000
           ),
           supabaseFetchWithTimeout(
-            supabase.from("tasks").select("*").in("status", ["todo", "in_progress"]),
+            (() => {
+              let q = supabase.from("tasks").select("*").in("status", ["todo", "in_progress"]);
+              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              return q;
+            })(),
             20000
           ),
           supabaseFetchWithTimeout(
-            supabase.from("units").select("*"),
+            (() => {
+              let q = supabase.from("units").select("*");
+              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              return q;
+            })(),
             20000
           ),
           supabaseFetchWithTimeout(
-            supabase.from("agendas").select("*, employees(name)").eq("date", today).order("time", { ascending: true }),
+            (() => {
+              let q = supabase.from("agendas").select("*, employees(name)").eq("date", today).order("time", { ascending: true });
+              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              return q;
+            })(),
+            20000
+          ),
+          supabaseFetchWithTimeout(
+            (() => {
+              let q = supabase.from("user_roles").select("user_id, role");
+              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              return q;
+            })(),
             20000
           ),
         ]);
 
-        const activeEmps = empRes?.data || [];
+        const rolesMap = Object.fromEntries((rolesRes?.data || []).map((r: any) => [r.user_id, r.role]));
+        
+        // Filter karyawan yang statusnya aktif DAN rolenya hanya 'employee' atau 'unit_leader'
+        const activeEmps = (empRes?.data || []).filter((emp: any) => {
+          const r = rolesMap[emp.user_id] || "employee"; // Default 'employee' jika belum ada role eksplisit
+          return emp.status === "active" && (r === "employee" || r === "unit_leader");
+        });
+        
         const attData = attRes?.data || [];
         const apprData = apprRes?.data || [];
         const tasksData = tasksRes?.data || [];
@@ -88,6 +130,7 @@ export default function Dashboard() {
         const agendasData = agendasRes?.data || [];
 
         setEmployees(activeEmps);
+        setAllEmployees(empRes?.data || []);
         setAttendanceRecords(attData);
         setApprovals(apprData);
         setTasks(tasksData);
@@ -161,7 +204,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [employee, isAdminOrHr, isEmployee, isDirector]);
+  }, [employee, isAdminOrHr, isEmployee, isDirector, effectiveInstansiId]);
 
   useEffect(() => {
     fetchData();
@@ -186,6 +229,7 @@ export default function Dashboard() {
           stats={stats}
           attendanceRecords={attendanceRecords}
           employees={employees}
+          allEmployees={allEmployees}
           units={units}
           approvals={approvals}
           agendas={agendas}

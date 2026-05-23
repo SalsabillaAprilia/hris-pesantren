@@ -3,6 +3,7 @@ import { format, differenceInDays, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ExpiringContractsCardProps {
   employees: any[];
@@ -11,6 +12,8 @@ interface ExpiringContractsCardProps {
 }
 
 export function ExpiringContractsCard({ employees, units, loading }: ExpiringContractsCardProps) {
+  const navigate = useNavigate();
+
   const expiringEmployees = useMemo(() => {
     const today = new Date();
     const unitMap = new Map<string, string>();
@@ -32,6 +35,7 @@ export function ExpiringContractsCard({ employees, units, loading }: ExpiringCon
           unit: e.unit_id ? (unitMap.get(e.unit_id) || "-") : "-",
           endDate: format(endDate, "dd MMM yyyy", { locale: localeId }),
           daysLeft,
+          status: e.status, // We can also add status to display
         };
       })
       .sort((a, b) => a.daysLeft - b.daysLeft);
@@ -66,10 +70,13 @@ export function ExpiringContractsCard({ employees, units, loading }: ExpiringCon
             {expiringEmployees.map((emp) => (
               <div
                 key={emp.id}
-                className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                onClick={() => navigate("/employees")}
+                className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{emp.name}</p>
+                  <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                    {emp.name} {emp.status === "on_leave" && <span className="text-[10px] bg-blue-100 text-blue-700 px-1 py-0.5 rounded ml-1">Cuti</span>}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">{emp.unit}</p>
                 </div>
                 <div className="text-right shrink-0 ml-3">

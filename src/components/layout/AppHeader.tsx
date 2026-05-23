@@ -9,9 +9,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Maximize, Minimize, LogOut, User, CheckCheck, FileCheck, FileText } from "lucide-react";
+import { Bell, Maximize, Minimize, LogOut, User, CheckCheck, FileCheck, FileText, Building2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
@@ -29,7 +36,7 @@ interface NotifItem {
 }
 
 export function AppHeader() {
-  const { employee, isEmployee, isAdminOrHr, isDirector, signOut } = useAuth();
+  const { employee, isEmployee, isAdminOrHr, isDirector, signOut, isGlobalRole, allInstitutions, selectedInstansiId, setSelectedInstansiId } = useAuth();
   const navigate = useNavigate();
 
   // ── Fullscreen ──────────────────────────────────────────
@@ -140,9 +147,30 @@ export function AppHeader() {
 
   return (
     <header className="h-14 flex items-center justify-between border-b bg-card px-4 shrink-0 gap-2">
-      {/* Kiri: Sidebar toggle */}
+      {/* Kiri: Sidebar toggle + Branch Selector (hanya akun Global) */}
       <div className="flex items-center gap-2">
         <SidebarTrigger />
+        {isGlobalRole && (
+          <div className="flex items-center gap-1.5 ml-1">
+            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Select
+              value={selectedInstansiId ?? "all"}
+              onValueChange={(v) => setSelectedInstansiId(v === "all" ? null : v)}
+            >
+              <SelectTrigger className="h-8 text-xs w-[180px] border-dashed">
+                <SelectValue placeholder="Semua Cabang" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">🌐 Semua Cabang</SelectItem>
+                {allInstitutions.map((inst) => (
+                  <SelectItem key={inst.id} value={inst.id} className="text-xs">
+                    {inst.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Kanan: Action items */}

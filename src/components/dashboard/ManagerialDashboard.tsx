@@ -17,6 +17,7 @@ interface ManagerialDashboardProps {
   stats: Stats;
   attendanceRecords: any[];
   employees: any[];
+  allEmployees: any[];
   units: any[];
   approvals: any[];
   agendas: any[];
@@ -27,6 +28,7 @@ export function ManagerialDashboard({
   stats,
   attendanceRecords,
   employees,
+  allEmployees,
   units,
   approvals,
   agendas,
@@ -34,7 +36,7 @@ export function ManagerialDashboard({
 }: ManagerialDashboardProps) {
   const statCards = [
     {
-      label: "Total Karyawan",
+      label: "Karyawan Aktif",
       value: stats.totalEmployees,
       icon: Users,
       gradient: "from-[hsl(232,59%,21%)] to-[hsl(232,50%,30%)]",
@@ -48,7 +50,7 @@ export function ManagerialDashboard({
       iconBg: "bg-white/15",
     },
     {
-      label: "Pending Approval",
+      label: "Pengajuan Baru",
       value: stats.pendingApprovals,
       icon: FileCheck,
       gradient: "from-[hsl(38,80%,45%)] to-[hsl(38,70%,55%)]",
@@ -99,7 +101,7 @@ export function ManagerialDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <RecentApprovalsCard approvals={approvals} loading={loading} />
         <TodayAgendaCard agendas={agendas} loading={loading} />
-        <ExpiringContractsCard employees={employees} units={units} loading={loading} />
+        <ExpiringContractsCard employees={allEmployees} units={units} loading={loading} />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { toast } from "sonner";
 import { Clock, Users, BarChart3, FileCheck, Building2 } from "lucide-react";
@@ -17,6 +18,7 @@ type ReportType = "attendance" | "employees" | "kpi" | "approvals" | "organizati
 
 export default function Reports() {
   const { isAdminOrHr } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -46,21 +48,43 @@ export default function Reports() {
       const end = format(endDate, "yyyy-MM-dd");
 
       const [empRes, unitRes, attRes, apprRes, kpiRes] = await Promise.all([
-        supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("status", "active"), 20000),
-        supabaseFetchWithTimeout(supabase.from("units").select("*"), 20000),
         supabaseFetchWithTimeout(
-          supabase.from("attendance").select("*, employees(name, unit_id)")
-            .gte("date", start).lte("date", end).order("date"),
+          effectiveInstansiId
+            ? supabase.from("employees").select("*").eq("status", "active").eq("instansi_id", effectiveInstansiId)
+            : supabase.from("employees").select("*").eq("status", "active"),
           20000
         ),
         supabaseFetchWithTimeout(
-          supabase.from("approvals").select("*, employees(name, unit_id)")
-            .gte("start_date", start).lte("start_date", end).order("created_at", { ascending: false }),
+          effectiveInstansiId
+            ? supabase.from("units").select("*").eq("instansi_id", effectiveInstansiId)
+            : supabase.from("units").select("*"),
           20000
         ),
         supabaseFetchWithTimeout(
-          supabase.from("kpi_evaluations").select("*, employees(name, unit_id), kpi_templates(name)")
-            .eq("period", `${year}-${monthStr}`).order("created_at", { ascending: false }),
+          (() => {
+            let q = supabase.from("attendance").select("*, employees(name, unit_id)")
+              .gte("date", start).lte("date", end).order("date");
+            if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+            return q;
+          })(),
+          20000
+        ),
+        supabaseFetchWithTimeout(
+          (() => {
+            let q = supabase.from("approvals").select("*, employees(name, unit_id)")
+              .gte("start_date", start).lte("start_date", end).order("created_at", { ascending: false });
+            if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+            return q;
+          })(),
+          20000
+        ),
+        supabaseFetchWithTimeout(
+          (() => {
+            let q = supabase.from("kpi_evaluations").select("*, employees(name, unit_id), kpi_templates(name)")
+              .eq("period", `${year}-${monthStr}`).order("created_at", { ascending: false });
+            if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+            return q;
+          })(),
           20000
         ),
       ]);
@@ -76,7 +100,7 @@ export default function Reports() {
     } finally {
       setLoading(false);
     }
-  }, [month, year]);
+  }, [month, year, effectiveInstansiId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

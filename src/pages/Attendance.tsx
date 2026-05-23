@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Clock, Coffee } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { CheckInOutWidget } from "@/components/attendance/CheckInOutWidget";
 import { AttendanceLogTable } from "@/components/attendance/AttendanceLogTable";
@@ -16,6 +17,7 @@ import { AdminSummaryAttendance } from "@/components/attendance/AdminSummaryAtte
 
 export default function Attendance() {
   const { employee, isAdminOrHr, isEmployee, hasRole } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
   // Admin/HR melihat data global. Unit leader dan karyawan melihat data personal juga.
   const canSeeGlobal = isAdminOrHr || isUnitLeader;
@@ -34,7 +36,9 @@ export default function Attendance() {
     try {
       let fetchGlobal;
       if (isAdminOrHr) {
-         fetchGlobal = supabase.from("attendance").select("*, employees!inner(*, units:unit_id(name))").order("date", { ascending: false }).limit(1000);
+         let q = supabase.from("attendance").select("*, employees!inner(*, units:unit_id(name))").order("date", { ascending: false }).limit(1000);
+         if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
+         fetchGlobal = q;
       } else if (isUnitLeader && employee?.unit_id) {
          fetchGlobal = supabase.from("attendance").select("*, employees!inner(*, units:unit_id(name))").eq("employees.unit_id", employee.unit_id).order("date", { ascending: false }).limit(1000);
       } else {
@@ -90,7 +94,7 @@ export default function Attendance() {
     } finally {
       setLoading(false);
     }
-  }, [employee, isAdminOrHr, isEmployee, isUnitLeader, today]);
+  }, [employee, isAdminOrHr, isEmployee, isUnitLeader, today, effectiveInstansiId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
