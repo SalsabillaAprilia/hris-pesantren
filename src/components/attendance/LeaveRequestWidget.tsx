@@ -22,6 +22,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ type: "leave" as "leave" | "permission" | "overtime" | "wfa", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
+  const [attachment, setAttachment] = useState<File | null>(null);
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1).padStart(2, "0"));
@@ -68,6 +69,31 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employee) return;
+    
+    let attachment_url = null;
+    if (attachment) {
+      if (attachment.size > 5 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 5MB");
+        return;
+      }
+      const fileExt = attachment.name.split('.').pop();
+      const fileName = `${employee.id}_${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('approval_attachments')
+        .upload(fileName, attachment);
+        
+      if (uploadError) {
+        toast.error("Gagal mengunggah lampiran: " + uploadError.message);
+        return;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('approval_attachments')
+        .getPublicUrl(fileName);
+        
+      attachment_url = publicUrlData.publicUrl;
+    }
+
     const { error } = await supabase.from("approvals").insert({
       employee_id: employee.id,
       type: form.type as any,
@@ -76,11 +102,13 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
       start_time: form.type === "overtime" ? form.start_time : null,
       end_time: form.type === "overtime" ? form.end_time : null,
       reason: form.reason,
+      attachment_url: attachment_url
     });
     if (error) { toast.error("Gagal mengajukan: " + error.message); return; }
     toast.success("Pengajuan berhasil");
     setDialogOpen(false);
     setForm({ type: "leave", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
+    setAttachment(null);
     fetchData();
   };
 
@@ -174,6 +202,11 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground/90 font-bold">Alasan</Label>
                   <Textarea className="text-sm text-slate-900 shadow-sm min-h-[80px]" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground/90 font-bold">Lampiran Pendukung (Opsional)</Label>
+                  <Input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => setAttachment(e.target.files?.[0] || null)} className="text-sm text-slate-900 shadow-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" />
+                  <p className="text-[11px] text-muted-foreground">Format yang diizinkan: JPG, PNG, PDF. Maksimal 5 MB.</p>
                 </div>
               </div>
               <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">

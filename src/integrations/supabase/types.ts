@@ -89,7 +89,8 @@ export type Database = {
           hr_notes: string | null
           id: string
           reason: string
-          start_date: string
+            reject_reason: string | null
+            start_date: string
           start_time: string | null
           end_time: string | null
           status: Database["public"]["Enums"]["approval_status"]
@@ -97,6 +98,7 @@ export type Database = {
           unit_leader_notes: string | null
           updated_at: string
           instansi_id: string | null
+          attachment_url: string | null
         }
         Insert: {
           approved_by_hr?: string | null
@@ -107,6 +109,7 @@ export type Database = {
           hr_notes?: string | null
           id?: string
           reason: string
+          reject_reason?: string | null
           start_date: string
           start_time?: string | null
           end_time?: string | null
@@ -115,6 +118,7 @@ export type Database = {
           unit_leader_notes?: string | null
           updated_at?: string
           instansi_id?: string | null
+          attachment_url?: string | null
         }
         Update: {
           approved_by_hr?: string | null
@@ -125,7 +129,8 @@ export type Database = {
           hr_notes?: string | null
           id?: string
           reason?: string
-          start_date?: string
+            reject_reason?: string | null
+            start_date?: string
           start_time?: string | null
           end_time?: string | null
           status?: Database["public"]["Enums"]["approval_status"]
@@ -133,6 +138,7 @@ export type Database = {
           unit_leader_notes?: string | null
           updated_at?: string
           instansi_id?: string | null
+          attachment_url?: string | null
         }
         Relationships: [
           {
@@ -674,12 +680,8 @@ export type Database = {
     Enums: {
       agenda_status: "todo" | "on_progress" | "done" | "cancelled"
       app_role: "super_admin" | "hr" | "unit_leader" | "employee" | "director"
-      approval_status:
-        | "pending"
-        | "approved_unit_leader"
-        | "approved_hr"
-        | "rejected"
-      approval_type: "leave" | "permission" | "overtime"
+      approval_status: "pending" | "approved" | "rejected"
+      approval_type: "leave" | "permission" | "overtime" | "sick" | "wfa"
       employee_status: "active" | "inactive" | "on_leave"
       kpi_evaluation_status: "TODO" | "DRAFT" | "SUBMITTED"
       task_status: "todo" | "in_progress" | "done" | "cancelled"
@@ -812,16 +814,13 @@ export const Constants = {
     Enums: {
       agenda_status: ["todo", "on_progress", "done", "cancelled"],
       app_role: ["super_admin", "hr", "unit_leader", "employee"],
-      approval_status: [
-        "pending",
-        "approved_unit_leader",
-        "approved_hr",
-        "rejected",
-      ],
-      approval_type: ["leave", "permission", "overtime"],
+      approval_status: ["pending", "approved", "rejected"],
+      approval_type: ["leave", "permission", "overtime", "sick", "wfa"],
       employee_status: ["active", "inactive", "on_leave"],
       kpi_evaluation_status: ["TODO", "DRAFT", "SUBMITTED"],
       task_status: ["todo", "in_progress", "pending_review", "done", "cancelled"],
     },
   },
 } as const
+
+
