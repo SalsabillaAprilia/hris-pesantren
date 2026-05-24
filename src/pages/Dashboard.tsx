@@ -171,45 +171,6 @@ export default function Dashboard() {
             unitsData = [];
           }
         }
-        // --- DUMMY DATA INJECTION FOR UI TESTING ---
-        const todayDate = format(new Date(), "yyyy-MM-dd");
-        const yesterdayDate = format(new Date(Date.now() - 86400000), "yyyy-MM-dd");
-        
-        if (attData.length === 0) {
-           attData = [
-             { id: '1', employee_id: 'e1', date: todayDate, status: 'present' },
-             { id: '2', employee_id: 'e2', date: todayDate, status: 'present' },
-             { id: '3', employee_id: 'e3', date: todayDate, status: 'late' },
-             { id: '4', employee_id: 'e4', date: todayDate, status: 'absent' },
-             { id: '5', employee_id: 'e1', date: yesterdayDate, status: 'present' },
-             { id: '6', employee_id: 'e2', date: yesterdayDate, status: 'present' },
-             { id: '7', employee_id: 'e3', date: yesterdayDate, status: 'present' },
-           ] as any[];
-        }
-
-        if (apprData.length === 0) {
-           apprData = [
-             { id: 'a1', type: 'leave', status: 'pending', created_at: new Date().toISOString(), employees: { name: 'Ahmad Subarjo' }, start_date: '2026-06-01', end_date: '2026-06-03', reason: 'Cuti Tahunan' },
-             { id: 'a2', type: 'overtime', status: 'pending', created_at: new Date(Date.now() - 3600000).toISOString(), employees: { name: 'Siti Aminah' }, start_date: '2026-05-25', end_date: '2026-05-25', reason: 'Lembur rekap data' },
-           ] as any[];
-        }
-
-        if (agendasData.length === 0) {
-           agendasData = [
-             { id: 'ag1', title: 'Rapat Evaluasi Bulanan', time: '09:00', type: 'meeting', date: todayDate, employees: { name: 'Admin HR' } },
-             { id: 'ag2', title: 'Kunjungan Pengurus Yayasan', time: '13:00', type: 'event', date: todayDate, employees: { name: 'Direktur' } },
-           ] as any[];
-        }
-
-        filteredAllEmps.push(
-          { id: 'dummy-e1', name: 'Budi Santoso (Dummy)', status: 'active', contract_end_date: format(new Date(Date.now() + 14 * 86400000), "yyyy-MM-dd"), unit_id: 'u1' } as any,
-          { id: 'dummy-e2', name: 'Dewi Lestari (Dummy)', status: 'active', contract_end_date: format(new Date(Date.now() + 5 * 86400000), "yyyy-MM-dd"), unit_id: 'u2' } as any
-        );
-        unitsData.push(
-          { id: 'u1', name: 'Unit Akademik' } as any,
-          { id: 'u2', name: 'Unit Keuangan' } as any
-        );
-        // -------------------------------------------
 
         if (isMounted.current) {
           setEmployees(filteredEmps);
