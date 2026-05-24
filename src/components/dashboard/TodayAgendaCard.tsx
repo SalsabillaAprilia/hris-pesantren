@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface TodayAgendaCardProps {
   agendas: any[];
@@ -29,6 +30,8 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 };
 
 export function TodayAgendaCard({ agendas, loading }: TodayAgendaCardProps) {
+  const navigate = useNavigate();
+
   const todayAgendas = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     return agendas
@@ -73,7 +76,8 @@ export function TodayAgendaCard({ agendas, loading }: TodayAgendaCardProps) {
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate("/agenda")}
+                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <div className="text-center shrink-0 w-12">
                     <p className="text-sm font-bold text-primary">{item.time}</p>

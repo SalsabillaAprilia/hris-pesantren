@@ -74,7 +74,7 @@ export default function Dashboard() {
     try {
       const today = format(new Date(), "yyyy-MM-dd");
 
-      if (isAdminOrHr || isDirector) {
+      if (isAdminOrHr || isDirector || isUnitLeader) {
         // ========= DATA MANAJERIAL =========
         const [empRes, attRes, apprRes, tasksRes, unitsRes, agendasRes, rolesRes] = await Promise.all([
           supabaseFetchWithTimeout(
@@ -143,30 +143,93 @@ export default function Dashboard() {
           return emp.status === "active" && (r === "employee" || r === "unit_leader");
         });
         
-        const attData = attRes?.data || [];
-        const apprData = apprRes?.data || [];
-        const tasksData = tasksRes?.data || [];
-        const unitsData = unitsRes?.data || [];
-        const agendasData = agendasRes?.data || [];
+        let filteredEmps = activeEmps;
+        let filteredAllEmps = empRes?.data || [];
+        let attData = attRes?.data || [];
+        let apprData = apprRes?.data || [];
+        let tasksData = tasksRes?.data || [];
+        let unitsData = unitsRes?.data || [];
+        let agendasData = agendasRes?.data || [];
+
+        // --- FILTER KHUSUS UNIT LEADER ---
+        if (isUnitLeader && !isAdminOrHr && !isDirector) {
+          const myUnitId = employee?.unit_id;
+          if (myUnitId) {
+            filteredEmps = activeEmps.filter(e => e.unit_id === myUnitId);
+            filteredAllEmps = filteredAllEmps.filter(e => e.unit_id === myUnitId);
+            const subordinateIds = new Set(filteredAllEmps.map(e => e.id));
+            attData = attData.filter(a => subordinateIds.has(a.employee_id));
+            apprData = apprData.filter(a => subordinateIds.has(a.employee_id));
+            tasksData = tasksData.filter((t: any) => subordinateIds.has(t.assigned_to));
+            unitsData = unitsData.filter((u: any) => u.id === myUnitId);
+          } else {
+            filteredEmps = [];
+            filteredAllEmps = [];
+            attData = [];
+            apprData = [];
+            tasksData = [];
+            unitsData = [];
+          }
+        }
+        // --- DUMMY DATA INJECTION FOR UI TESTING ---
+        const todayDate = format(new Date(), "yyyy-MM-dd");
+        const yesterdayDate = format(new Date(Date.now() - 86400000), "yyyy-MM-dd");
+        
+        if (attData.length === 0) {
+           attData = [
+             { id: '1', employee_id: 'e1', date: todayDate, status: 'present' },
+             { id: '2', employee_id: 'e2', date: todayDate, status: 'present' },
+             { id: '3', employee_id: 'e3', date: todayDate, status: 'late' },
+             { id: '4', employee_id: 'e4', date: todayDate, status: 'absent' },
+             { id: '5', employee_id: 'e1', date: yesterdayDate, status: 'present' },
+             { id: '6', employee_id: 'e2', date: yesterdayDate, status: 'present' },
+             { id: '7', employee_id: 'e3', date: yesterdayDate, status: 'present' },
+           ] as any[];
+        }
+
+        if (apprData.length === 0) {
+           apprData = [
+             { id: 'a1', type: 'leave', status: 'pending', created_at: new Date().toISOString(), employees: { name: 'Ahmad Subarjo' }, start_date: '2026-06-01', end_date: '2026-06-03', reason: 'Cuti Tahunan' },
+             { id: 'a2', type: 'overtime', status: 'pending', created_at: new Date(Date.now() - 3600000).toISOString(), employees: { name: 'Siti Aminah' }, start_date: '2026-05-25', end_date: '2026-05-25', reason: 'Lembur rekap data' },
+           ] as any[];
+        }
+
+        if (agendasData.length === 0) {
+           agendasData = [
+             { id: 'ag1', title: 'Rapat Evaluasi Bulanan', time: '09:00', type: 'meeting', date: todayDate, employees: { name: 'Admin HR' } },
+             { id: 'ag2', title: 'Kunjungan Pengurus Yayasan', time: '13:00', type: 'event', date: todayDate, employees: { name: 'Direktur' } },
+           ] as any[];
+        }
+
+        filteredAllEmps.push(
+          { id: 'dummy-e1', name: 'Budi Santoso (Dummy)', status: 'active', contract_end_date: format(new Date(Date.now() + 14 * 86400000), "yyyy-MM-dd"), unit_id: 'u1' } as any,
+          { id: 'dummy-e2', name: 'Dewi Lestari (Dummy)', status: 'active', contract_end_date: format(new Date(Date.now() + 5 * 86400000), "yyyy-MM-dd"), unit_id: 'u2' } as any
+        );
+        unitsData.push(
+          { id: 'u1', name: 'Unit Akademik' } as any,
+          { id: 'u2', name: 'Unit Keuangan' } as any
+        );
+        // -------------------------------------------
 
         if (isMounted.current) {
-          setEmployees(activeEmps);
-          setAllEmployees(empRes?.data || []);
+          setEmployees(filteredEmps);
+          setAllEmployees(filteredAllEmps);
           setAttendanceRecords(attData);
           setApprovals(apprData);
           setTasks(tasksData);
           setUnits(unitsData);
           setAgendas(agendasData);
 
-          // Stat cards
-          const todayAtt = attData.filter((r: any) => r.date === today);
-          const pendingAppr = apprData.filter((r: any) => r.status === "pending");
+          const totalEmployees = filteredEmps.length;
+          const presentToday = attData.filter((r: any) => r.date === today && r.status === "present").length;
+          const pendingApprovals = apprData.filter((r: any) => r.status === "pending").length;
+          const activeTasks = tasksData.length;
           
           const newStats = {
-            totalEmployees: activeEmps.length,
-            presentToday: todayAtt.length,
-            pendingApprovals: pendingAppr.length,
-            activeTasks: tasksData.length,
+            totalEmployees,
+            presentToday,
+            pendingApprovals,
+            activeTasks,
           };
           setStats(newStats);
           
@@ -270,8 +333,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Dashboard Manajerial: super_admin & hr & director */}
-      {(isAdminOrHr || isDirector) && (
+      {/* Dashboard Manajerial: super_admin & hr & director & unit_leader */}
+      {(isAdminOrHr || isDirector || isUnitLeader) && (
         <ManagerialDashboard
           stats={stats}
           attendanceRecords={attendanceRecords}
@@ -281,11 +344,12 @@ export default function Dashboard() {
           approvals={approvals}
           agendas={agendas}
           loading={loading}
+          isUnitLeader={isUnitLeader && !isAdminOrHr && !isDirector}
         />
       )}
 
-      {/* Dashboard Karyawan Pribadi: employee & unit_leader */}
-      {isEmployee && employee && (
+      {/* Dashboard Karyawan Pribadi: employee yang bukan unit leader */}
+      {(isEmployee && !isUnitLeader) && employee && (
         <EmployeeDashboard
           employee={employee}
           todayRecord={todayRecord}

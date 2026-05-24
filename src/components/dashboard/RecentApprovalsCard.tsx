@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileCheck } from "lucide-react";
+import { FileCheck, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface RecentApprovalsCardProps {
   approvals: any[];
@@ -35,6 +36,8 @@ const typeLabel: Record<string, string> = {
 };
 
 export function RecentApprovalsCard({ approvals, loading }: RecentApprovalsCardProps) {
+  const navigate = useNavigate();
+
   const recentApprovals = useMemo(() => {
     return approvals
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -74,7 +77,8 @@ export function RecentApprovalsCard({ approvals, loading }: RecentApprovalsCardP
               return (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate("/approvals")}
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{item.employeeName}</p>

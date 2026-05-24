@@ -22,6 +22,7 @@ interface ManagerialDashboardProps {
   approvals: any[];
   agendas: any[];
   loading: boolean;
+  isUnitLeader?: boolean;
 }
 
 export function ManagerialDashboard({
@@ -33,6 +34,7 @@ export function ManagerialDashboard({
   approvals,
   agendas,
   loading,
+  isUnitLeader = false,
 }: ManagerialDashboardProps) {
   const statCards = [
     {
@@ -92,16 +94,20 @@ export function ManagerialDashboard({
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 ${!isUnitLeader ? "lg:grid-cols-2" : ""} gap-4`}>
         <WeeklyAttendanceChart attendanceRecords={attendanceRecords} loading={loading} />
-        <UnitDistributionChart employees={employees} units={units} loading={loading} />
+        {!isUnitLeader && (
+          <UnitDistributionChart employees={employees} units={units} loading={loading} />
+        )}
       </div>
 
       {/* Info Cards Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 ${!isUnitLeader ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4`}>
         <RecentApprovalsCard approvals={approvals} loading={loading} />
         <TodayAgendaCard agendas={agendas} loading={loading} />
-        <ExpiringContractsCard employees={allEmployees} units={units} loading={loading} />
+        {!isUnitLeader && (
+          <ExpiringContractsCard employees={allEmployees} units={units} loading={loading} />
+        )}
       </div>
     </div>
   );
