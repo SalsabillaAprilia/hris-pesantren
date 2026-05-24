@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { format, startOfMonth, endOfMonth, parseISO, getDaysInMonth } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,12 @@ import { downloadPDF } from "@/utils/export-pdf";
 
 type ReportType = "attendance" | "employees" | "kpi" | "approvals" | "organization";
 
+let globalReportsEmployeesCache: any[] | null = null;
+let globalReportsUnitsCache: any[] | null = null;
+let globalReportsAttendanceCache: any[] | null = null;
+let globalReportsApprovalsCache: any[] | null = null;
+let globalReportsKpiEvalsCache: any[] | null = null;
+
 export default function Reports() {
   const { isAdminOrHr } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
@@ -23,14 +29,21 @@ export default function Reports() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [unitId, setUnitId] = useState("all");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(globalReportsEmployeesCache === null);
 
   // Raw data
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [approvals, setApprovals] = useState<any[]>([]);
-  const [kpiEvals, setKpiEvals] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>(globalReportsEmployeesCache || []);
+  const [units, setUnits] = useState<any[]>(globalReportsUnitsCache || []);
+  const [attendance, setAttendance] = useState<any[]>(globalReportsAttendanceCache || []);
+  const [approvals, setApprovals] = useState<any[]>(globalReportsApprovalsCache || []);
+  const [kpiEvals, setKpiEvals] = useState<any[]>(globalReportsKpiEvalsCache || []);
+
+  const isFirstFetch = useRef(globalReportsEmployeesCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   // Preview dialog
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -40,7 +53,7 @@ export default function Reports() {
   const [activeReportType, setActiveReportType] = useState<ReportType>("attendance");
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    if (isFirstFetch.current) setLoading(true);
     try {
       const monthStr = String(month).padStart(2, "0");
       const start = `${year}-${monthStr}-01`;
@@ -60,27 +73,27 @@ export default function Reports() {
             : supabase.from("units").select("*"),
           20000
         ),
-        supabaseFetchWithTimeout(
+        supabaseFetchWithTimeout<any>(
           (() => {
-            let q = supabase.from("attendance").select("*, employees(name, unit_id)")
+            let q: any = (supabase as any).from("attendance").select("*, employees(name, unit_id)")
               .gte("date", start).lte("date", end).order("date");
             if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
             return q;
           })(),
           20000
         ),
-        supabaseFetchWithTimeout(
+        supabaseFetchWithTimeout<any>(
           (() => {
-            let q = supabase.from("approvals").select("*, employees(name, unit_id)")
+            let q: any = (supabase as any).from("approvals").select("*, employees(name, unit_id)")
               .gte("start_date", start).lte("start_date", end).order("created_at", { ascending: false });
             if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
             return q;
           })(),
           20000
         ),
-        supabaseFetchWithTimeout(
+        supabaseFetchWithTimeout<any>(
           (() => {
-            let q = supabase.from("kpi_evaluations").select("*, employees(name, unit_id), kpi_templates(name)")
+            let q: any = (supabase as any).from("kpi_evaluations").select("*, employees(name, unit_id), kpi_templates(name)")
               .eq("period", `${year}-${monthStr}`).order("created_at", { ascending: false });
             if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
             return q;
@@ -89,16 +102,27 @@ export default function Reports() {
         ),
       ]);
 
-      setEmployees(empRes?.data || []);
-      setUnits(unitRes?.data || []);
-      setAttendance(attRes?.data || []);
-      setApprovals(apprRes?.data || []);
-      setKpiEvals(kpiRes?.data || []);
-    } catch (err) {
+      if (isMounted.current) {
+        setEmployees(empRes?.data || []);
+        setUnits(unitRes?.data || []);
+        setAttendance(attRes?.data || []);
+        setApprovals(apprRes?.data || []);
+        setKpiEvals(kpiRes?.data || []);
+        
+        globalReportsEmployeesCache = empRes?.data || [];
+        globalReportsUnitsCache = unitRes?.data || [];
+        globalReportsAttendanceCache = attRes?.data || [];
+        globalReportsApprovalsCache = apprRes?.data || [];
+        globalReportsKpiEvalsCache = kpiRes?.data || [];
+      }
+    } catch (err: any) {
       console.error("Reports: fetch error", err);
-      toast.error("Gagal memuat data laporan");
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data laporan");
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
   }, [month, year, effectiveInstansiId]);
 

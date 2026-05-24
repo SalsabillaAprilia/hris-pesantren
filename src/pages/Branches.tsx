@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,21 @@ import { Building2, Plus, Pencil, Trash2, UploadCloud, Map } from "lucide-react"
 import { uploadFile } from "@/utils/supabase-storage";
 import { useSearchParams } from "react-router-dom";
 
+let globalBranchesCache: Institution[] | null = null;
+
 export default function Branches() {
   const { isSuperAdmin, refreshInstitutions } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [branches, setBranches] = useState<Institution[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [branches, setBranches] = useState<Institution[]>(globalBranchesCache || []);
+  const [loading, setLoading] = useState(globalBranchesCache === null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const isFirstFetch = useRef(globalBranchesCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   // Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -35,8 +44,8 @@ export default function Branches() {
   const [deletingBranch, setDeletingBranch] = useState<Institution | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchBranches = async () => {
-    setLoading(true);
+  const fetchBranches = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
       const { data, error } = await supabase
         .from("institutions")
@@ -44,18 +53,25 @@ export default function Branches() {
         .order("name");
       
       if (error) throw error;
-      setBranches(data || []);
+      
+      if (isMounted.current) {
+        setBranches(data || []);
+        globalBranchesCache = data || [];
+      }
     } catch (err: any) {
       console.error("Fetch branches error:", err);
-      toast.error("Gagal memuat data cabang.");
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data cabang.");
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchBranches();
-  }, []);
+  }, [fetchBranches]);
 
   useEffect(() => {
     if (searchParams.get("action") === "create" && !dialogOpen) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -18,10 +18,19 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+let globalWorkSchedulesCache: any[] | null = null;
+
 export default function WorkSchedules() {
   const navigate = useNavigate();
-  const [shifts, setShifts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [shifts, setShifts] = useState<any[]>(globalWorkSchedulesCache || []);
+  const [loading, setLoading] = useState(globalWorkSchedulesCache === null);
+  
+  const isFirstFetch = useRef(globalWorkSchedulesCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<any>(null);
@@ -39,9 +48,9 @@ export default function WorkSchedules() {
     work_days: [1, 2, 3, 4, 5] // 1=Senin..7=Minggu
   });
 
-  const fetchShifts = async () => {
+  const fetchShifts = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
-      setLoading(true);
       const [shiftRes, empRes] = await Promise.all([
         supabase.from("work_shifts").select("*").order("name"),
         supabase.from("employees").select("shift_id").not("shift_id", "is", null)
@@ -49,28 +58,34 @@ export default function WorkSchedules() {
 
       if (shiftRes.error) throw shiftRes.error;
 
-      const counts: Record<string, number> = {};
-      (empRes.data || []).forEach((emp: any) => {
-        counts[emp.shift_id] = (counts[emp.shift_id] || 0) + 1;
-      });
+      if (isMounted.current) {
+        const counts: Record<string, number> = {};
+        (empRes.data || []).forEach((emp: any) => {
+          counts[emp.shift_id] = (counts[emp.shift_id] || 0) + 1;
+        });
 
-      const formatted = (shiftRes.data || []).map(s => ({
-        ...s,
-        employee_count: counts[s.id] || 0
-      }));
+        const formatted = (shiftRes.data || []).map(s => ({
+          ...s,
+          employee_count: counts[s.id] || 0
+        }));
 
-      setShifts(formatted);
-    } catch (err) {
+        setShifts(formatted);
+        globalWorkSchedulesCache = formatted;
+      }
+    } catch (err: any) {
       console.error(err);
-      toast.error("Gagal memuat data shift");
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data shift");
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchShifts();
-  }, []);
+  }, [fetchShifts]);
 
   const handleOpenDialog = (shift = null) => {
     if (shift) {

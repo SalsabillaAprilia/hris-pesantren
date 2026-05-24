@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,9 @@ import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 const EMPTY_FORM = { title: "", description: "", assigned_to: "", due_date: "" };
 
+let globalTasksCache: any[] | null = null;
+let globalTasksEmployeesCache: any[] | null = null;
+
 export default function Tasks() {
   const { user, isAdminOrHr, isEmployee, hasRole, employee: currentUser } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
@@ -32,10 +35,17 @@ export default function Tasks() {
   // Unit Leader       → full CRUD, filter/search, hanya unitnya
   // Employee          → hanya tugas sendiri, ubah status
 
-  const [tasks,     setTasks]     = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]); // untuk form create/edit
-  const [loading,   setLoading]   = useState(true);
+  const [tasks,     setTasks]     = useState<any[]>(globalTasksCache || []);
+  const [employees, setEmployees] = useState<any[]>(globalTasksEmployeesCache || []); // untuk form create/edit
+  const [loading,   setLoading]   = useState(globalTasksCache === null);
   const [isSaving,  setIsSaving]  = useState(false);
+
+  const isFirstFetch = useRef(globalTasksCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   // Create / Edit dialog (unit_leader only)
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -58,7 +68,8 @@ export default function Tasks() {
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
       const [taskRes, empRes, rolesRes] = await supabaseFetchWithTimeout(
         Promise.all([
@@ -96,9 +107,6 @@ export default function Tasks() {
       if (isEmployee && !isUnitLeader) {
         allTasks = allTasks.filter((t: any) => t.employees?.user_id === user?.id);
       }
-      setTasks(allTasks);
-
-      // Daftar karyawan untuk form (unit leader: hanya unitnya; exclude admin/HR)
       let filteredEmp = (empRes.data ?? []).filter((emp: any) => {
         const role = rolesMap[emp.user_id];
         return !role || !["super_admin", "hr"].includes(role);
@@ -106,16 +114,25 @@ export default function Tasks() {
       if (isUnitLeader && currentUser?.unit_id) {
         filteredEmp = filteredEmp.filter((e: any) => e.unit_id === currentUser.unit_id);
       }
-      setEmployees(filteredEmp);
-    } catch (err) {
+      
+      if (isMounted.current) {
+        setTasks(allTasks);
+        setEmployees(filteredEmp);
+        globalTasksCache = allTasks;
+        globalTasksEmployeesCache = filteredEmp;
+      }
+    } catch (err: any) {
       console.error("Tasks: Fetch error", err);
-      toast.error("Gagal memuat data tugas.");
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data tugas.");
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
-  };
+  }, [effectiveInstansiId, isUnitLeader, isEmployee, currentUser?.unit_id, user?.id]);
 
-  useEffect(() => { fetchData(); }, [effectiveInstansiId]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Filtered tasks (client-side) ────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,9 @@ import { id as localeId } from "date-fns/locale";
 
 const EMPTY_FORM = { date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), activity: "" };
 
+let globalAgendasMyCache: any[] | null = null;
+let globalAgendasAllCache: any[] | null = null;
+
 export default function Agendas() {
   const { employee, user, isAdminOrHr, hasRole } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
@@ -31,10 +34,17 @@ export default function Agendas() {
   // isUnitLeader    → CRUD sendiri + approve agenda unitnya + filter
   // employee biasa  → CRUD sendiri saja
 
-  const [myAgendas,  setMyAgendas]  = useState<any[]>([]);
-  const [allAgendas, setAllAgendas] = useState<any[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const [myAgendas,  setMyAgendas]  = useState<any[]>(globalAgendasMyCache || []);
+  const [allAgendas, setAllAgendas] = useState<any[]>(globalAgendasAllCache || []);
+  const [loading,    setLoading]    = useState(globalAgendasAllCache === null);
   const [isSaving,   setIsSaving]   = useState(false);
+
+  const isFirstFetch = useRef(globalAgendasAllCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   // Create / Edit
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -54,8 +64,8 @@ export default function Agendas() {
 
   // ── Fetch ────────────────────────────────────────────────────────────────────
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
       // Fetch semua agenda dengan filter instansi jika applicable
       let q = supabase
@@ -67,31 +77,39 @@ export default function Agendas() {
       const { data: allData, error: allErr } = await q;
 
       if (allErr) throw allErr;
-      setAllAgendas(allData ?? []);
-
-      // Fetch agenda pribadi jika ada employee record
+      
+      let myData: any[] = [];
       if (employee?.id) {
-        const { data: myData, error: myErr } = await supabase
+        const { data: myDataRes, error: myErr } = await supabase
           .from("agendas")
           .select("*")
           .eq("employee_id", employee.id)
           .order("date", { ascending: false })
           .order("time", { ascending: false });
         if (myErr) throw myErr;
-        setMyAgendas(myData ?? []);
+        myData = myDataRes ?? [];
+      }
+
+      if (isMounted.current) {
+        setAllAgendas(allData ?? []);
+        setMyAgendas(myData);
+        globalAgendasAllCache = allData ?? [];
+        globalAgendasMyCache = myData;
       }
     } catch (err: any) {
       console.error("Agendas fetch error:", err);
-      toast.error("Gagal memuat data agenda.");
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data agenda.");
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
-  };
+  }, [effectiveInstansiId, employee?.id]);
 
   useEffect(() => {
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employee?.id, effectiveInstansiId]);
+  }, [fetchData]);
 
   // ── Filtered allAgendas (client-side) ────────────────────────────────────────
 

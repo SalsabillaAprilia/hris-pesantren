@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createClient } from "@supabase/supabase-js";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -37,10 +37,19 @@ const ROLE_LABELS: Record<string, string> = {
   director: "Direktur",
 };
 
+let globalAdminAccountsCache: AdminAccount[] | null = null;
+
 export default function AdminAccounts() {
   const { user } = useAuth();
-  const [accounts, setAccounts] = useState<AdminAccount[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [accounts, setAccounts] = useState<AdminAccount[]>(globalAdminAccountsCache || []);
+  const [loading, setLoading] = useState(globalAdminAccountsCache === null);
+
+  const isFirstFetch = useRef(globalAdminAccountsCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingAccount, setEditingAccount] = useState<AdminAccount | null>(null);
@@ -52,8 +61,8 @@ export default function AdminAccounts() {
   const INITIAL_FORM = { name: "", email: "", password: "", role: "hr" as "super_admin" | "hr" | "director" };
   const [form, setForm] = useState(INITIAL_FORM);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
       const [empRes, rolesRes] = await supabaseFetchWithTimeout(
         Promise.all([
@@ -65,32 +74,38 @@ export default function AdminAccounts() {
       if (empRes.error) throw empRes.error;
       if (rolesRes.error) throw rolesRes.error;
 
-      const adminUserIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
-      const rolesMap = Object.fromEntries((rolesRes.data ?? []).map((r) => [r.user_id, r.role]));
+      if (isMounted.current) {
+        const adminUserIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
+        const rolesMap = Object.fromEntries((rolesRes.data ?? []).map((r) => [r.user_id, r.role]));
 
-      // Hanya tampilkan employee yang memiliki role super_admin atau hr
-      const adminAccounts: AdminAccount[] = (empRes.data ?? [])
-        .filter((emp) => adminUserIds.has(emp.user_id))
-        .map((emp) => ({
-          id: emp.id,
-          user_id: emp.user_id,
-          name: emp.name,
-          email: emp.email,
-          role: rolesMap[emp.user_id] as "super_admin" | "hr" | "director",
-          created_at: emp.created_at,
-        }));
+        // Hanya tampilkan employee yang memiliki role super_admin atau hr
+        const adminAccounts: AdminAccount[] = (empRes.data ?? [])
+          .filter((emp) => adminUserIds.has(emp.user_id))
+          .map((emp) => ({
+            id: emp.id,
+            user_id: emp.user_id,
+            name: emp.name,
+            email: emp.email,
+            role: rolesMap[emp.user_id] as "super_admin" | "hr" | "director",
+            created_at: emp.created_at,
+          }));
 
-      setAccounts(adminAccounts);
+        setAccounts(adminAccounts);
+        globalAdminAccountsCache = adminAccounts;
+      }
     } catch (err: any) {
-      toast.error("Gagal memuat data akun: " + err.message);
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data akun: " + err.message);
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const openCreate = () => {
     setDialogMode("create");

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,10 @@ import { LeaveRequestWidget } from "@/components/attendance/LeaveRequestWidget";
 import { AdminDailyAttendance } from "@/components/attendance/AdminDailyAttendance";
 import { AdminSummaryAttendance } from "@/components/attendance/AdminSummaryAttendance";
 
+let globalAttendanceGlobalRecordsCache: any[] | null = null;
+let globalAttendancePersonalRecordsCache: any[] | null = null;
+let globalAttendanceTodayRecordCache: any | null = null;
+
 export default function Attendance() {
   const { employee, isAdminOrHr, isEmployee, hasRole } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
@@ -23,34 +27,42 @@ export default function Attendance() {
   const canSeeGlobal = isAdminOrHr || isUnitLeader;
   // isEmployee sudah mencakup unit_leader (keduanya punya data di tabel employees)
   const navigate = useNavigate();
-  const [todayRecord, setTodayRecord] = useState<any>(null);
-  const [globalRecords, setGlobalRecords] = useState<any[]>([]);
-  const [personalRecords, setPersonalRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [todayRecord, setTodayRecord] = useState<any>(globalAttendanceTodayRecordCache);
+  const [globalRecords, setGlobalRecords] = useState<any[]>(globalAttendanceGlobalRecordsCache || []);
+  const [personalRecords, setPersonalRecords] = useState<any[]>(globalAttendancePersonalRecordsCache || []);
+  const [loading, setLoading] = useState(globalAttendanceGlobalRecordsCache === null && globalAttendancePersonalRecordsCache === null);
+
+  const isFirstFetch = useRef(globalAttendanceGlobalRecordsCache === null && globalAttendancePersonalRecordsCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
   const fetchData = useCallback(async () => {
     if (!employee && !isAdminOrHr) return;
+    if (isFirstFetch.current) setLoading(true);
 
     try {
       let fetchGlobal;
       if (isAdminOrHr) {
-         let q = supabase.from("attendance").select("*, employees!inner(*, units:unit_id(name))").order("date", { ascending: false }).limit(1000);
-         if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
+         let q = (supabase as any).from("attendance").select("*, employees!inner(*, units:unit_id(name))").order("date", { ascending: false }).limit(1000);
+         if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
          fetchGlobal = q;
       } else if (isUnitLeader && employee?.unit_id) {
-         fetchGlobal = supabase.from("attendance").select("*, employees!inner(*, units:unit_id(name))").eq("employees.unit_id", employee.unit_id).order("date", { ascending: false }).limit(1000);
+         fetchGlobal = (supabase as any).from("attendance").select("*, employees!inner(*, units:unit_id(name))").eq("employees.unit_id", employee.unit_id).order("date", { ascending: false }).limit(1000);
       } else {
          fetchGlobal = Promise.resolve({ data: [] as any[], error: null });
       }
 
       // Data personal hanya relevan untuk karyawan (employee & unit_leader), bukan admin/HR
       const fetchPersonal = (employee && isEmployee)
-        ? supabase.from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30)
+        ? (supabase as any).from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30)
         : Promise.resolve({ data: [] as any[], error: null });
 
-      const [globalRes, personalRes] = await supabaseFetchWithTimeout(
+      const [globalRes, personalRes] = await supabaseFetchWithTimeout<any>(
         Promise.all([fetchGlobal, fetchPersonal])
       );
 
@@ -86,13 +98,22 @@ export default function Attendance() {
         }
       }
 
-      setGlobalRecords(globalRes.data ?? []);
-      setPersonalRecords(personalRes.data ?? []);
-      setTodayRecord(todayResData);
-    } catch (err) {
+      if (isMounted.current) {
+        setGlobalRecords(globalRes.data ?? []);
+        setPersonalRecords(personalRes.data ?? []);
+        setTodayRecord(todayResData);
+        
+        globalAttendanceGlobalRecordsCache = globalRes.data ?? [];
+        globalAttendancePersonalRecordsCache = personalRes.data ?? [];
+        globalAttendanceTodayRecordCache = todayResData;
+      }
+    } catch (err: any) {
       console.error("Attendance: Fetch error", err);
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
   }, [employee, isAdminOrHr, isEmployee, isUnitLeader, today, effectiveInstansiId]);
 

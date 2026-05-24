@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Building2, Plus, ArrowLeft, Network, AlertCircle } from "lucide-react";
@@ -31,12 +31,22 @@ import { EmployeeDetailDialog } from "@/components/employees/EmployeeDetailDialo
 import { Employee } from "@/types/employee";
 import { PositionTab } from "@/components/positions/PositionTab";
 
+let globalOrgUnitsCache: any[] | null = null;
+let globalOrgEmployeesCache: Employee[] | null = null;
+
 export default function Organization() {
   const { isAdminOrHr } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
-  const [units, setUnits] = useState<(Tables<"units"> & { employeeCount: number, leader?: Employee | null })[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [units, setUnits] = useState<(Tables<"units"> & { employeeCount: number, leader?: Employee | null })[]>(globalOrgUnitsCache || []);
+  const [employees, setEmployees] = useState<Employee[]>(globalOrgEmployeesCache || []);
+  const [loading, setLoading] = useState(globalOrgUnitsCache === null);
+
+  const isFirstFetch = useRef(globalOrgUnitsCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("units");
 
@@ -56,9 +66,9 @@ export default function Organization() {
   const [replacementUnitId, setReplacementUnitId] = useState<string>("");
   const [isPositionFormOpen, setIsPositionFormOpen] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
-      setLoading(true);
       
       let empQuery = supabase.from("employees").select("*").order("name");
       if (effectiveInstansiId) empQuery = (empQuery as any).eq("instansi_id", effectiveInstansiId);
@@ -102,23 +112,33 @@ export default function Organization() {
         leader: (empRes.data || []).find(e => e.id === (u as any).leader_id) || null
       }));
 
-      setUnits(processedUnits);
+      if (isMounted.current) {
+        setUnits(processedUnits);
+        
+        globalOrgUnitsCache = processedUnits;
+        if (empRes.data) {
+          const rolesMap = rolesRes.data || [];
+          globalOrgEmployeesCache = empRes.data.map(emp => ({ 
+            ...emp, 
+            units: allUnits.find(u => u.id === emp.unit_id) || null,
+            role: rolesMap.find(r => r.user_id === emp.user_id)?.role || "employee" 
+          })) as Employee[];
+        }
+      }
     } catch (err: any) {
-      console.error("Units: Fetch error details:", {
-        message: err.message,
-        code: err.code,
-        details: err.details,
-        hint: err.hint
-      });
-      toast.error("Gagal memuat data unit: " + (err.message || "Timeout"));
+      console.error("Units: Fetch error details:", err);
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data unit: " + (err.message || "Timeout"));
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
-  };
+  }, [effectiveInstansiId]);
 
   useEffect(() => {
     fetchData();
-  }, [effectiveInstansiId]);
+  }, [fetchData]);
 
   const handleOpenForm = (mode: "create" | "edit", unit?: any) => {
     setFormMode(mode);

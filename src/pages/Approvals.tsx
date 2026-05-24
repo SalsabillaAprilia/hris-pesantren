@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
@@ -22,6 +22,11 @@ import { id } from "date-fns/locale";
 
 const PAGE_SIZE = 10;
 
+// Global memory cache untuk Stale-While-Revalidate lintas navigasi halaman.
+// Memungkinkan data langsung tampil tanpa loading saat user pindah-pindah menu.
+let globalApprovalsCache: any[] | null = null;
+let globalApprovalsCount = 0;
+
 export default function Approvals() {
   const { user, employee, isAdminOrHr, isSuperAdmin, hasRole } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -36,8 +41,12 @@ export default function Approvals() {
     }
   };
   const { effectiveInstansiId } = useInstansiFilter();
-  const [approvals, setApprovals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [approvals, setApprovals] = useState<any[]>(globalApprovalsCache || []);
+  const [loading, setLoading] = useState(globalApprovalsCache === null);
+
+  // Jika cache sudah ada, kita anggap bukan first fetch lagi.
+  // Pemuatan ulang akan berjalan diam-diam di background.
+  const isFirstFetch = useRef(globalApprovalsCache === null);
 
   // Pagination & Filter States
   const [activeTab, setActiveTab] = useState("menunggu");
@@ -74,78 +83,71 @@ export default function Approvals() {
     setPage(1);
   }, [activeTab, typeFilter, effectiveInstansiId, createdAtStart, createdAtEnd, eventDateStart, eventDateEnd]);
 
-  const fetchData = async () => {
+  // isMounted ref: mencegah request dari komponen yang sudah di-navigate
+  // memperbarui state atau memunculkan toast di halaman lain.
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
+
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    let finalData: any[] = [];
+    let finalCount = 0;
+
     try {
-      setLoading(true);
-      
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
+      let q = supabase
+        .from("approvals")
+        .select("*, employees!approvals_employee_id_fkey!inner(name, unit_id, units!employees_unit_id_fkey(name))", { count: 'exact' });
 
-      let finalData: any[] = [];
-      let finalCount = 0;
+      if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
+      if (isUnitLeader && !isAdminOrHr && employee?.unit_id) q = q.eq("employees.unit_id", employee.unit_id);
+      if (activeTab === "menunggu") q = q.eq("status", "pending");
+      else q = q.in("status", ["approved", "rejected"]);
 
-      try {
-        // Gunakan inner join (!) agar bisa filter berdasarkan relasi tabel employees
-        let q = supabase
-          .from("approvals")
-          .select("*, employees!inner(name, unit_id, units(name))", { count: 'exact' });
-        
-        if (effectiveInstansiId) {
-          q = (q as any).eq("instansi_id", effectiveInstansiId);
-        }
-
-        // 1. Server-side Filter: Kepala Unit hanya melihat anggota unitnya
-        if (isUnitLeader && !isAdminOrHr && employee?.unit_id) {
-          q = q.eq("employees.unit_id", employee.unit_id);
-        }
-
-        // 2. Server-side Filter: Tab Status
-        if (activeTab === "menunggu") {
-          q = q.eq("status", "pending");
-        } else {
-          q = q.in("status", ["approved", "rejected"]);
-        }
-
-        // 3. Server-side Filter: Tipe Pengajuan
-        if (typeFilter !== "Semua") {
-          const reverseMap: Record<string, string> = { "Cuti": "leave", "Izin": "permission", "Lembur": "overtime", "Sakit": "sick", "WFA": "wfa" };
-          if (reverseMap[typeFilter]) {
-            q = q.eq("type", reverseMap[typeFilter] as any);
-          }
-        }
-
-        // 4. Server-side Filter: Tanggal Dibuat (created_at)
-        if (createdAtStart) q = q.gte("created_at", `${createdAtStart}T00:00:00`);
-        if (createdAtEnd) q = q.lte("created_at", `${createdAtEnd}T23:59:59`);
-
-        // 5. Server-side Filter: Tanggal Kegiatan (start_date / end_date)
-        if (eventDateStart) q = q.gte("end_date", eventDateStart);
-        if (eventDateEnd) q = q.lte("start_date", eventDateEnd);
-
-        // Terapkan urutan dan limit
-        q = q.order("created_at", { ascending: false }).range(from, to);
-
-        const res = await supabaseFetchWithTimeout<any>(q);
-        
-        if (res.error) throw res.error;
-
-        finalData = res.data ?? [];
-        finalCount = res.count ?? 0;
-      } catch (err) {
-        console.error("Approvals: Fetch error", err);
-        toast.error("Gagal memuat data Pengajuan");
+      if (typeFilter !== "Semua") {
+        const reverseMap: Record<string, string> = { "Cuti": "leave", "Izin": "permission", "Lembur": "overtime", "Sakit": "sick", "WFA": "wfa" };
+        if (reverseMap[typeFilter]) q = q.eq("type", reverseMap[typeFilter] as any);
       }
 
-      setApprovals(finalData);
-      setTotalCount(finalCount);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (createdAtStart) q = q.gte("created_at", `${createdAtStart}T00:00:00`);
+      if (createdAtEnd)   q = q.lte("created_at", `${createdAtEnd}T23:59:59`);
+      if (eventDateStart) q = q.gte("end_date", eventDateStart);
+      if (eventDateEnd)   q = q.lte("start_date", eventDateEnd);
 
-  useEffect(() => { 
-    fetchData(); 
-  }, [page, activeTab, typeFilter, effectiveInstansiId, createdAtStart, createdAtEnd, eventDateStart, eventDateEnd]);
+      q = q.order("created_at", { ascending: false }).range(from, to);
+
+      const res = await supabaseFetchWithTimeout<any>(q);
+      if (res.error && res.error.code !== "PGRST116") {
+        throw res.error;
+      }
+
+      finalData = res.data ?? [];
+      finalCount = res.count ?? 0;
+    } catch (err: any) {
+      console.error("Approvals: Fetch error", err);
+      if (isMounted.current) toast.error("Gagal memuat data Pengajuan");
+    } finally {
+      if (isMounted.current) {
+        // Simpan ke cache global agar navigasi berikutnya instan
+        globalApprovalsCache = finalData;
+        globalApprovalsCount = finalCount;
+        
+        setApprovals(finalData);
+        setTotalCount(finalCount);
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
+    }
+  }, [page, activeTab, typeFilter, effectiveInstansiId, createdAtStart, createdAtEnd, eventDateStart, eventDateEnd, isUnitLeader, isAdminOrHr, employee?.unit_id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleApprove = async (id: string) => {
     if (!user) return;

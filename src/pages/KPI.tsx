@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -54,18 +54,32 @@ interface KpiEvaluation {
 
 interface IndicatorRow { name: string; weight: string; description: string; }
 
+let globalKpiTemplatesCache: KpiTemplate[] | null = null;
+let globalKpiIndicatorsCache: KpiIndicator[] | null = null;
+let globalKpiEvaluationsCache: KpiEvaluation[] | null = null;
+let globalKpiScoresCache: any[] | null = null;
+let globalKpiUnitEmployeesCache: any[] | null = null;
+let globalKpiHrLeadersCache: any[] | null = null;
+
 export default function KPI() {
   const { user, employee, isAdminOrHr, hasRole } = useAuth();
   const isUnitLeader = hasRole("unit_leader");
   const isEmployee   = hasRole("employee");
 
-  const [templates,     setTemplates]     = useState<KpiTemplate[]>([]);
-  const [indicators,    setIndicators]    = useState<KpiIndicator[]>([]);
-  const [evaluations,   setEvaluations]   = useState<KpiEvaluation[]>([]);
-  const [scores,        setScores]        = useState<any[]>([]);
-  const [unitEmployees, setUnitEmployees] = useState<any[]>([]);
-  const [hrLeaders,     setHrLeaders]     = useState<any[]>([]);
-  const [loading,       setLoading]       = useState(true);
+  const [templates,     setTemplates]     = useState<KpiTemplate[]>(globalKpiTemplatesCache || []);
+  const [indicators,    setIndicators]    = useState<KpiIndicator[]>(globalKpiIndicatorsCache || []);
+  const [evaluations,   setEvaluations]   = useState<KpiEvaluation[]>(globalKpiEvaluationsCache || []);
+  const [scores,        setScores]        = useState<any[]>(globalKpiScoresCache || []);
+  const [unitEmployees, setUnitEmployees] = useState<any[]>(globalKpiUnitEmployeesCache || []);
+  const [hrLeaders,     setHrLeaders]     = useState<any[]>(globalKpiHrLeadersCache || []);
+  const [loading,       setLoading]       = useState(globalKpiTemplatesCache === null);
+
+  const isFirstFetch = useRef(globalKpiTemplatesCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   // ── Template dialog state ─────────────────────────────────────────────────
   const [tplOpen,    setTplOpen]    = useState(false);
@@ -93,8 +107,8 @@ export default function KPI() {
   const [isBatchMode,    setIsBatchMode]    = useState(false);
 
   // ── Fetch ────────────────────────────────────────────────────────────────
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
       const [tRes, iRes, eRes, sRes, empRes] = await supabaseFetchWithTimeout(
         Promise.all([
@@ -111,28 +125,41 @@ export default function KPI() {
       if (iRes.error) throw iRes.error;
       if (eRes.error) throw eRes.error;
 
-      setTemplates((tRes.data ?? []) as KpiTemplate[]);
-      setIndicators((iRes.data ?? []) as KpiIndicator[]);
-      setEvaluations((eRes.data ?? []) as KpiEvaluation[]);
-      setScores(sRes.data ?? []);
-
       const rolesRes = await supabase.from("user_roles").select("user_id,role");
       const rolesMap = Object.fromEntries((rolesRes.data ?? []).map((r:any) => [r.user_id, r.role]));
       let emps = (empRes.data ?? []).filter((e:any) => !["super_admin","hr"].includes(rolesMap[e.user_id]));
       if (isUnitLeader && employee?.unit_id) {
         emps = emps.filter((e:any) => e.unit_id === employee.unit_id);
       }
-      setUnitEmployees(emps);
-      setHrLeaders((empRes.data ?? []).filter((e:any) => rolesMap[e.user_id] === "unit_leader"));
-    } catch (err) {
-      console.error("KPI fetch error:", err);
-      toast.error("Gagal memuat data KPI.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const hrLdrs = (empRes.data ?? []).filter((e:any) => rolesMap[e.user_id] === "unit_leader");
 
-  useEffect(() => { fetchData(); }, [employee?.id]);
+      if (isMounted.current) {
+        setTemplates((tRes.data ?? []) as KpiTemplate[]);
+        setIndicators((iRes.data ?? []) as KpiIndicator[]);
+        setEvaluations((eRes.data ?? []) as KpiEvaluation[]);
+        setScores(sRes.data ?? []);
+        setUnitEmployees(emps);
+        setHrLeaders(hrLdrs);
+        
+        globalKpiTemplatesCache = (tRes.data ?? []) as KpiTemplate[];
+        globalKpiIndicatorsCache = (iRes.data ?? []) as KpiIndicator[];
+        globalKpiEvaluationsCache = (eRes.data ?? []) as KpiEvaluation[];
+        globalKpiScoresCache = sRes.data ?? [];
+        globalKpiUnitEmployeesCache = emps;
+        globalKpiHrLeadersCache = hrLdrs;
+      }
+    } catch (err: any) {
+      console.error("KPI fetch error:", err);
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data KPI.");
+    } finally {
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
+    }
+  }, [isUnitLeader, employee?.unit_id]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Computed values ───────────────────────────────────────────────────────
   const getInds = (tplId: string) => indicators.filter(i => i.template_id === tplId);

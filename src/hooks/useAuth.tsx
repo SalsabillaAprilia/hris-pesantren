@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import type { User } from "@supabase/supabase-js";
@@ -45,6 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<number>(0);
+
+  // Ref ini memastikan setLoading(true) HANYA memblokir UI pada mount pertama.
+  // Refresh berikutnya (akibat visibilitychange / TOKEN_REFRESHED) berjalan diam-diam
+  // di background tanpa menghancurkan tampilan halaman yang sudah ada datanya.
+  const isInitialLoad = useRef(true);
 
   // Multi-Cabang state
   const [instansiId, setInstansiId] = useState<string | null>(null);
@@ -97,7 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (!force && lastRefresh > 0 && (now - lastRefresh < 300000) && user && employee) {
       console.log("Auth: Session is fresh, skipping metadata fetch.");
-      setLoading(false);
+      // Hanya set false jika ini masih initial load (state loading masih true)
+      if (isInitialLoad.current) setLoading(false);
       return;
     }
 
@@ -140,7 +146,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Auth: Session refresh failed:", err);
       if (!user) setUser(null); 
     } finally {
-      setLoading(false);
+      // Selalu selesaikan loading state pada initial load.
+      // Untuk refresh background (isInitialLoad sudah false), ini tidak berpengaruh
+      // karena loading sudah false.
+      if (isInitialLoad.current) {
+        setLoading(false);
+        isInitialLoad.current = false;
+      }
     }
   };
 

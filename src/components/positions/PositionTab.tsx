@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus, Network, Pencil, Trash2, Search } from "lucide-react";
@@ -29,15 +29,24 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+let globalPositionsCache: any[] | null = null;
+
 export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }: {
   isAdminOrHr: boolean;
   onAdd: () => void;
   isFormOpen: boolean;
   onFormOpenChange: (open: boolean) => void;
 }) {
-  const [positions, setPositions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [positions, setPositions] = useState<any[]>(globalPositionsCache || []);
+  const [loading, setLoading] = useState(globalPositionsCache === null);
   const { effectiveInstansiId } = useInstansiFilter();
+
+  const isFirstFetch = useRef(globalPositionsCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
   
   // Dialog States — isFormOpen dikendalikan oleh parent (Organization.tsx)
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -54,9 +63,9 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchPositions = async () => {
+  const fetchPositions = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
     try {
-      setLoading(true);
       let posQuery = (supabase as any).from("positions").select("*").order("name");
       if (effectiveInstansiId) posQuery = posQuery.eq("instansi_id", effectiveInstansiId);
       
@@ -70,28 +79,34 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
         if (posRes.error.code !== "42P01") throw posRes.error;
       }
 
-      const counts: Record<string, number> = {};
-      (empRes.data || []).forEach((emp: any) => {
-        counts[emp.position_id] = (counts[emp.position_id] || 0) + 1;
-      });
+      if (isMounted.current) {
+        const counts: Record<string, number> = {};
+        (empRes.data || []).forEach((emp: any) => {
+          counts[emp.position_id] = (counts[emp.position_id] || 0) + 1;
+        });
 
-      const formattedData = (posRes.data || []).map((pos: any) => ({
-        ...pos,
-        employee_count: counts[pos.id] || 0
-      }));
+        const formattedData = (posRes.data || []).map((pos: any) => ({
+          ...pos,
+          employee_count: counts[pos.id] || 0
+        }));
 
-      setPositions(formattedData);
+        setPositions(formattedData);
+        globalPositionsCache = formattedData;
+      }
     } catch (err: any) {
       console.error(err);
-      toast.error("Gagal memuat master jabatan. Pastikan script SQL sudah dijalankan.");
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat master jabatan. Pastikan script SQL sudah dijalankan.");
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
     }
-  };
+  }, [effectiveInstansiId]);
 
   useEffect(() => {
     fetchPositions();
-  }, [effectiveInstansiId]);
+  }, [fetchPositions]);
 
   // Reset form state when closed
   useEffect(() => {
@@ -111,7 +126,9 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
     try {
       setIsActionLoading(true);
       if (formMode === "create") {
-        const { error } = await (supabase as any).from("positions").insert([data]);
+        const payload = { ...data };
+        if (effectiveInstansiId) payload.instansi_id = effectiveInstansiId;
+        const { error } = await (supabase as any).from("positions").insert([payload]);
         if (error) throw error;
         toast.success("Jabatan berhasil ditambahkan");
       } else {

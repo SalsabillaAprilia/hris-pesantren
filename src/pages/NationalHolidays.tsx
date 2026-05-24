@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,10 +29,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+let globalHolidaysCache: any[] | null = null;
+
 export default function NationalHolidays() {
   const navigate = useNavigate();
-  const [holidays, setHolidays] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [holidays, setHolidays] = useState<any[]>(globalHolidaysCache || []);
+  const [loading, setLoading] = useState(globalHolidaysCache === null);
+  
+  const isFirstFetch = useRef(globalHolidaysCache === null);
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState<any>(null);
@@ -49,20 +58,33 @@ export default function NationalHolidays() {
     description: "",
   });
 
-  const fetchHolidays = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("national_holidays")
-      .select("*")
-      .order("date", { ascending: false });
-      
-    if (!error && data) setHolidays(data);
-    setLoading(false);
-  };
+  const fetchHolidays = useCallback(async () => {
+    if (isFirstFetch.current) setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("national_holidays")
+        .select("*")
+        .order("date", { ascending: false });
+        
+      if (error) throw error;
+      if (isMounted.current && data) {
+        setHolidays(data);
+        globalHolidaysCache = data;
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data hari libur");
+    } finally {
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchHolidays();
-  }, []);
+  }, [fetchHolidays]);
 
   const handleOpenDialog = (holiday = null) => {
     if (holiday) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createClient } from "@supabase/supabase-js";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -37,15 +37,24 @@ import { uploadFile } from "@/utils/supabase-storage";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// Global memory cache untuk Stale-While-Revalidate lintas navigasi halaman.
+let globalEmployeesCache: Employee[] | null = null;
+let globalUnitsCache: Tables<"units">[] | null = null;
+let globalShiftsCache: Tables<"work_shifts">[] | null = null;
+let globalPositionsCache: any[] | null = null;
+
 export default function EmployeesPage() {
   const { isAdminOrHr, isSuperAdmin, isHr, isEmployee, hasRole, employee: currentUser } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [units, setUnits] = useState<Tables<"units">[]>([]);
-  const [shifts, setShifts] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>(globalEmployeesCache || []);
+  const [units, setUnits] = useState<Tables<"units">[]>(globalUnitsCache || []);
+  const [shifts, setShifts] = useState<any[]>(globalShiftsCache || []);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(globalEmployeesCache === null);
+
+  // Jika cache ada, kita anggap ini bukan first fetch lagi.
+  const isFirstFetch = useRef(globalEmployeesCache === null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -81,12 +90,20 @@ export default function EmployeesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [returnToDetailOnClose, setReturnToDetailOnClose] = useState(false);
 
-  const fetchData = async () => {
+  // isMounted ref: mencegah request dari komponen yang sudah di-navigate
+  // memperbarui state atau memunculkan toast di halaman lain.
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    // Hanya tampilkan loading pada fetch pertama
+    if (isFirstFetch.current) setLoading(true);
+
     try {
-      setLoading(true);
-      // Fetch concurrently but handle each result safely using timeout wrapper
       const [empResRaw, unitRes, shiftRes, rolesRes, posRes] = await Promise.all([
-        // Unit leader hanya melihat anggota unitnya sendiri
         supabaseFetchWithTimeout(
           (() => {
             let q = isUnitLeader && currentUser?.unit_id
@@ -94,65 +111,70 @@ export default function EmployeesPage() {
               : supabase.from("employees").select("*").order("name");
             if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
             return q;
-          })(),
-          20000
+          })()
         ),
         supabaseFetchWithTimeout(
           effectiveInstansiId
             ? supabase.from("units").select("*").eq("instansi_id", effectiveInstansiId)
-            : supabase.from("units").select("*"),
-          20000
+            : supabase.from("units").select("*")
         ),
         supabaseFetchWithTimeout(
           effectiveInstansiId
             ? supabase.from("work_shifts").select("*").order("name").eq("instansi_id", effectiveInstansiId)
-            : supabase.from("work_shifts").select("*").order("name"),
-          20000
+            : supabase.from("work_shifts").select("*").order("name")
         ),
         supabaseFetchWithTimeout(
           effectiveInstansiId
             ? supabase.from("user_roles").select("*").eq("instansi_id", effectiveInstansiId)
-            : supabase.from("user_roles").select("*"),
-          20000
+            : supabase.from("user_roles").select("*")
         ),
-        supabaseFetchWithTimeout((supabase as any).from("positions").select("*").order("name"), 20000)
+        supabaseFetchWithTimeout((supabase as any).from("positions").select("*").order("name"))
       ]);
+
+      // Jangan update state jika user sudah navigasi ke halaman lain
+      if (!isMounted.current) return;
+
       const empRes = empResRaw as any;
+      if (empRes.error && empRes.error.code !== "PGRST116") throw empRes.error;
 
-      if (empRes.error) {
-        console.error("Error fetching employees:", empRes.error);
-        if (empRes.error.code !== "PGRST116") throw empRes.error;
-      }
-
-      if (unitRes.error) console.error("Error fetching units:", unitRes.error);
-      if (shiftRes.error) console.error("Error fetching shifts:", shiftRes.error);
-      
-      const allUnits = unitRes.data || [];
+      const allUnits     = unitRes.data || [];
       const allPositions = (posRes as any).data || [];
-      const rolesMap = rolesRes.data || [];
-      
-      if (empRes.data) {
-        setEmployees((empRes.data as any[]).map(emp => ({ 
-          ...emp, 
-          units: allUnits.find((u: any) => u.id === emp.unit_id) || null,
-          positions: allPositions.find((p: any) => p.id === emp.position_id) || null,
-          role: rolesMap.find((r: any) => r.user_id === emp.user_id)?.role || "employee" 
-        }))
-        .filter((emp: any) => !["super_admin", "hr"].includes(emp.role)) as Employee[]);
-      }
-      
-      if (unitRes.data) setUnits(unitRes.data);
-      if (shiftRes.data) setShifts(shiftRes.data);
-      if ((posRes as any).data) setPositions((posRes as any).data);
-    } catch (err: any) { 
-      console.error("Employees: Fetch Data Error Details:", err);
-      toast.error("Gagal memuat data karyawan. Koneksi mungkin terputus.");
-    } finally { 
-      setLoading(false); 
-    }
-  };
+      const rolesMap     = rolesRes.data || [];
 
-  useEffect(() => { fetchData(); }, [effectiveInstansiId]);
+      let finalEmployees: Employee[] = [];
+      if (empRes.data) {
+        finalEmployees = (empRes.data as any[]).map(emp => ({
+          ...emp,
+          units:     allUnits.find((u: any) => u.id === emp.unit_id) || null,
+          positions: allPositions.find((p: any) => p.id === emp.position_id) || null,
+          role:      rolesMap.find((r: any) => r.user_id === emp.user_id)?.role || "employee"
+        })).filter((emp: any) => !["super_admin", "hr"].includes(emp.role)) as Employee[];
+        setEmployees(finalEmployees);
+      }
+      if (unitRes.data)         setUnits(unitRes.data);
+      if (shiftRes.data)        setShifts(shiftRes.data);
+      if ((posRes as any).data) setPositions((posRes as any).data);
+      
+      // Update global cache
+      globalEmployeesCache = finalEmployees;
+      if (unitRes.data) globalUnitsCache = unitRes.data;
+      if (shiftRes.data) globalShiftsCache = shiftRes.data;
+      if ((posRes as any).data) globalPositionsCache = (posRes as any).data;
+      
+    } catch (err: any) {
+      console.error("Employees: Fetch Data Error Details:", err);
+      if (isMounted.current) toast.error("Gagal memuat data karyawan. Koneksi mungkin terputus.");
+    } finally {
+      if (isMounted.current) {
+        setLoading(false);
+        isFirstFetch.current = false;
+      }
+    }
+  }, [effectiveInstansiId, isUnitLeader, currentUser?.unit_id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenForm = (mode: "create" | "edit", emp?: Employee) => {
     setDialogMode(mode);
