@@ -328,7 +328,10 @@ export type Database = {
           employee_id: string
           evaluator_id: string
           id: string
-          period: string
+          start_date: string | null
+          end_date: string | null
+          status: Database["public"]["Enums"]["kpi_evaluation_status"]
+          qualitative_feedback: string | null
           template_id: string
           total_score: number | null
           updated_at: string
@@ -339,7 +342,10 @@ export type Database = {
           employee_id: string
           evaluator_id: string
           id?: string
-          period: string
+          start_date?: string | null
+          end_date?: string | null
+          status?: Database["public"]["Enums"]["kpi_evaluation_status"]
+          qualitative_feedback?: string | null
           template_id: string
           total_score?: number | null
           updated_at?: string
@@ -350,7 +356,10 @@ export type Database = {
           employee_id?: string
           evaluator_id?: string
           id?: string
-          period?: string
+          start_date?: string | null
+          end_date?: string | null
+          status?: Database["public"]["Enums"]["kpi_evaluation_status"]
+          qualitative_feedback?: string | null
           template_id?: string
           total_score?: number | null
           updated_at?: string
@@ -378,6 +387,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          description: string | null
           template_id: string
           weight: number
           instansi_id: string | null
@@ -386,6 +396,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          description?: string | null
           template_id: string
           weight: number
           instansi_id?: string | null
@@ -394,6 +405,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          description?: string | null
           template_id?: string
           weight?: number
           instansi_id?: string | null
@@ -457,6 +469,10 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          scale: number
+          threshold_sangat_baik: number
+          threshold_baik: number
+          threshold_cukup: number
           updated_at: string
           instansi_id: string | null
         }
@@ -466,6 +482,10 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          scale?: number
+          threshold_sangat_baik?: number
+          threshold_baik?: number
+          threshold_cukup?: number
           updated_at?: string
           instansi_id?: string | null
         }
@@ -475,6 +495,10 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          scale?: number
+          threshold_sangat_baik?: number
+          threshold_baik?: number
+          threshold_cukup?: number
           updated_at?: string
           instansi_id?: string | null
         }
@@ -657,6 +681,7 @@ export type Database = {
         | "rejected"
       approval_type: "leave" | "permission" | "overtime"
       employee_status: "active" | "inactive" | "on_leave"
+      kpi_evaluation_status: "TODO" | "DRAFT" | "SUBMITTED"
       task_status: "todo" | "in_progress" | "done" | "cancelled"
     }
     CompositeTypes: {
@@ -795,6 +820,7 @@ export const Constants = {
       ],
       approval_type: ["leave", "permission", "overtime"],
       employee_status: ["active", "inactive", "on_leave"],
+      kpi_evaluation_status: ["TODO", "DRAFT", "SUBMITTED"],
       task_status: ["todo", "in_progress", "pending_review", "done", "cancelled"],
     },
   },
