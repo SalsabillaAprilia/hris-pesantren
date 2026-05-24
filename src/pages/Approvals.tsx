@@ -81,65 +81,8 @@ export default function Approvals() {
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      // DUMMY DATA INJECTION (Hapus blok ini saat sudah tidak dibutuhkan)
-      const dummyData = [
-        {
-          id: "dummy-1",
-          type: "leave",
-          start_date: "2026-06-01",
-          end_date: "2026-06-03",
-          reason: "Cuti Tahunan untuk liburan keluarga ke luar kota. Mohon persetujuannya karena saya sudah merencanakan ini sejak awal tahun dan pekerjaan saya sudah didelegasikan ke rekan tim agar operasional tidak terganggu.",
-          status: "pending",
-          employees: { name: "Budi Santoso", units: { name: "Unit Akademik" } },
-        },
-        {
-          id: "dummy-2",
-          type: "sick",
-          start_date: "2026-05-24",
-          end_date: "2026-05-24",
-          reason: "Sakit demam dan flu (Surat dokter menyusul)",
-          status: "pending",
-          employees: { name: "Ahmad Rifai", units: { name: "Unit Keuangan" } },
-        },
-        {
-          id: "dummy-3",
-          type: "wfa",
-          start_date: "2026-05-25",
-          end_date: "2026-05-25",
-          reason: "WFA karena ada perbaikan jaringan internet di area perumahan",
-          status: "pending",
-          employees: { name: "Siti Nurhaliza", units: { name: "Unit HRD" } },
-        },
-        {
-          id: "dummy-4",
-          type: "permission",
-          start_date: "2026-05-14",
-          end_date: "2026-05-14",
-          reason: "Izin datang terlambat karena mengurus dokumen kependudukan di kantor catatan sipil",
-          status: "approved",
-          employees: { name: "Dewi Lestari", units: { name: "Unit Akademik" } },
-        },
-        {
-          id: "dummy-5",
-          type: "overtime",
-          start_date: "2026-05-19",
-          end_date: "2026-05-19",
-          start_time: "17:00",
-          end_time: "20:00",
-          reason: "Lembur rekapitulasi laporan bulanan unit. Membutuhkan waktu tambahan untuk menyelesaikan laporan keuangan bulanan agar bisa disubmit besok pagi sesuai dengan deadline dari dewan direksi.",
-          status: "rejected",
-          reject_reason: "Pekerjaan ini sebaiknya diselesaikan pada jam kerja reguler. Jika dirasa terlalu banyak, silakan delegasikan sebagian pekerjaan ke staf admin unit Anda agar tidak perlu lembur hingga larut malam.",
-          employees: { name: "Budi Santoso", units: { name: "Unit Keuangan" } },
-        }
-      ];
-
-      // Memastikan data dummy mengikuti filter tab yang aktif
-      const filteredDummy = dummyData.filter(d => 
-        activeTab === "menunggu" ? d.status === "pending" : (d.status === "approved" || d.status === "rejected")
-      );
-
-      let finalData = [...filteredDummy];
-      let finalCount = filteredDummy.length;
+      let finalData: any[] = [];
+      let finalCount = 0;
 
       try {
         // Gunakan inner join (!) agar bisa filter berdasarkan relasi tabel employees
@@ -186,11 +129,11 @@ export default function Approvals() {
         
         if (res.error) throw res.error;
 
-        finalData = [...filteredDummy, ...(res.data ?? [])];
-        finalCount = filteredDummy.length + (res.count ?? 0);
+        finalData = res.data ?? [];
+        finalCount = res.count ?? 0;
       } catch (err) {
         console.error("Approvals: Fetch error", err);
-        toast.error("Gagal memuat data persetujuan");
+        toast.error("Gagal memuat data Pengajuan");
       }
 
       setApprovals(finalData);
@@ -380,7 +323,7 @@ export default function Approvals() {
             {loading ? (
               <tr><td colSpan={8} className="text-center py-10 text-muted-foreground align-middle">Memuat data...</td></tr>
             ) : approvals.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-10 text-muted-foreground align-middle">Tidak ada data persetujuan.</td></tr>
+              <tr><td colSpan={8} className="text-center py-10 text-muted-foreground align-middle">Tidak ada data pengajuan.</td></tr>
             ) : (
               approvals.map((a, index) => {
                 const canAction = !isReadOnly && ((isUnitLeader && a.employees?.unit_id === employee?.unit_id) || isAdminOrHr);
