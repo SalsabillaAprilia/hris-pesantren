@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Building2, Plus, Pencil, Trash2, UploadCloud, Map } from "lucide-react";
 import { uploadFile } from "@/utils/supabase-storage";
 import { useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 let globalBranchesCache: Institution[] | null = null;
 
@@ -99,6 +101,11 @@ export default function Branches() {
     setDialogOpen(true);
   };
 
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -125,16 +132,30 @@ export default function Branches() {
     try {
       let finalLogoUrl = logoPreview;
 
+      // Hapus logo lama jika dalam mode edit dan logo berubah atau dihapus
+      if (dialogMode === "edit") {
+        const branchToEdit = branches.find(b => b.id === editingId);
+        if (branchToEdit && branchToEdit.logo_url && branchToEdit.logo_url !== logoPreview) {
+          try {
+            const oldPathMatch = branchToEdit.logo_url.match(/logos\/(.+)$/);
+            if (oldPathMatch && oldPathMatch[1]) {
+              await supabase.storage.from("logos").remove([oldPathMatch[1]]);
+            }
+          } catch (e) {
+            console.error("Failed to delete old logo:", e);
+          }
+        }
+      }
+
       // Upload file jika ada file baru yang dipilih
       if (logoFile) {
-        // Menggunakan bucket 'avatars' yang sudah pasti ada & public di Supabase
-        const uploadedUrl = await uploadFile(logoFile, "avatars");
+        const uploadedUrl = await uploadFile(logoFile, "logos");
         finalLogoUrl = uploadedUrl;
       }
 
       const payload = {
         name,
-        logo_url: finalLogoUrl !== logoPreview ? finalLogoUrl : (logoPreview || null),
+        logo_url: logoFile ? finalLogoUrl : (logoPreview || null),
       };
 
       if (dialogMode === "create") {
@@ -150,8 +171,6 @@ export default function Branches() {
       setDialogOpen(false);
       fetchBranches();
       await refreshInstitutions(); // Perbarui global state agar header & sidebar berubah
-      // Memberi notifikasi agar user me-refresh untuk melihat update tema (opsional)
-      toast.info("Refresh halaman untuk melihat perubahan global");
     } catch (err: any) {
       console.error("Save branch error:", err);
       toast.error(err.message || "Gagal menyimpan cabang");
@@ -218,19 +237,20 @@ export default function Branches() {
               <TableHead className="w-[60px] text-center font-semibold">No.</TableHead>
               <TableHead className="font-semibold">Logo</TableHead>
               <TableHead className="font-semibold">Nama Cabang / Institusi</TableHead>
+              <TableHead className="font-semibold">Tanggal Dibuat</TableHead>
               <TableHead className="text-center font-semibold w-[120px]">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                   Memuat data cabang...
                 </TableCell>
               </TableRow>
             ) : branches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                   Belum ada cabang terdaftar.
                 </TableCell>
               </TableRow>
@@ -240,7 +260,7 @@ export default function Branches() {
                   <TableCell className="text-center text-slate-500">{index + 1}</TableCell>
                   <TableCell>
                     {branch.logo_url ? (
-                      <img src={branch.logo_url} alt="Logo" className="h-8 w-8 rounded object-cover border bg-white" />
+                      <img src={branch.logo_url} alt="Logo" className="h-8 w-8 rounded object-contain border" />
                     ) : (
                       <div className="h-8 w-8 rounded bg-slate-100 border flex items-center justify-center text-xs font-bold text-slate-400">
                         {branch.name.charAt(0).toUpperCase()}
@@ -248,6 +268,9 @@ export default function Branches() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{branch.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {branch.created_at ? format(new Date(branch.created_at), "dd MMM yyyy", { locale: localeId }) : "-"}
+                  </TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => openEdit(branch)}>
@@ -280,19 +303,32 @@ export default function Branches() {
                 <Label className="font-bold text-sm">Logo Institusi</Label>
                 <div className="flex items-end gap-4">
                   {logoPreview ? (
-                    <img src={logoPreview} alt="Preview" className="h-16 w-16 rounded-md object-cover border bg-white shadow-sm" />
+                    <img src={logoPreview} alt="Preview" className="h-16 w-16 rounded-md object-contain border shadow-sm" />
                   ) : (
                     <div className="h-16 w-16 rounded-md bg-slate-50 border-2 border-dashed flex items-center justify-center">
                       <Building2 className="h-6 w-6 text-slate-300" />
                     </div>
                   )}
                   <div className="flex-1">
-                    <Label htmlFor="logo-upload" className="cursor-pointer">
-                      <div className="flex items-center gap-2 h-9 px-3 rounded-md border shadow-sm bg-white hover:bg-slate-50 transition-colors w-fit text-sm font-medium">
-                        <UploadCloud className="h-4 w-4 text-muted-foreground" />
-                        Pilih Gambar
-                      </div>
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="logo-upload" className="cursor-pointer">
+                        <div className="flex items-center gap-2 h-9 px-3 rounded-md border shadow-sm bg-white hover:bg-slate-50 transition-colors w-fit text-sm font-medium">
+                          <UploadCloud className="h-4 w-4 text-muted-foreground" />
+                          Pilih Gambar
+                        </div>
+                      </Label>
+                      {logoPreview && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={handleRemoveLogo}
+                        >
+                          Hapus Logo
+                        </Button>
+                      )}
+                    </div>
                     <Input 
                       id="logo-upload" 
                       type="file" 

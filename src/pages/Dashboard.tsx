@@ -37,9 +37,10 @@ let globalDashboardPersonalAttendanceCache: any[] | null = null;
 let globalDashboardPersonalApprovalsCache: any[] | null = null;
 
 export default function Dashboard() {
-  const { employee, isAdminOrHr, isEmployee, hasRole, isDirector } = useAuth();
+  const { employee, isAdminOrHr, isEmployee, hasRole, isDirector, isGlobalRole, selectedInstansiId, allInstitutions } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
+  const isGlobalMode = isGlobalRole && !selectedInstansiId;
 
   const [stats, setStats] = useState<Stats>(globalDashboardStatsCache || {
     totalEmployees: 0,
@@ -306,6 +307,8 @@ export default function Dashboard() {
           agendas={agendas}
           loading={loading}
           isUnitLeader={isUnitLeader && !isAdminOrHr && !isDirector}
+          isGlobalMode={isGlobalMode}
+          institutions={allInstitutions}
         />
       )}
 

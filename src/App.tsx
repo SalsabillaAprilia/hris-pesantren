@@ -22,6 +22,7 @@ import MyData from "./pages/MyData";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import { GlobalModeGuard } from "@/components/shared/GlobalModeGuard";
 
 const queryClient = new QueryClient();
 
@@ -86,20 +87,20 @@ function AppRoutes() {
         {/* Semua role yang login bisa akses */}
       <Route path="/"          element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-      <Route path="/tasks"     element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-      <Route path="/agenda"    element={<ProtectedRoute><Agendas /></ProtectedRoute>} />
-      <Route path="/kpi"       element={<ProtectedRoute><KPI /></ProtectedRoute>} />
+      <Route path="/attendance" element={<ProtectedRoute><GlobalModeGuard><Attendance /></GlobalModeGuard></ProtectedRoute>} />
+      <Route path="/tasks"     element={<ProtectedRoute><GlobalModeGuard><Tasks /></GlobalModeGuard></ProtectedRoute>} />
+      <Route path="/agenda"    element={<ProtectedRoute><GlobalModeGuard><Agendas /></GlobalModeGuard></ProtectedRoute>} />
+      <Route path="/kpi"       element={<ProtectedRoute><GlobalModeGuard><KPI /></GlobalModeGuard></ProtectedRoute>} />
 
       {/* Admin/HR + Unit Leader (tidak untuk employee biasa) */}
-      <Route path="/employees" element={<GuardedRoute allowed={adminHrOrLeader}><Employees /></GuardedRoute>} />
-      <Route path="/approvals" element={<GuardedRoute allowed={adminHrOrLeader}><Approvals /></GuardedRoute>} />
+      <Route path="/employees" element={<GuardedRoute allowed={adminHrOrLeader}><GlobalModeGuard><Employees /></GlobalModeGuard></GuardedRoute>} />
+      <Route path="/approvals" element={<GuardedRoute allowed={adminHrOrLeader}><GlobalModeGuard><Approvals /></GlobalModeGuard></GuardedRoute>} />
       <Route path="/reports"   element={<GuardedRoute allowed={adminHrLeaderOrDirector}><Reports /></GuardedRoute>} />
 
       {/* Khusus Admin/HR saja */}
-      <Route path="/organization"   element={<GuardedRoute allowed={adminOrHr}><Organization /></GuardedRoute>} />
-      <Route path="/work-schedules" element={<GuardedRoute allowed={adminOrHr}><WorkSchedules /></GuardedRoute>} />
-      <Route path="/holidays"       element={<GuardedRoute allowed={adminOrHr}><NationalHolidays /></GuardedRoute>} />
+      <Route path="/organization"   element={<GuardedRoute allowed={adminOrHr}><GlobalModeGuard><Organization /></GlobalModeGuard></GuardedRoute>} />
+      <Route path="/work-schedules" element={<GuardedRoute allowed={adminOrHr}><GlobalModeGuard><WorkSchedules /></GlobalModeGuard></GuardedRoute>} />
+      <Route path="/holidays"       element={<GuardedRoute allowed={adminOrHr}><GlobalModeGuard><NationalHolidays /></GlobalModeGuard></GuardedRoute>} />
 
       {/* Khusus Super Admin */}
       <Route path="/admin-accounts" element={<GuardedRoute allowed={isSuperAdmin}><AdminAccounts /></GuardedRoute>} />

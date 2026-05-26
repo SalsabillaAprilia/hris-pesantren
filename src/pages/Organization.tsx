@@ -150,7 +150,9 @@ export default function Organization() {
     try {
       setIsActionLoading(true);
       if (formMode === "create") {
-        const { error } = await supabase.from("units").insert([data]);
+        // Sertakan instansi_id agar data tersimpan ke cabang yang benar, bukan null
+        const payload = { ...data, instansi_id: effectiveInstansiId };
+        const { error } = await supabase.from("units").insert([payload]);
         if (error) throw error;
         toast.success("Unit berhasil ditambahkan");
       } else {

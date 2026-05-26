@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Clock, FileCheck, ListTodo } from "lucide-react";
 import { WeeklyAttendanceChart } from "./WeeklyAttendanceChart";
 import { UnitDistributionChart } from "./UnitDistributionChart";
+import { BranchDistributionChart } from "./BranchDistributionChart";
 import { ExpiringContractsCard } from "./ExpiringContractsCard";
 import { RecentApprovalsCard } from "./RecentApprovalsCard";
 import { TodayAgendaCard } from "./TodayAgendaCard";
@@ -23,6 +24,8 @@ interface ManagerialDashboardProps {
   agendas: any[];
   loading: boolean;
   isUnitLeader?: boolean;
+  isGlobalMode?: boolean;
+  institutions?: any[];
 }
 
 export function ManagerialDashboard({
@@ -35,6 +38,8 @@ export function ManagerialDashboard({
   agendas,
   loading,
   isUnitLeader = false,
+  isGlobalMode = false,
+  institutions = [],
 }: ManagerialDashboardProps) {
   const statCards = [
     {
@@ -97,7 +102,9 @@ export function ManagerialDashboard({
       <div className={`grid grid-cols-1 ${!isUnitLeader ? "lg:grid-cols-2" : ""} gap-4`}>
         <WeeklyAttendanceChart attendanceRecords={attendanceRecords} loading={loading} />
         {!isUnitLeader && (
-          <UnitDistributionChart employees={employees} units={units} loading={loading} />
+          isGlobalMode
+            ? <BranchDistributionChart allEmployees={allEmployees} institutions={institutions} loading={loading} />
+            : <UnitDistributionChart employees={employees} units={units} loading={loading} />
         )}
       </div>
 

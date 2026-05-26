@@ -32,9 +32,12 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { isAdminOrHr, isSuperAdmin, hasRole, isDirector, currentInstitution } = useAuth();
+  const { isAdminOrHr, isSuperAdmin, hasRole, isDirector, currentInstitution, isGlobalRole, selectedInstansiId } = useAuth();
   const isUnitLeader = hasRole("unit_leader");
   const isEmployee = !isAdminOrHr; // employee biasa atau unit_leader
+
+  // Global mode = akun super_admin/director yang belum pilih cabang
+  const isGlobalMode = isGlobalRole && !selectedInstansiId;
 
   const instName = currentInstitution?.name ?? "Pesantren HRIS";
   const instInitial = instName.charAt(0).toUpperCase();
@@ -42,13 +45,15 @@ export function AppSidebar() {
   // Filter menu berdasarkan role
   const navItems = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, show: true },
-    { title: "Karyawan", url: "/employees", icon: Users, show: isAdminOrHr || isUnitLeader },
-    { title: "Organisasi", url: "/organization", icon: Building2, show: isAdminOrHr },
-    { title: "Kehadiran", url: "/attendance", icon: Clock, show: !isDirector },
-    { title: "Persetujuan", url: "/approvals", icon: FileCheck, show: isAdminOrHr || isUnitLeader },
-    { title: "Tugas", url: "/tasks", icon: ListTodo, show: !isDirector },
-    { title: "Agenda", url: "/agenda", icon: CalendarDays, show: !isDirector },
-    { title: "KPI", url: "/kpi", icon: BarChart3, show: !isDirector },
+    // Modul operasional — disembunyikan di global mode agar tidak bisa input data tanpa cabang
+    { title: "Karyawan", url: "/employees", icon: Users, show: !isGlobalMode && (isAdminOrHr || isUnitLeader) },
+    { title: "Organisasi", url: "/organization", icon: Building2, show: !isGlobalMode && isAdminOrHr },
+    { title: "Kehadiran", url: "/attendance", icon: Clock, show: !isGlobalMode && !isDirector },
+    { title: "Persetujuan", url: "/approvals", icon: FileCheck, show: !isGlobalMode && (isAdminOrHr || isUnitLeader) },
+    { title: "Tugas", url: "/tasks", icon: ListTodo, show: !isGlobalMode && !isDirector },
+    { title: "Agenda", url: "/agenda", icon: CalendarDays, show: !isGlobalMode && !isDirector },
+    { title: "KPI", url: "/kpi", icon: BarChart3, show: !isGlobalMode && !isDirector },
+    // Modul monitoring — tetap tampil di global mode
     { title: "Laporan", url: "/reports", icon: FileText, show: isAdminOrHr || isUnitLeader || isDirector },
     // Menu khusus Super Admin
     { title: "Manajemen Akun", url: "/admin-accounts", icon: ShieldCheck, show: isSuperAdmin },
