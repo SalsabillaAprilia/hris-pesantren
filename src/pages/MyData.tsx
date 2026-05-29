@@ -32,9 +32,7 @@ export default function MyDataPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
-  const [attachmentName, setAttachmentName] = useState<string>("");
   const avatarRef = useRef<HTMLInputElement>(null);
-  const attachRef = useRef<HTMLInputElement>(null);
 
   // Read-only info from HR
   const [unitName, setUnitName] = useState("");
@@ -62,10 +60,6 @@ export default function MyDataPage() {
     };
     setForm(f);
     setAvatarPreview(employee.avatar_url || "");
-    if (employee.attachment_url) {
-      const parts = employee.attachment_url.split("/");
-      setAttachmentName(decodeURIComponent(parts[parts.length - 1]));
-    }
 
     // Fetch unit & shift names
     const fetchMeta = async () => {
@@ -92,6 +86,19 @@ export default function MyDataPage() {
     setUploading(true);
     try {
       const url = await uploadFile(file, `avatars/${employee.id}_${Date.now()}`);
+      
+      // Delete old avatar if exists
+      if (form.avatar_url) {
+        try {
+          const oldPathMatch = form.avatar_url.match(/avatars\/(.+)$/);
+          if (oldPathMatch && oldPathMatch[1]) {
+            await supabase.storage.from("avatars").remove([oldPathMatch[1]]);
+          }
+        } catch (err) {
+          console.error("Failed to delete old avatar:", err);
+        }
+      }
+
       setAvatarPreview(url);
       set("avatar_url", url);
       toast.success("Foto berhasil diupload");
@@ -99,20 +106,6 @@ export default function MyDataPage() {
     finally { setUploading(false); }
   };
 
-  // Upload attachment
-  const handleAttachmentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !employee) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("Ukuran lampiran maksimal 5MB"); return; }
-    setUploading(true);
-    try {
-      const url = await uploadFile(file, `attachments/${employee.id}_${Date.now()}_${file.name}`);
-      set("attachment_url", url);
-      setAttachmentName(file.name);
-      toast.success("Lampiran berhasil diupload");
-    } catch { toast.error("Gagal mengupload lampiran"); }
-    finally { setUploading(false); }
-  };
 
   const handleSave = async () => {
     if (!employee) return;
@@ -133,7 +126,6 @@ export default function MyDataPage() {
         education_level: form.education_level || null,
         education_institution: form.education_institution || null,
         education_major: form.education_major || null,
-        attachment_url: form.attachment_url || null,
         avatar_url: form.avatar_url || null,
       }).eq("id", employee.id);
 
@@ -315,37 +307,6 @@ export default function MyDataPage() {
           </Field>
         </Section>
 
-        {/* Lampiran */}
-        <Section icon={Paperclip} title="Lampiran Dokumen" color="border-l-slate-500 bg-muted/20">
-          <div className="md:col-span-2 space-y-3">
-            <p className="text-xs text-muted-foreground">Upload dokumen pendukung (KTP, Ijazah, dsb). Format: PDF/JPG/PNG. Maks. 5MB.</p>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => attachRef.current?.click()}
-                disabled={uploading}
-                className="gap-2 h-9 text-xs border-dashed"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                {uploading ? "Mengupload..." : "Pilih File"}
-              </Button>
-              {attachmentName && (
-                <a
-                  href={form.attachment_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-primary underline underline-offset-2 truncate max-w-[200px]"
-                >
-                  {attachmentName}
-                </a>
-              )}
-              {!attachmentName && <span className="text-xs text-muted-foreground">Belum ada lampiran</span>}
-            </div>
-            <input ref={attachRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleAttachmentChange} />
-          </div>
-        </Section>
 
         {/* Tombol simpan bawah */}
         <div className="flex justify-end pb-2">

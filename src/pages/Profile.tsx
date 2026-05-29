@@ -33,6 +33,19 @@ export default function ProfilePage() {
     try {
       const url = await uploadFile(file, `avatars/${employee.id}_${Date.now()}`);
       setAvatarPreview(url);
+      
+      // Delete old avatar if exists
+      if (employee.avatar_url) {
+        try {
+          const oldPathMatch = employee.avatar_url.match(/avatars\/(.+)$/);
+          if (oldPathMatch && oldPathMatch[1]) {
+            await supabase.storage.from("avatars").remove([oldPathMatch[1]]);
+          }
+        } catch (err) {
+          console.error("Failed to delete old avatar:", err);
+        }
+      }
+
       await supabase.from("employees").update({ avatar_url: url }).eq("id", employee.id);
       toast.success("Foto profil berhasil diperbarui!");
     } catch {

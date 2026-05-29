@@ -102,15 +102,17 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground/90 font-bold">Lampiran (URL)</Label>
+        
+        <div className="space-y-2 md:col-span-2">
+          <Label className="text-sm text-muted-foreground/90 font-bold">Link Dokumen Karyawan</Label>
           <Input 
             value={form.attachment_url} 
             onChange={(e) => setForm({ ...form, attachment_url: e.target.value })} 
             className="h-9 text-sm text-slate-900 shadow-sm"
+            placeholder="Masukkan link dokumen Karyawan"
           />
         </div>
-        
+
         {isSuperAdmin && (
           <div className="space-y-2">
             <Label className="text-sm text-muted-foreground/90 font-bold">Role Sistem</Label>

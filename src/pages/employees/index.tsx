@@ -198,6 +198,18 @@ export default function EmployeesPage() {
       if (form.avatar_file) {
         try {
           finalAvatarUrl = await uploadFile(form.avatar_file);
+          
+          // Delete old avatar if in edit mode and the avatar changed
+          if (dialogMode === "edit" && form.avatar_url) {
+            try {
+              const oldPathMatch = form.avatar_url.match(/avatars\/(.+)$/);
+              if (oldPathMatch && oldPathMatch[1]) {
+                await supabase.storage.from("avatars").remove([oldPathMatch[1]]);
+              }
+            } catch (e) {
+              console.error("Failed to delete old avatar:", e);
+            }
+          }
         } catch (uploadErr) {
           console.error("Avatar upload failed:", uploadErr);
           toast.error("Gagal mengunggah foto profil, mencoba melanjutkan tanpa foto.");
