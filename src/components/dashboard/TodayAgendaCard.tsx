@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 interface TodayAgendaCardProps {
   agendas: any[];
   loading: boolean;
+  isGlobalMode?: boolean;
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -29,7 +30,7 @@ const statusConfig: Record<string, { label: string; class: string }> = {
   },
 };
 
-export function TodayAgendaCard({ agendas, loading }: TodayAgendaCardProps) {
+export function TodayAgendaCard({ agendas, loading, isGlobalMode }: TodayAgendaCardProps) {
   const navigate = useNavigate();
 
   const todayAgendas = useMemo(() => {
@@ -50,15 +51,10 @@ export function TodayAgendaCard({ agendas, loading }: TodayAgendaCardProps) {
   return (
     <Card className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-primary" />
-            Agenda Hari Ini
-          </CardTitle>
-          <span className="text-[11px] text-muted-foreground">
-            {format(new Date(), "dd MMMM yyyy", { locale: localeId })}
-          </span>
-        </div>
+        <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-primary" />
+          Agenda Hari Ini
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -76,8 +72,10 @@ export function TodayAgendaCard({ agendas, loading }: TodayAgendaCardProps) {
               return (
                 <div
                   key={item.id}
-                  onClick={() => navigate("/agenda")}
-                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => !isGlobalMode && navigate("/agenda")}
+                  className={`flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 transition-colors ${
+                    !isGlobalMode ? "hover:bg-muted/50 cursor-pointer" : ""
+                  }`}
                 >
                   <div className="text-center shrink-0 w-12">
                     <p className="text-sm font-bold text-primary">{item.time}</p>

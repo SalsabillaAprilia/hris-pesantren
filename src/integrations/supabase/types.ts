@@ -680,7 +680,7 @@ export type Database = {
     Enums: {
       agenda_status: "todo" | "on_progress" | "done" | "cancelled"
       app_role: "super_admin" | "hr" | "unit_leader" | "employee" | "director"
-      approval_status: "pending" | "approved" | "rejected"
+      approval_status: "pending" | "approved_unit_leader" | "approved_hr" | "rejected"
       approval_type: "leave" | "permission" | "overtime" | "sick" | "wfa"
       employee_status: "active" | "inactive" | "on_leave"
       kpi_evaluation_status: "TODO" | "DRAFT" | "SUBMITTED"

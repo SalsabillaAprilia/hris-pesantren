@@ -103,17 +103,17 @@ export function ManagerialDashboard({
         <WeeklyAttendanceChart attendanceRecords={attendanceRecords} loading={loading} />
         {!isUnitLeader && (
           isGlobalMode
-            ? <BranchDistributionChart allEmployees={allEmployees} institutions={institutions} loading={loading} />
+            ? <BranchDistributionChart allEmployees={employees} institutions={institutions} loading={loading} />
             : <UnitDistributionChart employees={employees} units={units} loading={loading} />
         )}
       </div>
 
       {/* Info Cards Row */}
       <div className={`grid grid-cols-1 ${!isUnitLeader ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4`}>
-        <RecentApprovalsCard approvals={approvals} loading={loading} />
-        <TodayAgendaCard agendas={agendas} loading={loading} />
+        <RecentApprovalsCard approvals={approvals} loading={loading} isGlobalMode={isGlobalMode} />
+        <TodayAgendaCard agendas={agendas} loading={loading} isGlobalMode={isGlobalMode} />
         {!isUnitLeader && (
-          <ExpiringContractsCard employees={allEmployees} units={units} loading={loading} />
+          <ExpiringContractsCard employees={employees} units={units} loading={loading} isGlobalMode={isGlobalMode} />
         )}
       </div>
     </div>

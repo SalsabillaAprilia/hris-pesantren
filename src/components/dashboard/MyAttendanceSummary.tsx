@@ -3,6 +3,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, CheckCircle2, AlertCircle, XCircle, CalendarOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MyAttendanceSummaryProps {
   attendanceRecords: any[];
@@ -11,6 +12,8 @@ interface MyAttendanceSummaryProps {
 }
 
 export function MyAttendanceSummary({ attendanceRecords, approvals, loading }: MyAttendanceSummaryProps) {
+  const navigate = useNavigate();
+
   const summary = useMemo(() => {
     const now = new Date();
     const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
@@ -93,7 +96,8 @@ export function MyAttendanceSummary({ attendanceRecords, approvals, loading }: M
             {items.map((item) => (
               <div
                 key={item.label}
-                className={`flex flex-col items-center py-3 px-2 rounded-lg border ${item.colorClass} transition-colors`}
+                onClick={() => navigate("/attendance")}
+                className={`flex flex-col items-center py-3 px-2 rounded-lg border ${item.colorClass} transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer`}
               >
                 <item.icon className={`h-5 w-5 mb-1 ${item.iconColor}`} />
                 <p className="text-2xl font-bold">{item.value}</p>

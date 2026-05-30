@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 interface RecentApprovalsCardProps {
   approvals: any[];
   loading: boolean;
+  isGlobalMode?: boolean;
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -35,7 +36,7 @@ const typeLabel: Record<string, string> = {
   overtime: "Lembur",
 };
 
-export function RecentApprovalsCard({ approvals, loading }: RecentApprovalsCardProps) {
+export function RecentApprovalsCard({ approvals, loading, isGlobalMode }: RecentApprovalsCardProps) {
   const navigate = useNavigate();
 
   const recentApprovals = useMemo(() => {
@@ -77,8 +78,10 @@ export function RecentApprovalsCard({ approvals, loading }: RecentApprovalsCardP
               return (
                 <div
                   key={item.id}
-                  onClick={() => navigate("/approvals")}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => !isGlobalMode && navigate("/approvals")}
+                  className={`flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 transition-colors ${
+                    !isGlobalMode ? "hover:bg-muted/50 cursor-pointer" : ""
+                  }`}
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{item.employeeName}</p>

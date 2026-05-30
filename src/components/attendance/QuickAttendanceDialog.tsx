@@ -12,7 +12,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckInOutWidget } from "./CheckInOutWidget";
 
-export function QuickAttendanceDialog() {
+interface QuickAttendanceDialogProps {
+  trigger?: React.ReactNode;
+}
+
+export function QuickAttendanceDialog({ trigger }: QuickAttendanceDialogProps = {}) {
   const { employee } = useAuth();
   const [open, setOpen] = useState(false);
   const [todayRecord, setTodayRecord] = useState<any>(null);
@@ -48,10 +52,14 @@ export function QuickAttendanceDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="h-9 px-4 gap-2 border border-slate-200 bg-white text-slate-700 shadow-sm transition-all active:scale-95 rounded-full text-sm font-semibold group">
-          <Clock className="h-4 w-4 text-slate-500 group-hover:text-slate-900" />
-          <span className="hidden sm:inline">Presensi</span>
-        </Button>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button variant="ghost" className="h-9 px-4 gap-2 border border-slate-200 bg-white text-slate-700 shadow-sm transition-all active:scale-95 rounded-full text-sm font-semibold group">
+            <Clock className="h-4 w-4 text-slate-500 group-hover:text-slate-900" />
+            <span className="hidden sm:inline">Presensi</span>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent shadow-none">
         <div className="p-1">

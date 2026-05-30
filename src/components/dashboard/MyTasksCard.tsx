@@ -3,6 +3,7 @@ import { format, parseISO, isPast, isToday } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListTodo, Circle, CircleDot, CheckCircle2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MyTasksCardProps {
   tasks: any[];
@@ -31,6 +32,8 @@ const statusConfig: Record<string, { label: string; icon: typeof Circle; class: 
 };
 
 export function MyTasksCard({ tasks, loading }: MyTasksCardProps) {
+  const navigate = useNavigate();
+
   const activeTasks = useMemo(() => {
     return tasks
       .filter((t) => t.status === "todo" || t.status === "in_progress")
@@ -82,7 +85,7 @@ export function MyTasksCard({ tasks, loading }: MyTasksCardProps) {
           </div>
         ) : activeTasks.length === 0 ? (
           <div className="py-6 text-center text-muted-foreground text-sm">
-            Tidak ada tugas aktif 🎉
+            Tidak ada tugas aktif
           </div>
         ) : (
           <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -92,7 +95,8 @@ export function MyTasksCard({ tasks, loading }: MyTasksCardProps) {
               return (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate("/tasks")}
+                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <StatusIcon className={`h-4 w-4 shrink-0 ${cfg.iconColor}`} />
                   <div className="min-w-0 flex-1">

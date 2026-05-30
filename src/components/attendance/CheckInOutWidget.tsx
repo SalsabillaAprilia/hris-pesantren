@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Camera, Clock, LogIn, LogOut } from "lucide-react";
+import { Camera, Clock, LogIn, LogOut, MapPin, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,9 +17,15 @@ interface CheckInOutWidgetProps {
 export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOutWidgetProps) {
   const [capturing, setCapturing] = useState(false);
   const [notes, setNotes] = useState("");
+  const [currentTime, setCurrentTime] = useState(new Date());
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const startCamera = async () => {
     setCapturing(true);
@@ -53,21 +59,17 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
       console.warn("Could not get geolocation:", err);
     }
 
-    // Mengambil secure time dari server eksternal untuk menghindari manipulasi waktu device (Loophole #1)
     let secureDateObj = new Date();
     let secureTodayStr = today;
     try {
       const res = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=Asia/Jakarta");
       if (res.ok) {
         const timeData = await res.json();
-        // timeData.dateTime format: "2026-05-06T15:39:17.3677361"
-        // Tambahkan +07:00 agar JS Date diparsing dengan zona waktu Jakarta, bukan local browser
         secureDateObj = new Date(timeData.dateTime + "+07:00");
-        // Update string today sesuai tanggal di server waktu
         secureTodayStr = timeData.dateTime.split("T")[0];
       }
     } catch (err) {
-      console.warn("Secure time fetch failed, falling back to local time", err);
+      console.warn("Secure time fetch failed", err);
     }
 
     const canvas = document.createElement("canvas");
@@ -98,13 +100,10 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
 
           if (shift && shift.start_time) {
             const [startH, startM] = shift.start_time.split(":").map(Number);
-            // Kita harus membuat start_dt dengan basis zona waktu Jakarta
             const start_dt = new Date(`${secureTodayStr}T${shift.start_time}:00+07:00`);
-
             const tolerance = shift.late_tolerance_minutes || 0;
             const tolerance_dt = new Date(start_dt.getTime() + tolerance * 60000);
 
-            // Opsi A: Dihitung dari jam masuk awal (start_dt) jika melewati batas toleransi
             if (secureDateObj > tolerance_dt) {
               late_minutes = Math.max(0, Math.round((secureDateObj.getTime() - start_dt.getTime()) / 60000));
             }
@@ -130,8 +129,6 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
 
       if (late_minutes && late_minutes > 0) {
         toast.warning(`Check-in berhasil! Tercatat terlambat ${late_minutes} menit.`);
-      } else if (daily_status === 'Hadir (Tanpa Shift)') {
-        toast.success("Check-in berhasil! (Tanpa Jadwal Shift)");
       } else {
         toast.success("Check-in berhasil!");
       }
@@ -150,22 +147,19 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
 
           if (shift && shift.end_time) {
             const end_dt = new Date(`${secureTodayStr}T${shift.end_time}:00+07:00`);
-
             if (secureDateObj < end_dt) {
               early_leave_minutes = Math.max(0, Math.round((end_dt.getTime() - secureDateObj.getTime()) / 60000));
             }
           }
         }
-      } catch (err) {
-        console.error("Error calculating early leave minutes:", err);
-      }
+      } catch (err) {}
 
       try {
         const { data: overtimeApp } = await supabase.from("approvals")
           .select("start_time, end_time")
           .eq("employee_id", employee.id)
           .eq("type", "overtime")
-          .eq("start_date", todayRecord.date) // Sinkronisasi tanggal sesi lembur (Celah 5)
+          .eq("start_date", todayRecord.date)
           .in("status", ["approved_unit_leader", "approved_hr"])
           .maybeSingle();
 
@@ -174,23 +168,16 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
           const [endH, endM] = overtimeApp.end_time.split(":").map(Number);
           const start_dt = new Date(); start_dt.setHours(startH, startM, 0, 0);
           const end_dt = new Date(); end_dt.setHours(endH, endM, 0, 0);
-          const checkoutTime = new Date();
           
           const approvedMins = Math.max(0, (end_dt.getTime() - start_dt.getTime()) / 60000);
-          const actualMins = Math.max(0, (checkoutTime.getTime() - start_dt.getTime()) / 60000);
+          const actualMins = Math.max(0, (secureDateObj.getTime() - start_dt.getTime()) / 60000);
           overtime_minutes = Math.round(Math.min(approvedMins, actualMins));
         }
-      } catch (err) {
-        console.error("Error calculating overtime:", err);
-      }
+      } catch (err) {}
 
       let finalNotes = todayRecord.notes || null;
       if (notes.trim()) {
-        if (finalNotes) {
-          finalNotes += `\n[Pulang]: ${notes.trim()}`;
-        } else {
-          finalNotes = `[Pulang]: ${notes.trim()}`;
-        }
+        finalNotes = finalNotes ? `${finalNotes}\n[Pulang]: ${notes.trim()}` : `[Pulang]: ${notes.trim()}`;
       }
 
       await supabase.from("attendance").update({
@@ -202,55 +189,118 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
         notes: finalNotes
       }).eq("id", todayRecord.id);
       
-      if (early_leave_minutes && early_leave_minutes > 0) {
-        toast.warning(`Check-out berhasil! Tercatat pulang cepat ${early_leave_minutes} menit.`);
-      } else if (overtime_minutes && overtime_minutes > 0) {
-        toast.success(`Check-out berhasil! Lembur tercatat: ${overtime_minutes} menit.`);
-      } else {
-        toast.success("Check-out berhasil!");
-      }
+      toast.success("Check-out berhasil!");
     }
 
     stopCamera();
     onSuccess();
   };
 
+  const isCheckedIn = !!todayRecord?.check_in;
+  const isCheckedOut = !!todayRecord?.check_out;
+  const statusColor = isCheckedOut ? "text-emerald-500" : isCheckedIn ? "text-blue-500" : "text-amber-500";
+  const statusText = isCheckedOut ? "Sesi Selesai" : isCheckedIn ? "Sedang Bekerja" : "Belum Presensi";
+
   return (
-    <Card className="stat-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-primary" />
-          Absensi Hari Ini — {format(new Date(), "dd MMMM yyyy", { locale: localeId })}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {todayRecord?.check_in && todayRecord?.check_out ? (
-          <p className="text-muted-foreground">
-            Anda sudah check-in ({format(new Date(todayRecord.check_in), "HH:mm")}) dan check-out ({format(new Date(todayRecord.check_out), "HH:mm")}) pada sesi ini.
-          </p>
+    <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl border">
+      <div className="p-6 border-b bg-muted/30 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-foreground font-bold text-lg tracking-tight">
+          <Camera className="h-5 w-5 text-primary" />
+          <span>Presensi Langsung</span>
+        </div>
+        <div className={`text-[11px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap mr-6 ${
+          isCheckedOut ? "text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] border-[hsl(142,45%,90%)]" 
+          : isCheckedIn ? "text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] border-[hsl(232,59%,90%)]" 
+          : "text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] border-[hsl(38,55%,88%)]"
+        }`}>
+          {statusText}
+        </div>
+      </div>
+      
+      <div className="p-6 flex-1 flex flex-col justify-center items-center text-center space-y-6">
+        {!capturing && (
+          <div className="space-y-1 w-full">
+            <h2 className="text-4xl font-extrabold tracking-tight text-foreground tabular-nums">
+              {format(currentTime, "HH:mm:ss")}
+            </h2>
+            <p className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1.5 mt-2">
+              <CalendarDays className="h-4 w-4" />
+              {format(currentTime, "EEEE, dd MMM yyyy", { locale: localeId })}
+            </p>
+          </div>
+        )}
+
+        {isCheckedIn && isCheckedOut ? (
+          <div className="w-full bg-muted/20 border rounded-xl p-4 text-foreground space-y-2 mt-4">
+            <div className="flex justify-center mb-2">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="font-semibold text-sm">Rekap Kehadiran Anda</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-background p-2 rounded border text-center">
+                <span className="block text-muted-foreground mb-0.5">Masuk</span>
+                <strong className="text-sm">{format(new Date(todayRecord.check_in), "HH:mm")}</strong>
+              </div>
+              <div className="bg-background p-2 rounded border text-center">
+                <span className="block text-muted-foreground mb-0.5">Pulang</span>
+                <strong className="text-sm">{format(new Date(todayRecord.check_out), "HH:mm")}</strong>
+              </div>
+            </div>
+          </div>
         ) : capturing ? (
-          <div className="space-y-4">
-            <video ref={videoRef} autoPlay playsInline muted className="rounded-lg w-full max-w-sm mx-auto aspect-video bg-muted object-cover" />
+          <div className="w-full space-y-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative rounded-xl overflow-hidden shadow-inner bg-black aspect-video border border-muted">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <div className="absolute inset-0 border-2 border-primary/30 rounded-xl pointer-events-none" />
+            </div>
             <Textarea
-              placeholder={todayRecord ? "Opsional catatan pulang (misal: alasan pulang cepat)..." : "Opsional catatan presensi (misal: alasan telat)..."}
-              className="w-full max-w-sm mx-auto text-sm resize-none h-20"
+              placeholder={todayRecord ? "Catatan pulang (contoh: izin pulang cepat)..." : "Catatan kedatangan (contoh: macet)..."}
+              className="w-full text-sm resize-none h-[72px] shadow-sm"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
-            <div className="flex gap-2 justify-center">
-              <Button onClick={captureAndCheckIn}>
+            <div className="grid grid-cols-2 gap-3 w-full pt-2">
+              <Button onClick={captureAndCheckIn} className="h-10 shadow-md bg-primary hover:bg-primary/90 text-white font-bold transition-all transform active:scale-95">
                 <Camera className="h-4 w-4 mr-2" />
                 {todayRecord ? "Check-out" : "Check-in"}
               </Button>
-              <Button variant="outline" onClick={stopCamera}>Batal</Button>
+              <Button variant="outline" onClick={stopCamera} className="h-10 text-sm bg-white/50 shadow-sm transition-all font-medium">Batal</Button>
             </div>
           </div>
         ) : (
-          <Button onClick={startCamera}>
-            {todayRecord ? <><LogOut className="h-4 w-4 mr-2" />Check-out</> : <><LogIn className="h-4 w-4 mr-2" />Check-in</>}
-          </Button>
+          <div className="w-full mt-2">
+            <Button 
+              onClick={startCamera} 
+              className={`w-full h-12 text-sm shadow-md transition-all transform active:scale-95 font-bold ${
+                !todayRecord 
+                  ? "bg-primary hover:bg-primary/90 text-white" 
+                  : "bg-[hsl(38,90%,50%)] hover:bg-[hsl(38,90%,45%)] text-white"
+              }`}
+            >
+              {todayRecord ? (
+                <><LogOut className="h-4 w-4 mr-2" /> Check-out</>
+              ) : (
+                <><LogIn className="h-4 w-4 mr-2" /> Check-in</>
+              )}
+            </Button>
+            
+            {isCheckedIn && !isCheckedOut && (
+              <p className="text-xs text-muted-foreground mt-4 font-medium flex items-center justify-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                Waktu Masuk: {format(new Date(todayRecord.check_in), "HH:mm")}
+              </p>
+            )}
+            
+            <p className="text-[10px] text-muted-foreground/70 mt-5 flex items-center justify-center gap-1">
+              <MapPin className="h-3 w-3" />
+              Lokasi & Waktu dilacak secara presisi
+            </p>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
+

@@ -24,17 +24,28 @@ interface Stats {
   activeTasks: number;
 }
 
-let globalDashboardStatsCache: Stats | null = null;
-let globalDashboardTodayRecordCache: any | null = null;
-let globalDashboardAttendanceRecordsCache: any[] | null = null;
-let globalDashboardEmployeesCache: any[] | null = null;
-let globalDashboardAllEmployeesCache: any[] | null = null;
-let globalDashboardUnitsCache: any[] | null = null;
-let globalDashboardApprovalsCache: any[] | null = null;
-let globalDashboardAgendasCache: any[] | null = null;
-let globalDashboardTasksCache: any[] | null = null;
-let globalDashboardPersonalAttendanceCache: any[] | null = null;
-let globalDashboardPersonalApprovalsCache: any[] | null = null;
+interface DashboardCache {
+  stats: Stats;
+  todayRecord: any | null;
+  attendanceRecords: any[];
+  employees: any[];
+  allEmployees: any[];
+  units: any[];
+  approvals: any[];
+  agendas: any[];
+  tasks: any[];
+  personalAttendance: any[];
+  personalApprovals: any[];
+}
+
+const defaultStats: Stats = {
+  totalEmployees: 0,
+  presentToday: 0,
+  pendingApprovals: 0,
+  activeTasks: 0,
+};
+
+const globalDashboardCaches: Record<string, DashboardCache> = {};
 
 export default function Dashboard() {
   const { employee, isAdminOrHr, isEmployee, hasRole, isDirector, isGlobalRole, selectedInstansiId, allInstitutions } = useAuth();
@@ -42,36 +53,55 @@ export default function Dashboard() {
   const isUnitLeader = hasRole("unit_leader");
   const isGlobalMode = isGlobalRole && !selectedInstansiId;
 
-  const [stats, setStats] = useState<Stats>(globalDashboardStatsCache || {
-    totalEmployees: 0,
-    presentToday: 0,
-    pendingApprovals: 0,
-    activeTasks: 0,
-  });
-  const [todayRecord, setTodayRecord] = useState<any>(globalDashboardTodayRecordCache);
-  const [loading, setLoading] = useState(globalDashboardStatsCache === null);
+  const cacheKey = effectiveInstansiId || "global";
+  const initialCache = globalDashboardCaches[cacheKey];
 
-  const isFirstFetch = useRef(globalDashboardStatsCache === null);
+  const [lastCacheKey, setLastCacheKey] = useState(cacheKey);
+
+  const [stats, setStats] = useState<Stats>(initialCache?.stats || defaultStats);
+  const [todayRecord, setTodayRecord] = useState<any>(initialCache?.todayRecord || null);
+  const [loading, setLoading] = useState(!initialCache);
+
+  // Data untuk chart & card
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>(initialCache?.attendanceRecords || []);
+  const [employees, setEmployees] = useState<any[]>(initialCache?.employees || []);
+  const [allEmployees, setAllEmployees] = useState<any[]>(initialCache?.allEmployees || []);
+  const [units, setUnits] = useState<any[]>(initialCache?.units || []);
+  const [approvals, setApprovals] = useState<any[]>(initialCache?.approvals || []);
+  const [agendas, setAgendas] = useState<any[]>(initialCache?.agendas || []);
+  const [tasks, setTasks] = useState<any[]>(initialCache?.tasks || []);
+  // Riwayat presensi personal (untuk karyawan)
+  const [personalAttendance, setPersonalAttendance] = useState<any[]>(initialCache?.personalAttendance || []);
+  const [personalApprovals, setPersonalApprovals] = useState<any[]>(initialCache?.personalApprovals || []);
+
+  if (cacheKey !== lastCacheKey) {
+    const cache = globalDashboardCaches[cacheKey];
+    setLastCacheKey(cacheKey);
+    setStats(cache?.stats || defaultStats);
+    setTodayRecord(cache?.todayRecord || null);
+    setLoading(!cache);
+    setAttendanceRecords(cache?.attendanceRecords || []);
+    setEmployees(cache?.employees || []);
+    setAllEmployees(cache?.allEmployees || []);
+    setUnits(cache?.units || []);
+    setApprovals(cache?.approvals || []);
+    setAgendas(cache?.agendas || []);
+    setTasks(cache?.tasks || []);
+    setPersonalAttendance(cache?.personalAttendance || []);
+    setPersonalApprovals(cache?.personalApprovals || []);
+  }
+
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
     return () => { isMounted.current = false; };
   }, []);
 
-  // Data untuk chart & card
-  const [attendanceRecords, setAttendanceRecords] = useState<any[]>(globalDashboardAttendanceRecordsCache || []);
-  const [employees, setEmployees] = useState<any[]>(globalDashboardEmployeesCache || []);
-  const [allEmployees, setAllEmployees] = useState<any[]>(globalDashboardAllEmployeesCache || []);
-  const [units, setUnits] = useState<any[]>(globalDashboardUnitsCache || []);
-  const [approvals, setApprovals] = useState<any[]>(globalDashboardApprovalsCache || []);
-  const [agendas, setAgendas] = useState<any[]>(globalDashboardAgendasCache || []);
-  const [tasks, setTasks] = useState<any[]>(globalDashboardTasksCache || []);
-  // Riwayat presensi personal (untuk karyawan)
-  const [personalAttendance, setPersonalAttendance] = useState<any[]>(globalDashboardPersonalAttendanceCache || []);
-  const [personalApprovals, setPersonalApprovals] = useState<any[]>(globalDashboardPersonalApprovalsCache || []);
-
   const fetchData = useCallback(async () => {
-    if (isFirstFetch.current) setLoading(true);
+    // If there is no cache for current branch, set loading true
+    if (!globalDashboardCaches[effectiveInstansiId || "global"]) {
+      setLoading(true);
+    }
     try {
       const today = format(new Date(), "yyyy-MM-dd");
 
@@ -128,19 +158,27 @@ export default function Dashboard() {
           ),
           supabaseFetchWithTimeout(
             (() => {
-              let q = supabase.from("user_roles").select("user_id, role");
-              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
-              return q;
+              return supabase.from("user_roles").select("user_id, role, instansi_id");
             })(),
             20000
           ),
         ]);
 
-        const rolesMap = Object.fromEntries((rolesRes?.data || []).map((r: any) => [r.user_id, r.role]));
+        const rolesMap = new Map();
+        (rolesRes?.data || []).forEach((r: any) => {
+          if (r.instansi_id) {
+            rolesMap.set(`${r.user_id}_${r.instansi_id}`, r.role);
+          } else {
+            rolesMap.set(`${r.user_id}_global`, r.role);
+          }
+        });
         
         // Filter karyawan yang statusnya aktif DAN rolenya hanya 'employee' atau 'unit_leader'
         const activeEmps = (empRes?.data || []).filter((emp: any) => {
-          const r = rolesMap[emp.user_id] || "employee"; // Default 'employee' jika belum ada role eksplisit
+          let r = rolesMap.get(`${emp.user_id}_${emp.instansi_id}`);
+          if (!r) r = rolesMap.get(`${emp.user_id}_global`);
+          if (!r) r = "employee"; // Default 'employee' jika belum ada role eksplisit
+          
           return emp.status === "active" && (r === "employee" || r === "unit_leader");
         });
         
@@ -163,6 +201,7 @@ export default function Dashboard() {
             apprData = apprData.filter(a => subordinateIds.has(a.employee_id));
             tasksData = tasksData.filter((t: any) => subordinateIds.has(t.assigned_to));
             unitsData = unitsData.filter((u: any) => u.id === myUnitId);
+            agendasData = agendasData.filter((a: any) => subordinateIds.has(a.employee_id));
           } else {
             filteredEmps = [];
             filteredAllEmps = [];
@@ -170,6 +209,7 @@ export default function Dashboard() {
             apprData = [];
             tasksData = [];
             unitsData = [];
+            agendasData = [];
           }
         }
 
@@ -195,14 +235,22 @@ export default function Dashboard() {
           };
           setStats(newStats);
           
-          globalDashboardStatsCache = newStats;
-          globalDashboardEmployeesCache = activeEmps;
-          globalDashboardAllEmployeesCache = empRes?.data || [];
-          globalDashboardAttendanceRecordsCache = attData;
-          globalDashboardApprovalsCache = apprData;
-          globalDashboardTasksCache = tasksData;
-          globalDashboardUnitsCache = unitsData;
-          globalDashboardAgendasCache = agendasData;
+          const currentCacheKey = effectiveInstansiId || "global";
+          globalDashboardCaches[currentCacheKey] = {
+            ...(globalDashboardCaches[currentCacheKey] || {}),
+            stats: newStats,
+            employees: filteredEmps,
+            allEmployees: filteredAllEmps,
+            attendanceRecords: attData,
+            approvals: apprData,
+            tasks: tasksData,
+            units: unitsData,
+            agendas: agendasData,
+            // Ensure we don't wipe out personal data if it exists
+            todayRecord: globalDashboardCaches[currentCacheKey]?.todayRecord || null,
+            personalAttendance: globalDashboardCaches[currentCacheKey]?.personalAttendance || [],
+            personalApprovals: globalDashboardCaches[currentCacheKey]?.personalApprovals || []
+          };
         }
       }
 
@@ -261,11 +309,22 @@ export default function Dashboard() {
           setAgendas(personalAgendasRes?.data || []);
           setTodayRecord(todayResData);
           
-          globalDashboardPersonalAttendanceCache = personalAttRes?.data || [];
-          globalDashboardPersonalApprovalsCache = personalApprRes?.data || [];
-          globalDashboardTasksCache = personalTasksRes?.data || [];
-          globalDashboardAgendasCache = personalAgendasRes?.data || [];
-          globalDashboardTodayRecordCache = todayResData;
+          const currentCacheKey = effectiveInstansiId || "global";
+          globalDashboardCaches[currentCacheKey] = {
+            ...(globalDashboardCaches[currentCacheKey] || {}),
+            personalAttendance: personalAttRes?.data || [],
+            personalApprovals: personalApprRes?.data || [],
+            tasks: personalTasksRes?.data || [],
+            agendas: personalAgendasRes?.data || [],
+            todayRecord: todayResData,
+            // Ensure we don't wipe out managerial data if it exists
+            stats: globalDashboardCaches[currentCacheKey]?.stats || defaultStats,
+            employees: globalDashboardCaches[currentCacheKey]?.employees || [],
+            allEmployees: globalDashboardCaches[currentCacheKey]?.allEmployees || [],
+            attendanceRecords: globalDashboardCaches[currentCacheKey]?.attendanceRecords || [],
+            approvals: globalDashboardCaches[currentCacheKey]?.approvals || [],
+            units: globalDashboardCaches[currentCacheKey]?.units || [],
+          };
         }
       }
     } catch (err) {
@@ -273,7 +332,6 @@ export default function Dashboard() {
     } finally {
       if (isMounted.current) {
         setLoading(false);
-        isFirstFetch.current = false;
       }
     }
   }, [employee, isAdminOrHr, isEmployee, isDirector, effectiveInstansiId]);

@@ -1,12 +1,13 @@
-import { CheckInOutWidget } from "@/components/attendance/CheckInOutWidget";
+import { QuickAttendanceDialog } from "@/components/attendance/QuickAttendanceDialog";
 import { MyAttendanceSummary } from "./MyAttendanceSummary";
 import { MyTasksCard } from "./MyTasksCard";
 import { TodayAgendaCard } from "./TodayAgendaCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileCheck } from "lucide-react";
+import { FileCheck, Camera, ScanFace } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface EmployeeDashboardProps {
   employee: any;
@@ -54,6 +55,8 @@ export function EmployeeDashboard({
   loading,
   onCheckInSuccess,
 }: EmployeeDashboardProps) {
+  const navigate = useNavigate();
+
   const recentApprovals = useMemo(() => {
     return approvals
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -69,21 +72,36 @@ export function EmployeeDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Check-in Widget */}
-      <div className="max-w-2xl">
-        <CheckInOutWidget
-          employee={employee}
-          todayRecord={todayRecord}
-          onSuccess={onCheckInSuccess}
-        />
+      {/* Baris Atas: Presensi & Ringkasan */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1">
+          <QuickAttendanceDialog
+            trigger={
+              <Card className="h-full min-h-[160px] bg-gradient-to-br from-white to-primary/5 border border-primary/20 hover:border-primary/40 text-primary cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 active:scale-95 shadow-sm flex flex-col items-center justify-center p-6 rounded-xl group relative overflow-hidden">
+                <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+                  <Camera className="w-32 h-32 text-primary" />
+                </div>
+                <div className="relative z-10 flex flex-col items-center text-center space-y-3 w-full">
+                  <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors shadow-sm">
+                    <ScanFace className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg tracking-wide text-foreground">Presensi</h3>
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">Ketuk untuk buka kamera</p>
+                  </div>
+                </div>
+              </Card>
+            }
+          />
+        </div>
+        <div className="lg:col-span-3">
+          <MyAttendanceSummary
+            attendanceRecords={attendanceRecords}
+            approvals={approvals}
+            loading={loading}
+          />
+        </div>
       </div>
-
-      {/* Ringkasan Kehadiran Bulan Ini */}
-      <MyAttendanceSummary
-        attendanceRecords={attendanceRecords}
-        approvals={approvals}
-        loading={loading}
-      />
 
       {/* Tugas + Agenda Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

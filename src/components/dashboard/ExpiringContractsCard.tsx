@@ -9,9 +9,10 @@ interface ExpiringContractsCardProps {
   employees: any[];
   units: any[];
   loading: boolean;
+  isGlobalMode?: boolean;
 }
 
-export function ExpiringContractsCard({ employees, units, loading }: ExpiringContractsCardProps) {
+export function ExpiringContractsCard({ employees, units, loading, isGlobalMode }: ExpiringContractsCardProps) {
   const navigate = useNavigate();
 
   const expiringEmployees = useMemo(() => {
@@ -70,11 +71,13 @@ export function ExpiringContractsCard({ employees, units, loading }: ExpiringCon
             {expiringEmployees.map((emp) => (
               <div
                 key={emp.id}
-                onClick={() => navigate("/employees")}
-                className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
+                onClick={() => !isGlobalMode && navigate("/employees")}
+                className={`flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 transition-colors group ${
+                  !isGlobalMode ? "hover:bg-muted/50 cursor-pointer" : ""
+                }`}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                  <p className={`text-sm font-medium text-foreground truncate transition-colors ${!isGlobalMode ? "group-hover:text-primary" : ""}`}>
                     {emp.name} {emp.status === "on_leave" && <span className="text-[10px] bg-blue-100 text-blue-700 px-1 py-0.5 rounded ml-1">Cuti</span>}
                   </p>
                   <p className="text-[11px] text-muted-foreground">{emp.unit}</p>
