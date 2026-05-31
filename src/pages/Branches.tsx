@@ -11,6 +11,7 @@ import { useAuth, Institution } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Building2, Plus, Pencil, Trash2, UploadCloud, Map } from "lucide-react";
 import { uploadFile } from "@/utils/supabase-storage";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -40,6 +41,7 @@ export default function Branches() {
   const [name, setName] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [organizationTerm, setOrganizationTerm] = useState("Unit");
 
   // Delete State
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -89,6 +91,7 @@ export default function Branches() {
     setName("");
     setLogoFile(null);
     setLogoPreview(null);
+    setOrganizationTerm("Unit");
     setDialogOpen(true);
   };
 
@@ -98,6 +101,7 @@ export default function Branches() {
     setName(branch.name);
     setLogoFile(null);
     setLogoPreview(branch.logo_url);
+    setOrganizationTerm(branch.organization_term || "Unit");
     setDialogOpen(true);
   };
 
@@ -156,6 +160,7 @@ export default function Branches() {
       const payload = {
         name,
         logo_url: logoFile ? finalLogoUrl : (logoPreview || null),
+        organization_term: organizationTerm,
       };
 
       if (dialogMode === "create") {
@@ -350,6 +355,23 @@ export default function Branches() {
                   className="h-9 shadow-sm"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-bold text-sm">Istilah Grup Organisasi</Label>
+                <Select value={organizationTerm} onValueChange={setOrganizationTerm}>
+                  <SelectTrigger className="w-full h-9 shadow-sm">
+                    <SelectValue placeholder="Pilih istilah untuk cabang ini" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Unit">Unit</SelectItem>
+                    <SelectItem value="Divisi">Divisi</SelectItem>
+                    <SelectItem value="Departemen">Departemen</SelectItem>
+                    <SelectItem value="Fakultas">Fakultas</SelectItem>
+                    <SelectItem value="Bagian">Bagian</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">Kata ini akan menggantikan tulisan "Unit" di seluruh sistem pada cabang ini.</p>
               </div>
 
             </div>

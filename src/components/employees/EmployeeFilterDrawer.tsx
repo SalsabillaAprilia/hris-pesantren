@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { Filter, X, Briefcase, User as UserIcon, GraduationCap } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface EmployeeFilterDrawerProps {
   filters: any;
@@ -24,6 +25,7 @@ export function EmployeeFilterDrawer({
   onReset,
   isUnitLeader = false
 }: EmployeeFilterDrawerProps) {
+  const { term } = useTerminology();
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -51,12 +53,12 @@ export function EmployeeFilterDrawer({
           <div className="grid gap-5 py-6 pb-24">
             {!isUnitLeader && (
               <div className="space-y-2.5">
-                <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">Unit Kerja</Label>
+                <Label className="text-sm text-muted-foreground/90 font-bold tracking-wider">{term}</Label>
                 <Select value={filters.unit_id} onValueChange={(v) => setFilters({ ...filters, unit_id: v })}>
-                  <SelectTrigger className="h-10 text-sm text-slate-900 shadow-sm border-primary/40"><SelectValue placeholder="Semua Unit" /></SelectTrigger>
+                  <SelectTrigger className="h-10 text-sm text-slate-900 shadow-sm border-primary/40"><SelectValue placeholder={`Semua ${term}`} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all" className="text-sm">Semua Unit</SelectItem>
-                    {units.map(u => <SelectItem key={u.id} value={u.id} className="text-sm">{u.name}</SelectItem>)}
+                    <SelectItem value="all" className="text-sm">Semua {term}</SelectItem>
+                    {units.filter(u => (u as any).is_active !== false).map(u => <SelectItem key={u.id} value={u.id} className="text-sm">{u.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -68,7 +70,7 @@ export function EmployeeFilterDrawer({
                 <SelectTrigger className="h-10 text-sm text-slate-900 shadow-sm border-primary/40"><SelectValue placeholder="Semua Jabatan" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-sm">Semua Jabatan</SelectItem>
-                  {positions.map(p => <SelectItem key={p.id} value={p.id} className="text-sm">{p.name}</SelectItem>)}
+                  {positions.filter(p => (p as any).is_active !== false).map(p => <SelectItem key={p.id} value={p.id} className="text-sm">{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

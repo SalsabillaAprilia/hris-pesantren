@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Employee } from "@/types/employee";
 import { getStatusBadge, calculateMasaKerja } from "@/utils/employee-format";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -12,6 +13,7 @@ interface EmployeeTableProps {
 }
 
 export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isSuperAdmin }: EmployeeTableProps) {
+  const { term, kepalaTerm } = useTerminology();
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
@@ -150,7 +152,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                 <>
                   <TableHead className="font-semibold text-left whitespace-nowrap">ID Karyawan</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Status</TableHead>
-                  <TableHead className="font-semibold text-center whitespace-nowrap">Unit</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">{term}</TableHead>
                   <TableHead className="font-semibold text-left whitespace-nowrap">Jabatan</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Jadwal Kerja</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Bergabung</TableHead>
@@ -224,7 +226,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                         <span className="text-[11px] font-semibold text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] px-2 py-0.5 rounded border border-[hsl(232,59%,90%)] whitespace-nowrap">
                           {emp.role === 'super_admin' ? 'Super Admin' :
                            emp.role === 'hr' ? 'HRD' :
-                           emp.role === 'unit_leader' ? 'Kepala Unit' :
+                           emp.role === 'unit_leader' ? kepalaTerm :
                            emp.role === 'employee' ? 'Karyawan' :
                            emp.role ? emp.role.replace('_', ' ') : "—"}
                         </span>

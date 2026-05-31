@@ -8,6 +8,7 @@ import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { toast } from "sonner";
 import { Clock, Users, BarChart3, FileCheck, Building2 } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 import { ReportCard } from "@/components/reports/ReportCard";
 import { ReportFilters } from "@/components/reports/ReportFilters";
 import { ReportPreviewDialog } from "@/components/reports/ReportPreviewDialog";
@@ -24,6 +25,7 @@ let globalReportsKpiEvalsCache: any[] | null = null;
 
 export default function Reports() {
   const { isAdminOrHr } = useAuth();
+  const { term, termLower } = useTerminology();
   const { effectiveInstansiId } = useInstansiFilter();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -155,7 +157,7 @@ export default function Reports() {
   // =============== REPORT GENERATORS ===============
 
   const getAttendanceReport = useCallback(() => {
-    const headers = ["Nama", "Tanggal", "Check-in", "Check-out", "Status", "Telat (mnt)", "Unit"];
+    const headers = ["Nama", "Tanggal", "Check-in", "Check-out", "Status", "Telat (mnt)", term];
     const rows = filteredAttendance.map((a) => [
       a.employees?.name || "-",
       a.date ? format(parseISO(a.date), "dd/MM/yyyy") : "-",
@@ -169,7 +171,7 @@ export default function Reports() {
   }, [filteredAttendance, unitMap]);
 
   const getEmployeesReport = useCallback(() => {
-    const headers = ["Nama", "NIP", "Email", "Unit", "Jabatan", "Gender", "Tgl Masuk", "Status"];
+    const headers = ["Nama", "NIP", "Email", term, "Jabatan", "Gender", "Tgl Masuk", "Status"];
     const rows = filteredEmployees.map((e) => [
       e.name || "-",
       e.employee_id_number || "-",
@@ -184,7 +186,7 @@ export default function Reports() {
   }, [filteredEmployees, unitMap]);
 
   const getKpiReport = useCallback(() => {
-    const headers = ["Nama", "Template KPI", "Periode", "Skor Total", "Unit"];
+    const headers = ["Nama", "Template KPI", "Periode", "Skor Total", term];
     const rows = filteredKpi.map((k) => [
       k.employees?.name || "-",
       k.kpi_templates?.name || "-",
@@ -201,7 +203,7 @@ export default function Reports() {
       pending: "Menunggu", approved_unit_leader: "Disetujui KU",
       approved_hr: "Disetujui HR", rejected: "Ditolak",
     };
-    const headers = ["Nama", "Tipe", "Mulai", "Selesai", "Alasan", "Status", "Unit"];
+    const headers = ["Nama", "Tipe", "Mulai", "Selesai", "Alasan", "Status", term];
     const rows = filteredApprovals.map((a) => [
       a.employees?.name || "-",
       typeLabel[a.type] || a.type,
@@ -215,10 +217,10 @@ export default function Reports() {
   }, [filteredApprovals, unitMap]);
 
   const getOrganizationReport = useCallback(() => {
-    const headers = ["Unit Kerja", "Jumlah Karyawan", "Laki-laki", "Perempuan"];
+    const headers = [`${term} Kerja`, "Jumlah Karyawan", "Laki-laki", "Perempuan"];
     const unitStats = new Map<string, { total: number; l: number; p: number }>();
     filteredEmployees.forEach((e) => {
-      const uName = unitMap.get(e.unit_id) || "Tanpa Unit";
+      const uName = unitMap.get(e.unit_id) || `Tanpa ${term}`;
       const s = unitStats.get(uName) || { total: 0, l: 0, p: 0 };
       s.total++;
       if (e.gender === "Laki-laki") s.l++;
@@ -260,7 +262,7 @@ export default function Reports() {
   const handleExportPDF = (type: ReportType, title: string, filename: string) => {
     const { headers, rows } = reportGenerators[type]();
     if (rows.length === 0) { toast.error("Tidak ada data untuk diekspor"); return; }
-    const unitLabel = unitId === "all" ? "Semua Unit" : (unitMap.get(unitId) || "");
+    const unitLabel = unitId === "all" ? `Semua ${term}` : (unitMap.get(unitId) || "");
     downloadPDF({
       filename: `${filename}_${year}-${String(month).padStart(2, "0")}`,
       title,
@@ -274,10 +276,10 @@ export default function Reports() {
 
   const reports: { type: ReportType; title: string; desc: string; icon: any; color: string; count: number; countLabel: string; filename: string }[] = [
     { type: "attendance", title: "Rekap Kehadiran", desc: "Data check-in/out, keterlambatan, dan status harian per karyawan", icon: Clock, color: "bg-[hsl(162,60%,40%)]", count: filteredAttendance.length, countLabel: "record", filename: "Rekap_Kehadiran" },
-    { type: "employees", title: "Daftar Karyawan", desc: "Data master karyawan aktif beserta unit, jabatan, dan informasi personal", icon: Users, color: "bg-[hsl(232,59%,28%)]", count: filteredEmployees.length, countLabel: "orang", filename: "Daftar_Karyawan" },
+    { type: "employees", title: "Daftar Karyawan", desc: `Data master karyawan aktif beserta ${termLower}, jabatan, dan informasi personal`, icon: Users, color: "bg-[hsl(232,59%,28%)]", count: filteredEmployees.length, countLabel: "orang", filename: "Daftar_Karyawan" },
     { type: "kpi", title: "Rekap KPI", desc: "Skor evaluasi KPI per karyawan berdasarkan periode penilaian", icon: BarChart3, color: "bg-[hsl(198,64%,40%)]", count: filteredKpi.length, countLabel: "evaluasi", filename: "Rekap_KPI" },
     { type: "approvals", title: "Rekap Izin & Cuti", desc: "Seluruh pengajuan cuti, izin, dan lembur beserta status persetujuan", icon: FileCheck, color: "bg-[hsl(38,80%,48%)]", count: filteredApprovals.length, countLabel: "pengajuan", filename: "Rekap_Izin_Cuti" },
-    { type: "organization", title: "Ringkasan Organisasi", desc: "Statistik distribusi karyawan per unit kerja dan gender", icon: Building2, color: "bg-[hsl(280,50%,45%)]", count: units.length, countLabel: "unit", filename: "Ringkasan_Organisasi" },
+    { type: "organization", title: "Ringkasan Organisasi", desc: `Statistik distribusi karyawan per ${termLower} kerja dan gender`, icon: Building2, color: "bg-[hsl(280,50%,45%)]", count: units.length, countLabel: termLower, filename: "Ringkasan_Organisasi" },
   ];
 
   return (

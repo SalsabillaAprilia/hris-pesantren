@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
+import { useTerminology } from "@/hooks/useTerminology";
 import { toast } from "sonner";
 import { Plus, Trash2, BarChart3, Pencil, Users, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
@@ -63,6 +64,7 @@ let globalKpiHrLeadersCache: any[] | null = null;
 
 export default function KPI() {
   const { user, employee, isAdminOrHr, hasRole } = useAuth();
+  const { kepalaTerm } = useTerminology();
   const isUnitLeader = hasRole("unit_leader");
   const isEmployee   = hasRole("employee");
 
@@ -452,7 +454,7 @@ export default function KPI() {
         <Tabs defaultValue="monitoring" className="w-full">
           <TabsList className="h-9 bg-muted/50 rounded-lg mb-4">
             <TabsTrigger value="monitoring" className="text-xs">Semua Hasil Evaluasi</TabsTrigger>
-            <TabsTrigger value="evaluasi-leader" className="text-xs">Evaluasi Kepala Unit</TabsTrigger>
+            <TabsTrigger value="evaluasi-leader" className="text-xs">Evaluasi {kepalaTerm}</TabsTrigger>
             <TabsTrigger value="template" className="text-xs">Template KPI</TabsTrigger>
           </TabsList>
           <TabsContent value="monitoring">
@@ -591,7 +593,7 @@ export default function KPI() {
           <form onSubmit={handleSubmitEval} className="flex flex-col">
             <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto">
               <div className="space-y-2">
-                <Label className="text-sm font-bold">{isAdminOrHr ? "Kepala Unit" : "Karyawan"}</Label>
+                <Label className="text-sm font-bold">{isAdminOrHr ? kepalaTerm : "Karyawan"}</Label>
                 <div className="border rounded-md max-h-40 overflow-y-auto divide-y">
                   {empList.length === 0 ? <p className="text-xs text-muted-foreground p-3">Tidak ada karyawan tersedia.</p>
                     : empList.map((e: any) => (

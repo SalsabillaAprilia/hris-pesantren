@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, Crown, ArrowRight } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface UnitCardProps {
   unit: any;
@@ -19,6 +20,7 @@ const ACCENTS = [
 ];
 
 export function UnitCard({ unit, employeeCount, leaderName, onClick }: UnitCardProps) {
+  const { kepalaTerm } = useTerminology();
   const getAccentIndex = (name: string) => {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -29,13 +31,28 @@ export function UnitCard({ unit, employeeCount, leaderName, onClick }: UnitCardP
 
   const accent = ACCENTS[getAccentIndex(unit.name || "Default")];
 
+  const isArchived = unit.is_active === false;
+
   return (
     <Card
-      className="group relative cursor-pointer overflow-hidden border border-slate-200/80 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 active:scale-[0.98]"
+      className={`group relative cursor-pointer overflow-hidden border shadow-sm transition-all duration-300 active:scale-[0.98] ${
+        isArchived
+          ? "border-slate-200 bg-slate-50/80 opacity-70 hover:opacity-90 hover:shadow-md"
+          : "border-slate-200/80 bg-white hover:shadow-xl hover:-translate-y-1"
+      }`}
       onClick={onClick}
     >
       {/* Top accent strip */}
-      <div className={`absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r ${accent.strip}`} />
+      <div className={`absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r ${isArchived ? 'from-slate-300 to-slate-400' : accent.strip}`} />
+
+      {/* Badge Diarsipkan */}
+      {isArchived && (
+        <div className="absolute top-3 right-3 z-20">
+          <span className="text-[10px] font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200 uppercase tracking-wider">
+            Diarsipkan
+          </span>
+        </div>
+      )}
 
       {/* Subtle background glow on hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-50/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -76,14 +93,15 @@ export function UnitCard({ unit, employeeCount, leaderName, onClick }: UnitCardP
             </div>
           </div>
 
-          {/* Divider */}
+          {/* Kepala Unit */}
+          {!isArchived && (
+            <>
           <div className="w-px bg-slate-200/80 my-2" />
 
-          {/* Kepala Unit */}
           <div className="flex-1 flex flex-col items-center justify-center py-2.5 px-3 gap-0.5">
             <div className="flex items-center gap-1 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
               <Crown className="h-3 w-3 text-amber-400" />
-              Kepala Unit
+              {kepalaTerm}
             </div>
             {leaderName ? (
               <span className="text-xs font-bold text-slate-700 truncate max-w-full mt-0.5 text-center">
@@ -93,6 +111,8 @@ export function UnitCard({ unit, employeeCount, leaderName, onClick }: UnitCardP
               <span className="text-[11px] text-slate-300 italic mt-0.5">Belum diatur</span>
             )}
           </div>
+            </>
+          )}
         </div>
 
         {/* Hover CTA */}

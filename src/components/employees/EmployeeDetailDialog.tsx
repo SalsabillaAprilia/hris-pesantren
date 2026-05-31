@@ -5,6 +5,7 @@ import { Employee } from "@/types/employee";
 import { getStatusBadge, calculateMasaKerja } from "@/utils/employee-format";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit, Trash, User as UserIcon, Phone, Briefcase, FileDown } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface EmployeeDetailDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ export function EmployeeDetailDialog({
   onEdit,
   onDelete
 }: EmployeeDetailDialogProps) {
+  const { term, kepalaTerm } = useTerminology();
   const [showImage, setShowImage] = useState(false);
 
   if (!employee) return null;
@@ -115,7 +117,7 @@ export function EmployeeDetailDialog({
                 <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" /> Kepegawaian & Pendidikan</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
-                <DetailItem label="Unit Kerja" value={employee.units?.name} isHighlight />
+                <DetailItem label={`${term}`} value={employee.units?.name} isHighlight />
                 <DetailItem label="Jabatan" value={employee.positions?.name} />
                 <DetailItem label="Jadwal Kerja" value={employee.shifts ? `${employee.shifts.name} (${employee.shifts.start_time?.slice(0,5)} - ${employee.shifts.end_time?.slice(0,5)})` : "—"} />
                 <DetailItem label="Status Karyawan" value={employee.status === "active" ? "Aktif" : (employee.status === "inactive" ? "Nonaktif" : "Cuti")} />
@@ -129,7 +131,7 @@ export function EmployeeDetailDialog({
                   <DetailItem label="Role Sistem" value={
                     employee.role === 'super_admin' ? 'Super Admin' :
                     employee.role === 'hr' ? 'HRD' :
-                    employee.role === 'unit_leader' ? 'Kepala Unit' :
+                    employee.role === 'unit_leader' ? kepalaTerm :
                     employee.role === 'employee' ? 'Karyawan' :
                     employee.role ? employee.role.replace('_', ' ') : "—"
                   } />

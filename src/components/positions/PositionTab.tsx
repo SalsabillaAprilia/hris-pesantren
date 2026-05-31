@@ -26,16 +26,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 let globalPositionsCache: any[] | null = null;
 
-export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }: {
+export function PositionTab({ isAdminOrHr, isSuperAdmin, onAdd, isFormOpen, onFormOpenChange, showArchived }: {
   isAdminOrHr: boolean;
+  isSuperAdmin?: boolean;
   onAdd: () => void;
   isFormOpen: boolean;
   onFormOpenChange: (open: boolean) => void;
+  showArchived: boolean;
 }) {
   const [positions, setPositions] = useState<any[]>(globalPositionsCache || []);
   const [loading, setLoading] = useState(globalPositionsCache === null);
@@ -69,7 +72,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
       let posQuery = (supabase as any).from("positions").select("*").order("name");
       if (effectiveInstansiId) posQuery = posQuery.eq("instansi_id", effectiveInstansiId);
       
-      let empQuery = (supabase as any).from("employees").select("position_id").not("position_id", "is", null);
+      let empQuery = (supabase as any).from("employees").select("position_id, status").not("position_id", "is", null);
       if (effectiveInstansiId) empQuery = empQuery.eq("instansi_id", effectiveInstansiId);
 
       const [posRes, empRes] = await Promise.all([ posQuery, empQuery ]);
@@ -80,14 +83,22 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
       }
 
       if (isMounted.current) {
-        const counts: Record<string, number> = {};
+        const activeCounts: Record<string, number> = {};
+        const transferableCounts: Record<string, number> = {};
+
         (empRes.data || []).forEach((emp: any) => {
-          counts[emp.position_id] = (counts[emp.position_id] || 0) + 1;
+          if (emp.status === 'active') {
+            activeCounts[emp.position_id] = (activeCounts[emp.position_id] || 0) + 1;
+          }
+          if (emp.status !== 'inactive') {
+            transferableCounts[emp.position_id] = (transferableCounts[emp.position_id] || 0) + 1;
+          }
         });
 
         const formattedData = (posRes.data || []).map((pos: any) => ({
           ...pos,
-          employee_count: counts[pos.id] || 0
+          employee_count: activeCounts[pos.id] || 0,
+          transferable_count: transferableCounts[pos.id] || 0
         }));
 
         setPositions(formattedData);
@@ -149,7 +160,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
     setPositionToDelete(position);
     setDeleteConfirmOpen(true);
     setReplacementPositionId("");
-    setEmployeesCount(position.employee_count || 0);
+    setEmployeesCount(position.transferable_count || 0);
   };
 
   const handleDelete = async () => {
@@ -164,32 +175,34 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
           return;
         }
 
-        // Pindahkan karyawan secara massal
+        // Pindahkan karyawan secara massal (hanya yang aktif/cuti)
         const { error: updateError } = await (supabase as any)
           .from("employees")
           .update({ position_id: replacementPositionId })
-          .eq("position_id", positionToDelete.id);
+          .eq("position_id", positionToDelete.id)
+          .neq("status", "inactive");
           
         if (updateError) throw updateError;
         toast.success(`${employeesCount} karyawan berhasil dipindahkan ke jabatan baru.`);
       }
 
       // Hapus jabatan
-      const { error } = await (supabase as any).from("positions").delete().eq("id", positionToDelete.id);
+      const { error } = await (supabase as any).from("positions").update({ is_active: false }).eq("id", positionToDelete.id);
       if (error) throw error;
       
-      toast.success("Jabatan berhasil dihapus");
+      toast.success("Jabatan berhasil diarsipkan");
       setDeleteConfirmOpen(false);
       fetchPositions();
     } catch (err: any) {
-      toast.error("Gagal menghapus jabatan");
+      toast.error("Gagal mengarsipkan jabatan");
     } finally {
       setIsActionLoading(false);
     }
   };
 
   const filteredPositions = positions.filter(pos => 
-    pos.name.toLowerCase().includes(searchQuery.toLowerCase())
+    pos.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
+    (showArchived ? true : pos.is_active !== false)
   );
 
   return (
@@ -197,12 +210,12 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
       {/* Search Bar */}
       <div className="flex items-center gap-2 max-w-sm">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Cari nama jabatan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 border-primary/40 focus-visible:ring-primary/20 bg-white"
+            className="pl-9 h-9 text-sm shadow-sm border-primary/40"
           />
         </div>
       </div>
@@ -228,7 +241,12 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
                   className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                 >
                   <TableCell className="text-center text-slate-500 py-1.5 font-medium">{idx + 1}</TableCell>
-                  <TableCell className="font-semibold text-slate-900 py-1.5">{pos.name}</TableCell>
+                  <TableCell className="font-semibold text-slate-900 py-1.5">
+                    {pos.name}
+                    {pos.is_active === false && (
+                      <span className="ml-2 text-[10px] font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200 uppercase tracking-wider">Diarsipkan</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-center py-1.5">
                     {pos.employee_count > 0 ? (
                       <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">
@@ -239,7 +257,7 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
                     )}
                   </TableCell>
                   <TableCell className="py-1.5 text-right">
-                    {isAdminOrHr && (
+                    {isAdminOrHr && pos.is_active !== false && (
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
@@ -298,11 +316,11 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
         onOpenChange={setDeleteConfirmOpen}
         onConfirm={handleDelete}
         isLoading={isActionLoading}
-        title="Konfirmasi Penghapusan"
+        title="Konfirmasi Pengarsipan"
         description={
           <div className="space-y-4 pt-2 text-slate-600">
             <p>
-              Apakah Anda yakin ingin menghapus jabatan <strong className="text-slate-900">{positionToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin mengarsipkan jabatan <strong className="text-slate-900">{positionToDelete?.name}</strong>? Jabatan yang diarsipkan tidak akan muncul saat pendaftaran karyawan baru.
             </p>
             
             {employeesCount > 0 ? (
@@ -318,19 +336,19 @@ export function PositionTab({ isAdminOrHr, onAdd, isFormOpen, onFormOpenChange }
                     </SelectTrigger>
                     <SelectContent>
                       {positions
-                        .filter(p => p.id !== positionToDelete?.id)
+                        .filter(p => p.id !== positionToDelete?.id && p.is_active !== false)
                         .map(p => (
                           <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-orange-700">Karyawan terkait akan dipindahkan ke jabatan baru sebelum jabatan ini dihapus.</p>
+                  <p className="text-xs text-orange-700">Karyawan terkait akan dipindahkan ke jabatan baru. Mantan karyawan (nonaktif) akan tetap di jabatan ini demi riwayat data.</p>
                 </div>
               </div>
             ) : null}
           </div>
         }
-        confirmText={employeesCount > 0 ? "Hapus & Pindahkan" : "Hapus"}
+        confirmText={employeesCount > 0 ? "Arsipkan & Pindahkan" : "Arsipkan"}
         disableConfirm={employeesCount > 0 && !replacementPositionId}
       />
     </div>

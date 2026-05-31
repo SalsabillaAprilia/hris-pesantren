@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Building2, Plus, ArrowLeft, Network, AlertCircle } from "lucide-react";
+import { Building2, Plus, ArrowLeft, Network, AlertCircle, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { useAuth } from "@/hooks/useAuth";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
+import { useTerminology } from "@/hooks/useTerminology";
 import { toast } from "sonner";
 import { 
   AlertDialog, 
@@ -35,8 +37,9 @@ let globalOrgUnitsCache: any[] | null = null;
 let globalOrgEmployeesCache: Employee[] | null = null;
 
 export default function Organization() {
-  const { isAdminOrHr } = useAuth();
+  const { isAdminOrHr, isSuperAdmin } = useAuth();
   const { effectiveInstansiId } = useInstansiFilter();
+  const { term, termLower } = useTerminology();
   const [units, setUnits] = useState<(Tables<"units"> & { employeeCount: number, leader?: Employee | null })[]>(globalOrgUnitsCache || []);
   const [employees, setEmployees] = useState<Employee[]>(globalOrgEmployeesCache || []);
   const [loading, setLoading] = useState(globalOrgUnitsCache === null);
@@ -49,6 +52,7 @@ export default function Organization() {
   }, []);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("units");
+  const [showArchived, setShowArchived] = useState(false);
 
   // Dialog States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -101,14 +105,18 @@ export default function Organization() {
         })) as Employee[]);
       }
 
-      const counts: Record<string, number> = {};
+      const activeCounts: Record<string, number> = {};
+      const transferableCounts: Record<string, number> = {};
+      
       (empRes.data || []).forEach((e) => { 
-        if (e.unit_id) counts[e.unit_id] = (counts[e.unit_id] || 0) + 1; 
+        if (e.unit_id && e.status === 'active') activeCounts[e.unit_id] = (activeCounts[e.unit_id] || 0) + 1; 
+        if (e.unit_id && e.status !== 'inactive') transferableCounts[e.unit_id] = (transferableCounts[e.unit_id] || 0) + 1;
       });
 
       const processedUnits = (allUnits ?? []).map((u) => ({ 
         ...u, 
-        employeeCount: counts[u.id] || 0,
+        employeeCount: activeCounts[u.id] || 0,
+        transferableCount: transferableCounts[u.id] || 0,
         leader: (empRes.data || []).find(e => e.id === (u as any).leader_id) || null
       }));
 
@@ -154,7 +162,7 @@ export default function Organization() {
         const payload = { ...data, instansi_id: effectiveInstansiId };
         const { error } = await supabase.from("units").insert([payload]);
         if (error) throw error;
-        toast.success("Unit berhasil ditambahkan");
+        toast.success(`${term} berhasil ditambahkan`);
       } else {
         const { error } = await supabase.from("units").update(data).eq("id", editingUnit.id);
         if (error) throw error;
@@ -168,24 +176,26 @@ export default function Organization() {
           if (oldLeaderId) {
             const oldLeaderEmp = employees.find(e => e.id === oldLeaderId);
             if (oldLeaderEmp?.user_id) {
-              await supabase.from("user_roles" as any)
-                .update({ role: "employee" })
-                .eq("user_id", oldLeaderEmp.user_id);
+              await (supabase as any).rpc('set_employee_unit_leader_role', { 
+                target_user_id: oldLeaderEmp.user_id, 
+                new_role: 'employee' 
+              });
             }
           }
           // Upgrade kepala baru → unit_leader
           if (newLeaderId) {
             const newLeaderEmp = employees.find(e => e.id === newLeaderId);
             if (newLeaderEmp?.user_id) {
-              await supabase.from("user_roles" as any)
-                .update({ role: "unit_leader" })
-                .eq("user_id", newLeaderEmp.user_id);
+              await (supabase as any).rpc('set_employee_unit_leader_role', { 
+                target_user_id: newLeaderEmp.user_id, 
+                new_role: 'unit_leader' 
+              });
             }
           }
         }
         // --- AKHIR SINKRONISASI ---
 
-        toast.success("Data unit berhasil diperbarui");
+        toast.success(`Data ${termLower} berhasil diperbarui`);
         if (viewingUnit?.id === editingUnit.id) {
             setViewingUnit({...viewingUnit, ...data});
         }
@@ -195,7 +205,7 @@ export default function Organization() {
       (window as any).__hrisInvalidateEmployeesCache?.();
       fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Gagal menyimpan data unit");
+      toast.error(err.message || `Gagal menyimpan data ${termLower}`);
     } finally {
       setIsActionLoading(false);
     }
@@ -213,10 +223,10 @@ export default function Organization() {
     try {
       setIsActionLoading(true);
 
-      // Jika ada anggota, pindahkan dulu
-      if (unitToDelete.employeeCount > 0) {
+      // Jika ada anggota yang harus dipindah (aktif/cuti), pindahkan dulu
+      if (unitToDelete.transferableCount > 0) {
         if (!replacementUnitId) {
-          toast.error("Pilih unit pengganti untuk memindahkan anggota");
+          toast.error(`Pilih ${termLower} pengganti untuk memindahkan anggota`);
           setIsActionLoading(false);
           return;
         }
@@ -224,21 +234,36 @@ export default function Organization() {
         const { error: updateError } = await supabase
           .from("employees")
           .update({ unit_id: replacementUnitId })
-          .eq("unit_id", unitToDelete.id);
+          .eq("unit_id", unitToDelete.id)
+          .neq("status", "inactive");
 
         if (updateError) throw updateError;
-        toast.success(`${unitToDelete.employeeCount} anggota berhasil dipindahkan ke unit baru.`);
+        toast.success(`${unitToDelete.transferableCount} anggota berhasil dipindahkan ke ${termLower} baru.`);
       }
 
-      const { error } = await supabase.from("units").delete().eq("id", unitToDelete.id);
+      // --- SINKRONISASI ROLE: Downgrade kepala unit yang dihapus ---
+      if (unitToDelete.leader_id) {
+        const leaderEmp = employees.find(e => e.id === unitToDelete.leader_id);
+        if (leaderEmp?.user_id) {
+          await (supabase as any).rpc('set_employee_unit_leader_role', { 
+            target_user_id: leaderEmp.user_id, 
+            new_role: 'employee' 
+          });
+        }
+      }
+      // --- AKHIR SINKRONISASI ---
+
+      const { error } = await (supabase as any).from("units").update({ is_active: false }).eq("id", unitToDelete.id);
       if (error) throw error;
       
-      toast.success("Unit berhasil dihapus");
+      toast.success(`${term} berhasil diarsipkan`);
       setDeleteConfirmOpen(false);
       setIsDetailOpen(false);
+      // Invalidasi cache halaman Karyawan agar role terbaru ikut terbarui
+      (window as any).__hrisInvalidateEmployeesCache?.();
       fetchData();
     } catch (err: any) {
-      toast.error("Gagal menghapus unit");
+      toast.error(`Gagal mengarsipkan ${termLower}`);
     } finally {
       setIsActionLoading(false);
     }
@@ -254,28 +279,43 @@ export default function Organization() {
     setIsEmployeeDetailOpen(true);
   };
 
+  const displayedUnits = showArchived ? units : units.filter((u: any) => u.is_active !== false);
+
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Struktur Organisasi</h1>
-          {isAdminOrHr && (
-            <Button
-              onClick={() => activeTab === "units" ? handleOpenForm("create") : setIsPositionFormOpen(true)}
-              size="sm"
-              className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium"
-              id="btn-tambah-org"
-            >
-              <Plus className="h-4 w-4" />
-              {activeTab === "units" ? "Tambah Unit" : "Tambah Jabatan"}
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {isSuperAdmin && (
+              <Button
+                variant={showArchived ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowArchived(!showArchived)}
+                className={`gap-2 mr-2 shadow-sm transition-all font-medium ${!showArchived ? 'bg-white/50 border-primary/20' : ''}`}
+              >
+                <Archive className={`h-4 w-4 ${!showArchived ? 'text-primary' : ''}`} />
+                {showArchived ? 'Sembunyikan Arsip' : 'Tampilkan Arsip'}
+              </Button>
+            )}
+            {isAdminOrHr && (
+              <Button
+                onClick={() => activeTab === "units" ? handleOpenForm("create") : setIsPositionFormOpen(true)}
+                size="sm"
+                className="gap-2 shadow-md shadow-primary/10 bg-primary hover:bg-primary/90 transition-all transform active:scale-95 font-medium"
+                id="btn-tambah-org"
+              >
+                <Plus className="h-4 w-4" />
+                {activeTab === "units" ? `Tambah ${term}` : "Tambah Jabatan"}
+              </Button>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
-            <TabsTrigger value="units" className="text-xs">Unit Kerja</TabsTrigger>
-            <TabsTrigger value="positions" className="text-xs">Master Jabatan</TabsTrigger>
+            <TabsTrigger value="units" className="text-xs">{term}</TabsTrigger>
+            <TabsTrigger value="positions" className="text-xs">Jabatan</TabsTrigger>
           </TabsList>
 
           <TabsContent value="units" className="m-0 outline-none">
@@ -284,8 +324,8 @@ export default function Organization() {
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="h-40 rounded-xl bg-slate-100 animate-pulse" />
                 ))
-              ) : units.length > 0 ? (
-                units.map((u) => (
+              ) : displayedUnits.length > 0 ? (
+                displayedUnits.map((u) => (
                   <UnitCard
                     key={u.id}
                     unit={u}
@@ -297,14 +337,14 @@ export default function Organization() {
               ) : (
                 <div className="col-span-full py-20 text-center border-2 border-dashed rounded-2xl border-slate-200">
                   <Building2 className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">Belum ada unit yang terdaftar</p>
+                  <p className="text-slate-500 font-medium">Belum ada {termLower} yang terdaftar</p>
                 </div>
               )}
             </div>
           </TabsContent>
 
           <TabsContent value="positions" className="m-0 outline-none">
-            <PositionTab isAdminOrHr={isAdminOrHr} onAdd={() => setIsPositionFormOpen(true)} isFormOpen={isPositionFormOpen} onFormOpenChange={setIsPositionFormOpen} />
+            <PositionTab isAdminOrHr={isAdminOrHr} isSuperAdmin={isSuperAdmin} onAdd={() => setIsPositionFormOpen(true)} isFormOpen={isPositionFormOpen} onFormOpenChange={setIsPositionFormOpen} showArchived={showArchived} />
           </TabsContent>
         </Tabs>
       </div>
@@ -315,7 +355,7 @@ export default function Organization() {
         onOpenChange={setIsFormOpen} 
         mode={formMode} 
         initialData={editingUnit}
-        unitMembers={employees.filter(e => e.unit_id === editingUnit?.id)}
+        unitMembers={employees.filter(e => e.unit_id === editingUnit?.id && e.status === 'active')}
         onSubmit={handleFormSubmit}
         loading={isActionLoading}
         onCancel={formMode === "edit" ? () => { setIsFormOpen(false); setIsDetailOpen(true); } : undefined}
@@ -325,7 +365,7 @@ export default function Organization() {
         open={isDetailOpen} 
         onOpenChange={setIsDetailOpen}
         unit={viewingUnit}
-        members={employees.filter(e => e.unit_id === viewingUnit?.id)}
+        members={employees.filter(e => e.unit_id === viewingUnit?.id && e.status === 'active')}
         leader={viewingUnit?.leader}
         onViewEmployee={openEmployeeDetail}
         isAdminOrHr={isAdminOrHr}
@@ -349,36 +389,36 @@ export default function Organization() {
         description={
           <div className="space-y-4 pt-2 text-slate-600">
             <p>
-              Apakah Anda yakin ingin menghapus unit <strong className="text-slate-900">{unitToDelete?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin mengarsipkan {termLower} <strong className="text-slate-900">{unitToDelete?.name}</strong>? {termLower} yang diarsipkan tidak akan muncul saat pendaftaran karyawan baru.
             </p>
             
-            {unitToDelete?.employeeCount > 0 ? (
+            {unitToDelete?.transferableCount > 0 ? (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-3">
                 <p className="text-orange-800 text-sm font-medium">
-                  ⚠️ Terdapat {unitToDelete.employeeCount} anggota yang terdaftar di unit ini.
+                  ⚠️ Terdapat {unitToDelete.transferableCount} anggota yang terdaftar di {termLower} ini.
                 </p>
                 <div className="space-y-2">
-                  <Label className="text-orange-900 font-semibold text-sm">Pilih Unit Pengganti *</Label>
+                  <Label className="text-orange-900 font-semibold text-sm">Pilih {term} Pengganti *</Label>
                   <Select value={replacementUnitId} onValueChange={setReplacementUnitId}>
                     <SelectTrigger className="bg-white border-orange-200 focus:ring-orange-500 text-slate-900">
-                      <SelectValue placeholder="Pilih Unit..." />
+                      <SelectValue placeholder={`Pilih ${term}...`} />
                     </SelectTrigger>
                     <SelectContent>
                       {units
-                        .filter(u => u.id !== unitToDelete?.id)
+                        .filter(u => u.id !== unitToDelete?.id && (u as any).is_active !== false)
                         .map(u => (
                           <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-orange-700">Anggota terkait akan dipindahkan ke unit baru sebelum unit ini dihapus.</p>
+                  <p className="text-xs text-orange-700">Anggota terkait akan dipindahkan ke {termLower} baru. Mantan karyawan (nonaktif) akan tetap di {termLower} ini demi riwayat data.</p>
                 </div>
               </div>
             ) : null}
           </div>
         }
-        confirmText={unitToDelete?.employeeCount > 0 ? "Hapus & Pindahkan" : "Hapus"}
-        disableConfirm={unitToDelete?.employeeCount > 0 && !replacementUnitId}
+        confirmText={unitToDelete?.transferableCount > 0 ? "Arsipkan & Pindahkan" : "Arsipkan"}
+        disableConfirm={unitToDelete?.transferableCount > 0 && !replacementUnitId}
       />
     </DashboardLayout>
   );

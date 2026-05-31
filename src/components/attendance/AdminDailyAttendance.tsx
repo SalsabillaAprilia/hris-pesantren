@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface AdminDailyAttendanceProps {
   records: any[];
@@ -9,6 +10,7 @@ interface AdminDailyAttendanceProps {
 }
 
 export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceProps) {
+  const { term } = useTerminology();
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +106,7 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                   Nama
                 </TableHead>
                 <TableHead className="font-semibold w-[120px] whitespace-nowrap text-left">ID Karyawan</TableHead>
-                <TableHead className="font-semibold w-[130px] whitespace-nowrap text-center">Unit</TableHead>
+                <TableHead className="font-semibold w-[130px] whitespace-nowrap text-center">{term}</TableHead>
                 <TableHead className="font-semibold w-[130px] whitespace-nowrap text-left">Jabatan</TableHead>
                 <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Masuk</TableHead>
                 <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Keluar</TableHead>

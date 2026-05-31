@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { useTerminology } from "@/hooks/useTerminology";
 
 // Palette harmonis berdasarkan warna sistem (navy + teal + warm)
 const COLORS = [
@@ -29,13 +30,15 @@ interface UnitDistributionChartProps {
 }
 
 export function UnitDistributionChart({ employees, units, loading }: UnitDistributionChartProps) {
+  const { term } = useTerminology();
+
   const chartData = useMemo(() => {
     const unitMap = new Map<string, string>();
     units.forEach((u: any) => unitMap.set(u.id, u.name));
 
     const counts = new Map<string, number>();
     employees.forEach((e: any) => {
-      const unitName = e.unit_id ? (unitMap.get(e.unit_id) || "Lainnya") : "Tanpa Unit";
+      const unitName = e.unit_id ? (unitMap.get(e.unit_id) || "Lainnya") : `Tanpa ${term}`;
       counts.set(unitName, (counts.get(unitName) || 0) + 1);
     });
 
@@ -51,7 +54,7 @@ export function UnitDistributionChart({ employees, units, loading }: UnitDistrib
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Building2 className="h-4 w-4 text-primary" />
-          Distribusi Karyawan per Unit
+          Distribusi Karyawan per {term}
         </CardTitle>
       </CardHeader>
       <CardContent>

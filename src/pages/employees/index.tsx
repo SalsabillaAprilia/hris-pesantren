@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
+import { useTerminology } from "@/hooks/useTerminology";
 import { toast } from "sonner";
 import { Plus, Search, Download, FileDown, FileText, UploadCloud } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -29,7 +30,7 @@ import { EmployeeTable } from "@/components/employees/EmployeeTable";
 import { EmployeeFormDialog } from "@/components/employees/EmployeeFormDialog";
 import { EmployeeDetailDialog } from "@/components/employees/EmployeeDetailDialog";
 import { EmployeeFilterDrawer } from "@/components/employees/EmployeeFilterDrawer";
-import { ExportConfigDialog, COLUMNS_MAP } from "@/components/employees/ExportConfigDialog";
+import { ExportConfigDialog, getColumnsMap } from "@/components/employees/ExportConfigDialog";
 import { ImportEmployeeDialog } from "@/components/employees/ImportEmployeeDialog";
 import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { uploadFile } from "@/utils/supabase-storage";
@@ -45,8 +46,9 @@ let globalPositionsCache: any[] | null = null;
 
 export default function EmployeesPage() {
   const { isAdminOrHr, isSuperAdmin, isHr, isEmployee, hasRole, employee: currentUser } = useAuth();
+  const { term } = useTerminology();
   const { effectiveInstansiId } = useInstansiFilter();
-  const isUnitLeader = hasRole("unit_leader");
+  const isUnitLeader = hasRole("unit_leader") && !isSuperAdmin && !isHr;
   const [employees, setEmployees] = useState<Employee[]>(globalEmployeesCache || []);
   const [units, setUnits] = useState<Tables<"units">[]>(globalUnitsCache || []);
   const [shifts, setShifts] = useState<any[]>(globalShiftsCache || []);
@@ -417,7 +419,7 @@ export default function EmployeesPage() {
       return;
     }
 
-    const selectedCols = COLUMNS_MAP.filter(c => exportConfig[c.id]);
+    const selectedCols = getColumnsMap(term).filter(c => exportConfig[c.id]);
     
     if (selectedCols.length === 0) {
       toast.error("Pilih minimal 1 kolom untuk diekspor");
@@ -534,7 +536,7 @@ export default function EmployeesPage() {
             <h1 className="text-2xl font-bold">Karyawan</h1>
             {isUnitLeader && (
               <p className="text-sm text-muted-foreground mt-0.5">
-                {units.find(u => u.id === currentUser?.unit_id)?.name ? `Unit ${units.find(u => u.id === currentUser?.unit_id)?.name}` : "Unit Anda"}
+                {units.find(u => u.id === currentUser?.unit_id)?.name ? `${term} ${units.find(u => u.id === currentUser?.unit_id)?.name}` : `${term} Anda`}
               </p>
             )}
           </div>

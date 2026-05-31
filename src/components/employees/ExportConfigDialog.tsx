@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Download, FileDown, FileText } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface ExportConfigDialogProps {
   open: boolean;
@@ -18,10 +19,10 @@ interface ExportConfigDialogProps {
   onDownload: () => void;
 }
 
-export const COLUMNS_MAP = [
+export const getColumnsMap = (term: string) => [
   { id: "name", label: "Nama Lengkap" },
   { id: "employee_id_number", label: "ID Karyawan" },
-  { id: "unit", label: "Unit Kerja" },
+  { id: "unit", label: term },
   { id: "position", label: "Jabatan" },
   { id: "shift", label: "Jadwal Kerja" },
   { id: "role", label: "Role Sistem" },
@@ -56,6 +57,8 @@ export function ExportConfigDialog({
   hasActiveFilters,
   onDownload
 }: ExportConfigDialogProps) {
+  const { term } = useTerminology();
+  const COLUMNS_MAP = getColumnsMap(term);
   
   const selectedCount = Object.values(config).filter(Boolean).length;
   const maxPdfColumns = 4;

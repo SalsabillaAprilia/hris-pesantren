@@ -13,6 +13,7 @@ export type Institution = {
   logo_url: string | null;
   primary_color: string | null;
   created_at: string;
+  organization_term?: string | null;
 };
 
 interface AuthContextType {

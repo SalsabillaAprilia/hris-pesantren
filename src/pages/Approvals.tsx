@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, X, ChevronLeft, ChevronRight, Filter, FileText, MessageSquare, AlertCircle, User as UserIcon } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const PAGE_SIZE = 10;
 
@@ -29,6 +30,7 @@ let globalApprovalsCount = 0;
 
 export default function Approvals() {
   const { user, employee, isAdminOrHr, isSuperAdmin, hasRole } = useAuth();
+  const { term } = useTerminology();
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -107,7 +109,7 @@ export default function Approvals() {
       if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
       if (isUnitLeader && !isAdminOrHr && employee?.unit_id) q = q.eq("employees.unit_id", employee.unit_id);
       if (activeTab === "menunggu") q = q.eq("status", "pending");
-      else q = q.in("status", ["approved", "rejected"]);
+      else q = q.in("status", ["approved_hr", "approved_unit_leader", "rejected"]);
 
       if (typeFilter !== "Semua") {
         const reverseMap: Record<string, string> = { "Cuti": "leave", "Izin": "permission", "Lembur": "overtime", "Sakit": "sick", "WFA": "wfa" };
@@ -153,8 +155,9 @@ export default function Approvals() {
     if (!user) return;
     setIsProcessing(true);
     try {
+      const newStatus = isAdminOrHr ? "approved_hr" : "approved_unit_leader";
       const { error } = await supabase.from("approvals")
-        .update({ status: "approved" })
+        .update({ status: newStatus })
         .eq("id", id);
       
       if (error) throw error;
@@ -212,7 +215,8 @@ export default function Approvals() {
 
   const statusBadge = (status: string) => {
     switch(status) {
-      case "approved":
+      case "approved_hr":
+      case "approved_unit_leader":
         return <span className="text-[11px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] border-[hsl(142,45%,90%)]">Disetujui</span>;
       case "pending":
         return <span className="text-[11px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] border-[hsl(38,55%,88%)]">Menunggu</span>;
@@ -313,7 +317,7 @@ export default function Approvals() {
                 >
                   Nama
                 </th>
-                <th className="min-w-[150px] font-semibold text-center whitespace-nowrap border-b border-gray-200 px-4 align-middle">Unit</th>
+                <th className="min-w-[150px] font-semibold text-center whitespace-nowrap border-b border-gray-200 px-4 align-middle">{term}</th>
                 <th className="font-semibold text-left whitespace-nowrap border-b border-gray-200 px-4 align-middle">Jenis</th>
                 <th className="font-semibold text-left whitespace-nowrap border-b border-gray-200 px-4 align-middle">Tanggal Kegiatan</th>
                 <th className="w-[250px] font-semibold text-left whitespace-nowrap border-b border-gray-200 px-4 align-middle">Alasan</th>

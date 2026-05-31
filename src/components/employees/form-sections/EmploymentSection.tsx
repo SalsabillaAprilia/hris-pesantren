@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface EmploymentSectionProps {
   form: any;
@@ -13,6 +14,7 @@ interface EmploymentSectionProps {
 }
 
 export function EmploymentSection({ form, setForm, units, shifts, positions, isSuperAdmin, mode }: EmploymentSectionProps) {
+  const { term, termLower } = useTerminology();
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
@@ -51,11 +53,11 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
           />
         </div>
         <div className="space-y-2 font-normal">
-          <Label className="text-sm font-bold text-muted-foreground/90">Unit Kerja</Label>
+          <Label className="text-sm font-bold text-muted-foreground/90">{term}</Label>
           <Select value={form.unit_id} onValueChange={(v) => setForm({ ...form, unit_id: v })}>
-            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih unit" /></SelectTrigger>
+            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder={`Pilih ${termLower}`} /></SelectTrigger>
             <SelectContent>
-              {units.map((u) => (
+              {units.filter(u => (u as any).is_active !== false).map((u) => (
                 <SelectItem key={u.id} value={u.id} className="text-sm">{u.name}</SelectItem>
               ))}
             </SelectContent>
@@ -66,7 +68,7 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
           <Select value={form.position_id ?? ""} onValueChange={(v) => setForm({ ...form, position_id: v || null })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
             <SelectContent>
-              {positions.map((p) => (
+              {positions.filter(p => (p as any).is_active !== false).map((p) => (
                 <SelectItem key={p.id} value={p.id} className="text-sm">{p.name}</SelectItem>
               ))}
             </SelectContent>

@@ -9,6 +9,7 @@ import { Employee } from "@/types/employee";
 import { Building2, User, Users, ArrowRight, Edit, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface UnitDetailDialogProps {
   open: boolean;
@@ -35,6 +36,8 @@ export function UnitDetailDialog({
 }: UnitDetailDialogProps) {
   if (!unit) return null;
 
+  const { term, kepalaTerm, termLower } = useTerminology();
+
   const maleCount = members.filter(m => m.gender === "Laki-laki").length;
   const femaleCount = members.filter(m => m.gender === "Perempuan").length;
   const displayMembers = members.filter(m => m.id !== leader?.id);
@@ -50,9 +53,14 @@ export function UnitDetailDialog({
               </div>
               <div className="space-y-1 py-1 min-w-0">
                 <DialogTitle className="text-2xl font-bold tracking-tight truncate">{unit.name}</DialogTitle>
+                {unit.is_active === false && (
+                  <span className="inline-block text-[10px] font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200 uppercase tracking-wider">
+                    Diarsipkan
+                  </span>
+                )}
               </div>
             </div>
-            {isAdminOrHr && (
+            {isAdminOrHr && unit.is_active !== false && (
               <div className="flex items-center gap-2 pr-6 shrink-0">
                 <Button variant="outline" size="sm" onClick={onEdit} className="gap-1.5 font-semibold text-slate-700 hover:text-primary">
                   <Edit className="h-3.5 w-3.5 text-slate-400" /> Edit Data
@@ -73,7 +81,7 @@ export function UnitDetailDialog({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground italic text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl px-4 py-3">
-              Tidak ada deskripsi untuk unit ini.
+              Tidak ada deskripsi untuk {termLower} ini.
             </p>
           )}
 
@@ -93,10 +101,18 @@ export function UnitDetailDialog({
             </div>
           </div>
 
+          {unit.is_active === false ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-slate-200 rounded-xl">
+              <Building2 className="h-10 w-10 text-slate-300 mb-3" />
+              <p className="text-sm font-medium text-slate-500">Unit ini telah diarsipkan</p>
+              <p className="text-xs text-slate-400 mt-1">Data kepala unit dan anggota tidak lagi ditampilkan</p>
+            </div>
+          ) : (
+            <>
           {/* Leaders Section */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold flex items-center gap-2">
-              <User className="h-4 w-4 text-primary" /> Kepala Unit
+              <User className="h-4 w-4 text-primary" /> {kepalaTerm}
             </h3>
             {leader ? (
               <div 
@@ -112,7 +128,7 @@ export function UnitDetailDialog({
                   </Avatar>
                   <div>
                     <p className="text-sm font-bold text-slate-900">{leader.name}</p>
-                    <p className="text-xs text-muted-foreground">{leader.position || "Kepala Unit"}</p>
+                    <p className="text-xs text-muted-foreground">{leader.position || kepalaTerm}</p>
                   </div>
                 </div>
                 <Badge variant="outline" className="text-[10px] h-5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -121,14 +137,14 @@ export function UnitDetailDialog({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground italic bg-slate-50 p-3 rounded-lg border border-dashed text-center">
-                Belum ada kepala unit ditunjuk
+                Belum ada {kepalaTerm.toLowerCase()} ditunjuk
               </p>
             )}
           </div>
 
           <div className="space-y-3">
             <h3 className="text-sm font-bold flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Anggota Unit ({displayMembers.length})
+              <Users className="h-4 w-4 text-primary" /> Anggota {term} ({displayMembers.length})
             </h3>
             <div className="space-y-2">
               {displayMembers.length > 0 ? (
@@ -156,10 +172,12 @@ export function UnitDetailDialog({
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-center text-muted-foreground py-4">Belum ada anggota di unit ini</p>
+                <p className="text-sm text-center text-muted-foreground py-4">Belum ada anggota di {termLower} ini</p>
               )}
             </div>
           </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

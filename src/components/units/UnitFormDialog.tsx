@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Employee } from "@/types/employee";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface UnitFormDialogProps {
   open: boolean;
@@ -40,6 +41,7 @@ export function UnitFormDialog({
   loading,
   onCancel
 }: UnitFormDialogProps) {
+  const { term, termLower, kepalaTerm } = useTerminology();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [leaderId, setLeaderId] = useState<string>("none");
@@ -63,20 +65,20 @@ export function UnitFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <DialogHeader className="p-6 border-b bg-muted/30">
             <DialogTitle className="text-xl font-bold tracking-tight">
-              {mode === "create" ? "Tambah Unit Baru" : "Edit Data Unit"}
+              {mode === "create" ? `Tambah ${term} Baru` : `Edit Data ${term}`}
             </DialogTitle>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-bold text-muted-foreground/90">Nama Unit *</Label>
+              <Label htmlFor="name" className="text-sm font-bold text-muted-foreground/90">Nama {term} *</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
                 className="h-9 text-sm text-slate-900 shadow-sm"
-                placeholder="Masukkan nama unit"
+                placeholder={`Masukkan nama ${termLower}`}
               />
             </div>
             
@@ -86,17 +88,17 @@ export function UnitFormDialog({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Deskripsi singkat mengenai unit ini..."
+                placeholder={`Deskripsi singkat mengenai ${termLower} ini...`}
                 className="min-h-[100px] text-sm text-slate-900 shadow-sm resize-none"
               />
             </div>
 
             {mode === "edit" ? (
               <div className="space-y-2">
-                <Label htmlFor="leader" className="text-sm font-bold text-muted-foreground/90">Kepala Unit</Label>
+                <Label htmlFor="leader" className="text-sm font-bold text-muted-foreground/90">{kepalaTerm}</Label>
                 <Select value={leaderId} onValueChange={setLeaderId}>
                   <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm">
-                    <SelectValue placeholder="Pilih Kepala Unit" />
+                    <SelectValue placeholder={`Pilih ${kepalaTerm}`} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Tanpa Pemimpin</SelectItem>
@@ -108,13 +110,13 @@ export function UnitFormDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground italic mt-1">
-                  *Hanya menampilkan karyawan yang terdaftar di unit ini
+                  *Hanya menampilkan karyawan yang terdaftar di {termLower} ini
                 </p>
               </div>
             ) : (
               <div className="p-4 bg-muted/50 rounded-xl border border-dashed border-muted-foreground/20">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Penunjukan <strong>Kepala Unit</strong> dapat dilakukan melalui tombol <strong>Edit</strong> setelah unit memiliki anggota.
+                  Penunjukan <strong>{kepalaTerm}</strong> dapat dilakukan melalui tombol <strong>Edit</strong> setelah {termLower} memiliki anggota.
                 </p>
               </div>
             )}
@@ -125,7 +127,7 @@ export function UnitFormDialog({
               Batal
             </Button>
             <Button type="submit" disabled={loading} className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">
-              {loading ? "Menyimpan..." : (mode === "create" ? "Simpan Unit" : "Simpan Perubahan")}
+              {loading ? "Menyimpan..." : (mode === "create" ? `Simpan ${term}` : "Simpan Perubahan")}
             </Button>
           </div>
         </form>
