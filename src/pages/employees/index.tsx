@@ -98,6 +98,14 @@ export default function EmployeesPage() {
     return () => { isMounted.current = false; };
   }, []);
 
+  // Daftarkan fungsi invalidasi cache agar bisa dipanggil modul lain (misal: Organization)
+  useEffect(() => {
+    (window as any).__hrisInvalidateEmployeesCache = () => {
+      globalEmployeesCache = null;
+    };
+    return () => { delete (window as any).__hrisInvalidateEmployeesCache; };
+  }, []);
+
   const fetchData = useCallback(async () => {
     // Hanya tampilkan loading pada fetch pertama
     if (isFirstFetch.current) setLoading(true);
@@ -124,9 +132,7 @@ export default function EmployeesPage() {
             : supabase.from("work_shifts").select("*").order("name")
         ),
         supabaseFetchWithTimeout(
-          effectiveInstansiId
-            ? supabase.from("user_roles").select("*").eq("instansi_id", effectiveInstansiId)
-            : supabase.from("user_roles").select("*")
+          supabase.from("user_roles").select("user_id, role, instansi_id")
         ),
         supabaseFetchWithTimeout((supabase as any).from("positions").select("*").order("name"))
       ]);
@@ -147,8 +153,15 @@ export default function EmployeesPage() {
           ...emp,
           units:     allUnits.find((u: any) => u.id === emp.unit_id) || null,
           positions: allPositions.find((p: any) => p.id === emp.position_id) || null,
+          shifts:    (shiftRes.data || []).find((s: any) => s.id === emp.shift_id) || null,
           role:      rolesMap.find((r: any) => r.user_id === emp.user_id)?.role || "employee"
-        })).filter((emp: any) => !["super_admin", "hr"].includes(emp.role)) as Employee[];
+        })).filter((emp: any) => {
+          // Sembunyikan HR/admin dari daftar
+          if (["super_admin", "director", "hr"].includes(emp.role)) return false;
+          // Untuk unit_leader: sembunyikan diri sendiri dari daftar bawahannya
+          if (isUnitLeader && currentUser?.user_id && emp.user_id === currentUser.user_id) return false;
+          return true;
+        }) as Employee[];
         setEmployees(finalEmployees);
       }
       if (unitRes.data)         setUnits(unitRes.data);
@@ -246,8 +259,11 @@ export default function EmployeesPage() {
         shift_id: form.shift_id || null,
       };
 
+      const targetInstansiId = effectiveInstansiId || currentUser?.instansi_id || null;
+
       if (dialogMode === "create") {
-         console.log("Mencoba mendaftarkan user baru:", form.email);
+         profileUpdates.instansi_id = targetInstansiId;
+         console.log("Mencoba mendaftarkan user baru:", form.email, "Instansi:", targetInstansiId);
          
          // Buat Supabase client sementara yang tidak menyimpan sesi, 
          // supaya sesi Admin saat ini tidak tertimpa login user baru
@@ -265,7 +281,7 @@ export default function EmployeesPage() {
          const { data: authData, error: authError } = await tempSupabase.auth.signUp({ 
            email: form.email, 
            password: form.password, 
-           options: { data: { name: form.name } } 
+           options: { data: { name: form.name, instansi_id: targetInstansiId } } 
          });
          
          if (authError) throw authError;
@@ -278,26 +294,21 @@ export default function EmployeesPage() {
               
             if (profileError) throw profileError;
             
-            const { data: checkExistingRole } = await (supabase as any)
-              .from("user_roles")
-              .select("id")
-              .eq("user_id", authData.user.id)
-              .maybeSingle();
-
-            if (checkExistingRole) {
+            // Update role (hanya boleh dilakukan oleh Super Admin, karena HR akan terkena RLS)
+            if (isSuperAdmin) {
               const { error: roleUpdateError } = await (supabase as any)
                 .from("user_roles")
-                .update({ role: form.role || "employee" })
-                .eq("id", checkExistingRole.id);
-              if (roleUpdateError) throw roleUpdateError;
+                .update({ 
+                  role: form.role || "employee",
+                  instansi_id: targetInstansiId 
+                })
+                .eq("user_id", authData.user.id);
+                
+              if (roleUpdateError) {
+                console.warn("Gagal update user_roles:", roleUpdateError);
+              }
             } else {
-              const { error: roleInsertError } = await (supabase as any)
-                .from("user_roles")
-                .insert({ 
-                  user_id: authData.user.id, 
-                  role: form.role || "employee"
-                });
-              if (roleInsertError) throw roleInsertError;
+              console.log("Melewati update user_roles karena user bukan Super Admin.");
             }
          }
       } else {
@@ -417,6 +428,8 @@ export default function EmployeesPage() {
       switch (colId) {
         case 'unit': return emp.units?.name || "-";
         case 'position': return emp.positions?.name || "-";
+        case 'shift': return emp.shifts?.name || "-";
+        case 'role': return emp.role === 'super_admin' ? 'Super Admin' : emp.role === 'director' ? 'Direktur' : emp.role === 'hr' ? 'HR Manager' : 'Karyawan';
         case 'status': return emp.status === 'active' ? 'Aktif' : emp.status === 'inactive' ? 'Nonaktif' : 'Cuti';
         case 'join_date': return emp.join_date ? new Date(emp.join_date).toLocaleDateString('id-ID') : "-";
         case 'contract_end_date': return emp.contract_end_date ? new Date(emp.contract_end_date).toLocaleDateString('id-ID') : "-";
@@ -520,7 +533,9 @@ export default function EmployeesPage() {
           <div>
             <h1 className="text-2xl font-bold">Karyawan</h1>
             {isUnitLeader && (
-              <p className="text-sm text-muted-foreground mt-0.5">Anggota Unit Anda</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {units.find(u => u.id === currentUser?.unit_id)?.name ? `Unit ${units.find(u => u.id === currentUser?.unit_id)?.name}` : "Unit Anda"}
+              </p>
             )}
           </div>
           {/* Tombol Tambah & Export hanya untuk Admin/HR */}
@@ -560,7 +575,7 @@ export default function EmployeesPage() {
               className="pl-9 h-9 text-sm shadow-sm border-primary/40" 
             />
           </div>
-          <EmployeeFilterDrawer filters={filters} setFilters={setFilters} units={units} positions={positions} hasActiveFilters={Object.values(filters).some(v => v !== "all")} onReset={() => setFilters({ unit_id: "all", position: "all", status: "all", tenure: "all", gender: "all", education: "all", religion: "all" })} />
+          <EmployeeFilterDrawer filters={filters} setFilters={setFilters} units={units} positions={positions} hasActiveFilters={Object.values(filters).some(v => v !== "all")} onReset={() => setFilters({ unit_id: "all", position: "all", status: "all", tenure: "all", gender: "all", education: "all", religion: "all" })} isUnitLeader={isUnitLeader} />
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-3 mb-3 bg-muted/50 h-9 rounded-lg">
@@ -627,6 +642,7 @@ export default function EmployeesPage() {
         onOpenChange={setImportDialogOpen}
         units={units}
         positions={positions}
+        targetInstansiId={effectiveInstansiId || currentUser?.instansi_id || null}
         onSuccess={fetchData}
       />
 

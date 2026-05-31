@@ -98,12 +98,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [instansiId, fetchInstitution]);
 
+  // Gunakan ref agar refreshSession selalu membaca state terbaru (hindari stale closure)
+  const userRef = useRef(user);
+  const employeeRef = useRef(employee);
+  const rolesRef = useRef(roles);
+  const lastRefreshRef = useRef(lastRefresh);
+  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => { employeeRef.current = employee; }, [employee]);
+  useEffect(() => { rolesRef.current = roles; }, [roles]);
+  useEffect(() => { lastRefreshRef.current = lastRefresh; }, [lastRefresh]);
+
   const refreshSession = async (force: boolean = false) => {
     const now = Date.now();
-    
-    if (!force && lastRefresh > 0 && (now - lastRefresh < 300000) && user && employee) {
+    const currentUser = userRef.current;
+    const currentEmployee = employeeRef.current;
+    const currentRoles = rolesRef.current;
+    const currentLastRefresh = lastRefreshRef.current;
+
+    if (!force && currentLastRefresh > 0 && (now - currentLastRefresh < 300000) && currentUser && currentEmployee) {
       console.log("Auth: Session is fresh, skipping metadata fetch.");
-      // Hanya set false jika ini masih initial load (state loading masih true)
       if (isInitialLoad.current) setLoading(false);
       return;
     }
@@ -113,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = session?.user ?? null;
       
       if (u) {
-        if (!employee || !roles.length || force || u.id !== user?.id) {
+        if (!currentEmployee || !currentRoles.length || force || u.id !== currentUser?.id) {
           console.log("Auth: Fetching profile metadata...");
           const [empRes, rolesRes] = await Promise.all([
             supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("user_id", u.id).single(), 20000),
@@ -130,7 +143,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           if (rolesRes?.data) {
             setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
-            // Ambil instansi_id dari row pertama user_roles
             const userInstansiId = rolesRes.data[0]?.instansi_id ?? null;
             setInstansiId(userInstansiId);
             await fetchInstitution(userInstansiId);
@@ -140,16 +152,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(u);
         setLastRefresh(now);
       } else {
-        setUser(null); setEmployee(null); setRoles([]);
-        setInstansiId(null); setCurrentInstitution(null);
+        // Hanya clear state jika user memang belum pernah login di sesi ini
+        if (!currentUser) {
+          setUser(null); setEmployee(null); setRoles([]);
+          setInstansiId(null); setCurrentInstitution(null);
+        }
       }
     } catch (err) {
       console.error("Auth: Session refresh failed:", err);
-      if (!user) setUser(null); 
+      // Jangan clear user saat ada error jaringan — user tetap bisa menggunakan aplikasi
     } finally {
-      // Selalu selesaikan loading state pada initial load.
-      // Untuk refresh background (isInitialLoad sudah false), ini tidak berpengaruh
-      // karena loading sudah false.
       if (isInitialLoad.current) {
         setLoading(false);
         isInitialLoad.current = false;
@@ -161,14 +173,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let visibilityTimeout: NodeJS.Timeout;
 
+    // Initial load: gunakan getSession() langsung, lebih reliabel daripada bergantung
+    // pada event INITIAL_SESSION dari onAuthStateChange.
     refreshSession(true);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         console.log("Auth Event:", event);
-        
-        if (event === 'SIGNED_OUT' || !session) {
+
+        // INITIAL_SESSION diabaikan — refreshSession(true) di atas sudah menangani loading awal.
+        // Mengizinkan INITIAL_SESSION masuk justru menyebabkan race condition di Chrome.
+        if (event === 'INITIAL_SESSION') return;
+
+        if (event === 'SIGNED_OUT') {
           setUser(null); setEmployee(null); setRoles([]);
           setInstansiId(null); setCurrentInstitution(null); setAllInstitutions([]);
           setSelectedInstansiId(null);
@@ -176,39 +194,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const u = session.user;
-        try {
-          if (event === 'TOKEN_REFRESHED' && employee && u.id === user?.id) {
+        // TOKEN_REFRESHED: Supabase memperbarui token JWT secara otomatis di background.
+        // Kita HANYA update objek user (agar token baru digunakan), TIDAK perlu re-fetch profil.
+        // Ini mencegah layar berkedip / redirect palsu saat token diperbarui.
+        if (event === 'TOKEN_REFRESHED' && session) {
+          setUser(session.user);
+          setLastRefresh(Date.now());
+          return;
+        }
+
+        // Untuk event SIGNED_IN (misal dari tab berbeda), sinkronkan sesi.
+        if (event === 'SIGNED_IN' && session) {
+          const u = session.user;
+          // Jika sudah ada data dan user sama, cukup update token.
+          if (employeeRef.current && u.id === userRef.current?.id) {
             setUser(u);
+            setLastRefresh(Date.now());
             return;
           }
-
-          const [empRes, rolesRes] = await Promise.all([
-            supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("user_id", u.id).single(), 20000),
-            supabaseFetchWithTimeout(supabase.from("user_roles").select("role, instansi_id").eq("user_id", u.id), 20000),
-          ]);
-          if (empRes?.data) {
-            if (empRes.data.status === "inactive") {
-              await supabase.auth.signOut();
-              toast.error("Akses ditolak: Akun Anda telah dinonaktifkan.");
-              setUser(null); setEmployee(null); setRoles([]);
-              setLoading(false); return;
+          // User berbeda atau belum ada data: fetch profil.
+          try {
+            const [empRes, rolesRes] = await Promise.all([
+              supabaseFetchWithTimeout(supabase.from("employees").select("*").eq("user_id", u.id).single(), 20000),
+              supabaseFetchWithTimeout(supabase.from("user_roles").select("role, instansi_id").eq("user_id", u.id), 20000),
+            ]);
+            if (empRes?.data) {
+              if (empRes.data.status === "inactive") {
+                await supabase.auth.signOut();
+                toast.error("Akses ditolak: Akun Anda telah dinonaktifkan.");
+                setUser(null); setEmployee(null); setRoles([]);
+                setLoading(false); return;
+              }
+              setEmployee(empRes.data);
             }
-            setEmployee(empRes.data);
+            if (rolesRes?.data) {
+              setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
+              const userInstansiId = rolesRes.data[0]?.instansi_id ?? null;
+              setInstansiId(userInstansiId);
+              await fetchInstitution(userInstansiId);
+            }
+            setUser(u);
+            setLastRefresh(Date.now());
+          } catch (err) {
+            console.error("Auth: SIGNED_IN metadata fetch failed:", err);
+            // Jangan paksa logout di sini! Biarkan sesi tetap valid meski profil gagal dimuat.
+            setUser(u);
           }
-          if (rolesRes?.data) {
-            setRoles(rolesRes.data.map((r) => r.role as AppRole) || []);
-            const userInstansiId = rolesRes.data[0]?.instansi_id ?? null;
-            setInstansiId(userInstansiId);
-            await fetchInstitution(userInstansiId);
-          }
-          setUser(u);
-          setLastRefresh(Date.now());
-        } catch (err) {
-          console.error("Auth: State change metadata fetch failed:", err);
-          setUser(u); 
-        } finally {
-          setLoading(false);
         }
       }
     );

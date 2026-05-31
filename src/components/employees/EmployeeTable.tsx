@@ -152,6 +152,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                   <TableHead className="font-semibold text-center whitespace-nowrap">Status</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Unit</TableHead>
                   <TableHead className="font-semibold text-left whitespace-nowrap">Jabatan</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Jadwal Kerja</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Bergabung</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Masa Kerja</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Akhir Kontrak</TableHead>
@@ -208,6 +209,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                     <TableCell className="py-1.5 origin-center whitespace-nowrap text-center">{getStatusBadge(emp.status)}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center">{emp.units?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-left">{emp.positions?.name || "—"}</TableCell>
+                    <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center text-[13px]">{emp.shifts ? `${emp.shifts.name}` : "—"}</TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {emp.join_date ? new Date(emp.join_date).toLocaleDateString("id-ID") : "—"}
                     </TableCell>

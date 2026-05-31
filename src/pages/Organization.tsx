@@ -158,12 +158,41 @@ export default function Organization() {
       } else {
         const { error } = await supabase.from("units").update(data).eq("id", editingUnit.id);
         if (error) throw error;
+
+        // --- SINKRONISASI ROLE unit_leader ---
+        const oldLeaderId = editingUnit.leader_id ?? null;
+        const newLeaderId = data.leader_id ?? null;
+
+        if (oldLeaderId !== newLeaderId) {
+          // Downgrade kepala lama → employee
+          if (oldLeaderId) {
+            const oldLeaderEmp = employees.find(e => e.id === oldLeaderId);
+            if (oldLeaderEmp?.user_id) {
+              await supabase.from("user_roles" as any)
+                .update({ role: "employee" })
+                .eq("user_id", oldLeaderEmp.user_id);
+            }
+          }
+          // Upgrade kepala baru → unit_leader
+          if (newLeaderId) {
+            const newLeaderEmp = employees.find(e => e.id === newLeaderId);
+            if (newLeaderEmp?.user_id) {
+              await supabase.from("user_roles" as any)
+                .update({ role: "unit_leader" })
+                .eq("user_id", newLeaderEmp.user_id);
+            }
+          }
+        }
+        // --- AKHIR SINKRONISASI ---
+
         toast.success("Data unit berhasil diperbarui");
         if (viewingUnit?.id === editingUnit.id) {
             setViewingUnit({...viewingUnit, ...data});
         }
       }
       setIsFormOpen(false);
+      // Invalidasi cache halaman Karyawan agar role terbaru ikut terbarui
+      (window as any).__hrisInvalidateEmployeesCache?.();
       fetchData();
     } catch (err: any) {
       toast.error(err.message || "Gagal menyimpan data unit");

@@ -194,8 +194,8 @@ export default function Dashboard() {
         if (isUnitLeader && !isAdminOrHr && !isDirector) {
           const myUnitId = employee?.unit_id;
           if (myUnitId) {
-            filteredEmps = activeEmps.filter(e => e.unit_id === myUnitId);
-            filteredAllEmps = filteredAllEmps.filter(e => e.unit_id === myUnitId);
+            filteredEmps = activeEmps.filter(e => e.unit_id === myUnitId && e.user_id !== employee?.user_id);
+            filteredAllEmps = filteredAllEmps.filter(e => e.unit_id === myUnitId && e.user_id !== employee?.user_id);
             const subordinateIds = new Set(filteredAllEmps.map(e => e.id));
             attData = attData.filter(a => subordinateIds.has(a.employee_id));
             apprData = apprData.filter(a => subordinateIds.has(a.employee_id));

@@ -73,7 +73,7 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
           </Select>
         </div>
         <div className="space-y-2 font-normal">
-          <Label className="text-sm font-bold text-muted-foreground/90">Jadwal Shift</Label>
+          <Label className="text-sm font-bold text-muted-foreground/90">Jadwal Kerja</Label>
           <Select value={form.shift_id ?? ""} onValueChange={(v) => setForm({ ...form, shift_id: v || null })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih shift" /></SelectTrigger>
             <SelectContent>
@@ -103,7 +103,7 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
           </Select>
         </div>
         
-        <div className="space-y-2 md:col-span-2">
+        <div className="space-y-2">
           <Label className="text-sm text-muted-foreground/90 font-bold">Link Dokumen Karyawan</Label>
           <Input 
             value={form.attachment_url} 
@@ -113,18 +113,7 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
           />
         </div>
 
-        {isSuperAdmin && (
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground/90 font-bold">Role Sistem</Label>
-            <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-            <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unit_leader" className="text-sm">Kepala Unit</SelectItem>
-                <SelectItem value="employee" className="text-sm">Karyawan</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+
 
         {mode === "create" && (
           <div className="space-y-2">
@@ -134,8 +123,8 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
               value={form.password} 
               onChange={(e) => setForm({ ...form, password: e.target.value })} 
               required 
-              minLength={6} 
-              placeholder="Minimal 6 karakter" 
+              minLength={8} 
+              placeholder="Minimal 8 karakter" 
               className="h-9 text-sm text-slate-900 shadow-sm"
             />
           </div>

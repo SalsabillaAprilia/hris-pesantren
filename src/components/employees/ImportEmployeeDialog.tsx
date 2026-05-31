@@ -13,10 +13,11 @@ interface ImportEmployeeDialogProps {
   onOpenChange: (open: boolean) => void;
   units: any[];
   positions: any[];
+  targetInstansiId: string | null;
   onSuccess: () => void;
 }
 
-export function ImportEmployeeDialog({ open, onOpenChange, units, positions, onSuccess }: ImportEmployeeDialogProps) {
+export function ImportEmployeeDialog({ open, onOpenChange, units, positions, targetInstansiId, onSuccess }: ImportEmployeeDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -137,7 +138,7 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, onS
         const { data: authData, error: authError } = await tempSupabase.auth.signUp({
           email: row.Email,
           password: row.Password,
-          options: { data: { name: row.Nama } }
+          options: { data: { name: row.Nama, instansi_id: targetInstansiId } }
         });
 
         if (authError) throw authError;
@@ -177,6 +178,7 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, onS
           gender: row.Jenis_Kelamin || 'Laki-laki',
           position_id: positionId,
           unit_id: unitId,
+          instansi_id: targetInstansiId,
           status: 'active' as const
         };
 
@@ -196,7 +198,7 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, onS
 
         if (roleError) {
            // Fallback update if insert fails (just in case trigger created one)
-           await (supabase as any).from("user_roles").update({ role: roleStr }).eq("user_id", authData.user.id);
+           await (supabase as any).from("user_roles").update({ role: roleStr, instansi_id: targetInstansiId }).eq("user_id", authData.user.id);
         }
 
         successCount++;

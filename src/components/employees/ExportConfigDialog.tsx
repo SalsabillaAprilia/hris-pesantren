@@ -23,6 +23,8 @@ export const COLUMNS_MAP = [
   { id: "employee_id_number", label: "ID Karyawan" },
   { id: "unit", label: "Unit Kerja" },
   { id: "position", label: "Jabatan" },
+  { id: "shift", label: "Jadwal Kerja" },
+  { id: "role", label: "Role Sistem" },
   { id: "status", label: "Status Karyawan" },
   { id: "join_date", label: "Tanggal Bergabung" },
   { id: "contract_end_date", label: "Akhir Kontrak" },
