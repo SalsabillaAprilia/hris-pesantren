@@ -61,6 +61,11 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
 
   const filteredRecords = records.filter(r => r.date === selectedDate);
 
+  const totalHadir   = filteredRecords.filter(r => r.check_in && !['Mangkir','Izin','Cuti','Sakit'].includes(r.daily_status)).length;
+  const totalTelat   = filteredRecords.filter(r => r.late_minutes && r.late_minutes > 0).length;
+  const totalIzin    = filteredRecords.filter(r => ['Izin','Cuti','Sakit'].includes(r.daily_status)).length;
+  const totalMangkir = filteredRecords.filter(r => r.daily_status === 'Mangkir').length;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/20 border rounded-lg mb-4">
@@ -75,8 +80,19 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
             />
           </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Menampilkan <span className="font-bold text-slate-900">{filteredRecords.length}</span> rekam kehadiran
+        <div className="flex gap-2 flex-wrap">
+          <div className="px-3 h-9 flex items-center bg-[hsl(142,45%,96%)] text-[hsl(142,45%,25%)] border border-[hsl(142,45%,90%)] rounded-md text-xs font-semibold">
+            Hadir: {totalHadir}
+          </div>
+          <div className="px-3 h-9 flex items-center bg-[hsl(38,55%,94%)] text-[hsl(38,55%,30%)] border border-[hsl(38,55%,88%)] rounded-md text-xs font-semibold">
+            Terlambat: {totalTelat}
+          </div>
+          <div className="px-3 h-9 flex items-center bg-[hsl(232,59%,96%)] text-[hsl(232,59%,21%)] border border-[hsl(232,59%,90%)] rounded-md text-xs font-semibold">
+            Berhalangan: {totalIzin}
+          </div>
+          <div className="px-3 h-9 flex items-center bg-[hsl(0,55%,96%)] text-[hsl(0,55%,35%)] border border-[hsl(0,55%,90%)] rounded-md text-xs font-semibold">
+            Mangkir: {totalMangkir}
+          </div>
         </div>
       </div>
 
@@ -138,30 +154,30 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                     <TableCell className="text-slate-900 py-1.5 text-left">{r.employees?.employee_id_number ?? "—"}</TableCell>
                     <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px] text-center">{r.employees?.units?.name ?? "—"}</TableCell>
                     <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px] text-left">{r.employees?.position ?? "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5 text-center font-medium">
+                    <TableCell className="text-slate-900 py-1.5 text-center">
                       {r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}
                     </TableCell>
-                    <TableCell className="text-slate-900 py-1.5 text-center font-medium">
+                    <TableCell className="text-slate-900 py-1.5 text-center">
                       {r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}
                     </TableCell>
                     <TableCell className="text-slate-900 py-1.5 text-center">
                       {r.overtime_minutes ? `${r.overtime_minutes}mnt` : "—"}
                     </TableCell>
                     <TableCell className="py-1.5 text-center">
-                      {r.late_minutes ? <span className="text-rose-500 font-medium">{r.late_minutes}mnt</span> : "—"}
+                      {r.late_minutes ? <span className="text-slate-900">{r.late_minutes}mnt</span> : "—"}
                     </TableCell>
                     <TableCell className="py-1.5 text-center">
-                      {r.early_leave_minutes ? <span className="text-amber-500 font-medium">{r.early_leave_minutes}mnt</span> : "—"}
+                      {r.early_leave_minutes ? <span className="text-slate-900">{r.early_leave_minutes}mnt</span> : "—"}
                     </TableCell>
                     <TableCell className="py-1.5 text-center">
-                      {r.daily_status === 'Hadir' ? (
-                        <span className="text-[11px] font-semibold text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] px-2 py-0.5 rounded border border-[hsl(142,45%,90%)] whitespace-nowrap">Hadir</span>
+                      {r.daily_status === 'Hadir' || r.daily_status === 'WFA' ? (
+                        <span className="text-[11px] font-semibold text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] px-2 py-0.5 rounded border border-[hsl(142,45%,90%)] whitespace-nowrap">{r.daily_status}</span>
                       ) : r.daily_status === 'Mangkir' ? (
                         <span className="text-[11px] font-semibold text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] px-2 py-0.5 rounded border border-[hsl(0,55%,90%)] whitespace-nowrap">Mangkir</span>
-                      ) : r.daily_status?.includes('Izin') || r.daily_status?.includes('Sakit') || r.daily_status?.includes('Cuti') || r.daily_status?.includes('WFA') ? (
-                        <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">{r.daily_status}</span>
+                      ) : r.daily_status === 'Terlambat' ? (
+                        <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Terlambat</span>
                       ) : (
-                        <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">{r.daily_status || 'Hadir'}</span>
+                        <span className="text-[11px] font-semibold text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] px-2 py-0.5 rounded border border-[hsl(232,59%,90%)] whitespace-nowrap">{r.daily_status || 'Hadir'}</span>
                       )}
                     </TableCell>
                     <TableCell className="py-1.5 text-center">

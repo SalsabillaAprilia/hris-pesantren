@@ -138,7 +138,7 @@ export function AttendanceDayEditDialog({ open, onOpenChange, record, onSuccess 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground/90 font-bold">Menit Telat</Label>
+                <Label className="text-sm text-muted-foreground/90 font-bold">Menit Terlambat</Label>
                 <Input
                   type="number"
                   min="0"
@@ -161,10 +161,10 @@ export function AttendanceDayEditDialog({ open, onOpenChange, record, onSuccess 
 
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground/90 font-bold">
-                Catatan Koreksi <span className="text-red-500">*</span>
+                Catatan Koreksi *
               </Label>
               <Textarea
-                placeholder="Wajib diisi — tuliskan alasan koreksi data ini..."
+                placeholder="Tuliskan alasan koreksi data ini..."
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 className="text-sm text-slate-900 shadow-sm border-primary/20 min-h-[80px] resize-none"

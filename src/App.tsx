@@ -76,6 +76,7 @@ function AppRoutes() {
   const adminOrHr       = isAdminOrHr;                    // super_admin & hr
   const adminHrOrLeader = isAdminOrHr || isUnitLeader;     // super_admin, hr, unit_leader
   const adminHrLeaderOrDirector = adminHrOrLeader || isDirector;
+  const attendanceAccess = isAdminOrHr || isUnitLeader || isEmployee; // semua kecuali director
   const allRoles        = true;                            // semua role yang sudah login
 
   return (
@@ -87,7 +88,7 @@ function AppRoutes() {
         {/* Semua role yang login bisa akses */}
       <Route path="/"          element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/attendance" element={<ProtectedRoute><GlobalModeGuard><Attendance /></GlobalModeGuard></ProtectedRoute>} />
+      <Route path="/attendance" element={<GuardedRoute allowed={attendanceAccess}><GlobalModeGuard><Attendance /></GlobalModeGuard></GuardedRoute>} />
       <Route path="/tasks"     element={<ProtectedRoute><GlobalModeGuard><Tasks /></GlobalModeGuard></ProtectedRoute>} />
       <Route path="/agenda"    element={<ProtectedRoute><GlobalModeGuard><Agendas /></GlobalModeGuard></ProtectedRoute>} />
       <Route path="/kpi"       element={<ProtectedRoute><GlobalModeGuard><KPI /></GlobalModeGuard></ProtectedRoute>} />

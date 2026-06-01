@@ -369,11 +369,11 @@ export default function NationalHolidays() {
                       key={holiday.id} 
                       className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                     >
-                      <TableCell className="text-center text-slate-500 py-1.5 font-medium">{index + 1}</TableCell>
-                      <TableCell className="font-semibold text-slate-900 py-1.5 whitespace-nowrap">
+                      <TableCell className="text-center text-slate-500 py-1.5">{index + 1}</TableCell>
+                      <TableCell className="text-slate-900 py-1.5 whitespace-nowrap">
                         {format(parseISO(holiday.date), "dd MMMM yyyy", { locale: id })}
                       </TableCell>
-                      <TableCell className="text-slate-700 py-1.5">{holiday.description}</TableCell>
+                      <TableCell className="text-slate-900 font-semibold py-1.5">{holiday.description}</TableCell>
                       <TableCell className="py-1.5 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
@@ -419,11 +419,13 @@ export default function NationalHolidays() {
       />
 
       <AlertDialog open={isFetchDialogOpen} onOpenChange={setIsFetchDialogOpen}>
-        <AlertDialogContent className="shadow-2xl border-none max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Tarik Data Otomatis</AlertDialogTitle>
+        <AlertDialogContent className="sm:max-w-[500px] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+          <AlertDialogHeader className="p-6 border-b bg-muted/30">
+            <AlertDialogTitle className="text-xl font-bold tracking-tight">Tarik Data Otomatis</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="p-6">
             <AlertDialogDescription asChild>
-              <div className="space-y-4 pt-2 text-slate-600">
+              <div className="space-y-4 text-slate-600">
                 <p>
                   Apakah Anda yakin ingin menarik data hari libur nasional tahun <strong className="text-slate-900">{new Date().getFullYear()}</strong> dari internet?
                 </p>
@@ -432,9 +434,9 @@ export default function NationalHolidays() {
                 </div>
               </div>
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 pt-4">
-            <AlertDialogCancel className="h-10 min-w-[120px] text-sm font-semibold">
+          </div>
+          <AlertDialogFooter className="p-6 border-t bg-muted/30 flex justify-end gap-3 m-0">
+            <AlertDialogCancel className="min-w-[140px] h-10 text-sm m-0 border-slate-200">
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
@@ -443,11 +445,11 @@ export default function NationalHolidays() {
                 handleFetchHolidaysFromApi();
               }}
               disabled={isFetchingApi}
-              className="h-10 min-w-[120px] text-sm bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+              className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6 m-0"
             >
               {isFetchingApi ? (
                 <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
                   Memproses...
                 </>
               ) : (

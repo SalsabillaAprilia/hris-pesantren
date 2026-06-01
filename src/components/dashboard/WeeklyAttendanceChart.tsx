@@ -22,7 +22,7 @@ interface WeeklyAttendanceChartProps {
 export function WeeklyAttendanceChart({ attendanceRecords, loading }: WeeklyAttendanceChartProps) {
   const chartData = useMemo(() => {
     const today = new Date();
-    const days: { date: string; label: string; Hadir: number; Telat: number; Mangkir: number }[] = [];
+    const days: { date: string; label: string; Hadir: number; Terlambat: number; Mangkir: number }[] = [];
 
     for (let i = 6; i >= 0; i--) {
       const d = subDays(today, i);
@@ -39,7 +39,7 @@ export function WeeklyAttendanceChart({ attendanceRecords, loading }: WeeklyAtte
         (r) => r.daily_status && r.daily_status.toLowerCase().includes("mangkir")
       ).length;
 
-      days.push({ date: dateStr, label, Hadir: hadir, Telat: telat, Mangkir: mangkir });
+      days.push({ date: dateStr, label, Hadir: hadir, Terlambat: telat, Mangkir: mangkir });
     }
 
     return days;
@@ -90,7 +90,7 @@ export function WeeklyAttendanceChart({ attendanceRecords, loading }: WeeklyAtte
                 wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
               />
               <Bar dataKey="Hadir" fill="hsl(162, 60%, 45%)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Telat" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Terlambat" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Mangkir" fill="hsl(0, 70%, 50%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

@@ -33,14 +33,12 @@ export function MyAttendanceSummary({ attendanceRecords, approvals, loading }: M
       (r) => r.daily_status && r.daily_status.toLowerCase().includes("mangkir")
     ).length;
 
-    // Izin/cuti yang disetujui bulan ini
-    const approvedLeaves = approvals.filter((a) => {
-      if (!["approved_unit_leader", "approved_hr"].includes(a.status)) return false;
-      return a.start_date >= monthStart && a.start_date <= monthEnd;
-    }).length;
+    const izinCuti = thisMonthRecords.filter(
+      (r) => r.daily_status && ['izin', 'cuti', 'sakit'].includes(r.daily_status.toLowerCase())
+    ).length;
 
-    return { hadir, telat, mangkir, izin: approvedLeaves };
-  }, [attendanceRecords, approvals]);
+    return { hadir, telat, mangkir, izin: izinCuti };
+  }, [attendanceRecords]);
 
   const items = [
     {
@@ -51,14 +49,14 @@ export function MyAttendanceSummary({ attendanceRecords, approvals, loading }: M
       iconColor: "text-[hsl(142,45%,35%)]",
     },
     {
-      label: "Telat",
+      label: "Terlambat",
       value: summary.telat,
       icon: AlertCircle,
       colorClass: "text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] border-[hsl(38,55%,88%)]",
       iconColor: "text-[hsl(38,80%,45%)]",
     },
     {
-      label: "Izin/Cuti",
+      label: "Berhalangan",
       value: summary.izin,
       icon: CalendarOff,
       colorClass: "text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] border-[hsl(232,59%,90%)]",

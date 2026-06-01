@@ -9,7 +9,6 @@ import { Clock, Coffee } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
-import { CheckInOutWidget } from "@/components/attendance/CheckInOutWidget";
 import { AttendanceLogTable } from "@/components/attendance/AttendanceLogTable";
 import { LeaveRequestWidget } from "@/components/attendance/LeaveRequestWidget";
 import { AdminDailyAttendance } from "@/components/attendance/AdminDailyAttendance";
@@ -17,7 +16,6 @@ import { AdminSummaryAttendance } from "@/components/attendance/AdminSummaryAtte
 
 let globalAttendanceGlobalRecordsCache: any[] | null = null;
 let globalAttendancePersonalRecordsCache: any[] | null = null;
-let globalAttendanceTodayRecordCache: any | null = null;
 
 export default function Attendance() {
   const { employee, isAdminOrHr, isEmployee, hasRole } = useAuth();
@@ -27,7 +25,6 @@ export default function Attendance() {
   const canSeeGlobal = isAdminOrHr || isUnitLeader;
   // isEmployee sudah mencakup unit_leader (keduanya punya data di tabel employees)
   const navigate = useNavigate();
-  const [todayRecord, setTodayRecord] = useState<any>(globalAttendanceTodayRecordCache);
   const [globalRecords, setGlobalRecords] = useState<any[]>(globalAttendanceGlobalRecordsCache || []);
   const [personalRecords, setPersonalRecords] = useState<any[]>(globalAttendancePersonalRecordsCache || []);
   const [loading, setLoading] = useState(globalAttendanceGlobalRecordsCache === null && globalAttendancePersonalRecordsCache === null);
@@ -62,50 +59,21 @@ export default function Attendance() {
         ? (supabase as any).from("attendance").select("*, employees(name)").eq("employee_id", employee.id).order("date", { ascending: false }).limit(30)
         : Promise.resolve({ data: [] as any[], error: null });
 
-      const [globalRes, personalRes] = await supabaseFetchWithTimeout<any>(
-        Promise.all([fetchGlobal, fetchPersonal])
-      );
+      const [globalRes, personalRes] = await Promise.all([
+        supabaseFetchWithTimeout<any>(fetchGlobal),
+        supabaseFetchWithTimeout<any>(fetchPersonal),
+      ]);
 
       if (globalRes.error) throw globalRes.error;
       if (personalRes.error) throw personalRes.error;
 
-      // Active Session Logic (Loophole #5)
-      let todayResData = null;
-      if (employee && isEmployee) {
-        const { data: recent, error: recentErr } = await supabase
-          .from("attendance")
-          .select("*")
-          .eq("employee_id", employee.id)
-          .order("date", { ascending: false })
-          .order("created_at", { ascending: false }) // ensure latest record is grabbed
-          .limit(1)
-          .maybeSingle();
-
-        if (recentErr) throw recentErr;
-
-        if (recent) {
-          if (recent.date === today) {
-             todayResData = recent;
-          } else if (!recent.check_out && recent.check_in) {
-             const checkInTime = new Date(recent.check_in).getTime();
-             const now = new Date().getTime();
-             const hoursDiff = (now - checkInTime) / (1000 * 60 * 60);
-             // Batas kadaluarsa sesi adalah 18 jam
-             if (hoursDiff <= 18) {
-               todayResData = recent;
-             }
-          }
-        }
-      }
 
       if (isMounted.current) {
         setGlobalRecords(globalRes.data ?? []);
         setPersonalRecords(personalRes.data ?? []);
-        setTodayRecord(todayResData);
         
         globalAttendanceGlobalRecordsCache = globalRes.data ?? [];
         globalAttendancePersonalRecordsCache = personalRes.data ?? [];
-        globalAttendanceTodayRecordCache = todayResData;
       }
     } catch (err: any) {
       console.error("Attendance: Fetch error", err);

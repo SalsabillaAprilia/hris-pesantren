@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -166,7 +166,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground/90 font-bold">Jenis Pengajuan</Label>
                   <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as any })}>
-                    <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm border-primary/20"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="leave" className="text-sm">Cuti</SelectItem>
                       <SelectItem value="permission" className="text-sm">Izin</SelectItem>
@@ -204,9 +204,13 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                   <Textarea className="text-sm text-slate-900 shadow-sm min-h-[80px]" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} required />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground/90 font-bold">Lampiran Pendukung (Opsional)</Label>
-                  <Input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => setAttachment(e.target.files?.[0] || null)} className="text-sm text-slate-900 shadow-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" />
-                  <p className="text-[11px] text-muted-foreground">Format yang diizinkan: JPG, PNG, PDF. Maksimal 5 MB.</p>
+                  <Label className="text-sm text-muted-foreground/90 font-bold">Lampiran (Opsional)</Label>
+                  <Input 
+                    type="file" 
+                    accept=".jpg,.jpeg,.png,.pdf" 
+                    onChange={(e) => setAttachment(e.target.files?.[0] || null)} 
+                    className="h-9 p-0 text-sm text-slate-500 file:mr-3 file:h-9 file:px-4 file:rounded-l-md file:border-0 file:border-r file:border-input file:text-sm file:font-medium file:bg-muted/50 file:text-slate-700 hover:file:bg-muted cursor-pointer shadow-sm" 
+                  />
                 </div>
               </div>
               <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
@@ -227,14 +231,15 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                 <TableHead className="font-semibold w-[120px] text-left whitespace-nowrap">Jenis</TableHead>
                 <TableHead className="font-semibold w-[180px] text-left whitespace-nowrap">Tanggal</TableHead>
                 <TableHead className="font-semibold text-left whitespace-nowrap">Alasan</TableHead>
+                <TableHead className="font-semibold w-[80px] text-center whitespace-nowrap">Lampiran</TableHead>
                 <TableHead className="font-semibold w-[180px] text-center whitespace-nowrap">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Memuat...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Memuat...</TableCell></TableRow>
               ) : filteredApprovals.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Tidak ada pengajuan untuk bulan ini</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Tidak ada pengajuan untuk bulan ini</TableCell></TableRow>
               ) : (
                 filteredApprovals.map((a, index) => (
                   <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm">
@@ -249,6 +254,15 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                         : `${format(new Date(a.start_date), "dd/MM/yyyy")} - ${format(new Date(a.end_date), "dd/MM/yyyy")}`}
                     </TableCell>
                     <TableCell className="text-slate-900 py-1.5 truncate max-w-[250px]" title={a.reason}>{a.reason}</TableCell>
+                    <TableCell className="py-1.5 text-center">
+                      {a.attachment_url ? (
+                        <a href={a.attachment_url} target="_blank" rel="noopener noreferrer" title="Lihat lampiran" onClick={(e) => e.stopPropagation()}>
+                          <Paperclip className="h-3.5 w-3.5 text-blue-500 hover:text-blue-700 transition-colors mx-auto" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-slate-900 py-1.5 text-center">{statusBadge(a.status)}</TableCell>
                   </TableRow>
                 ))

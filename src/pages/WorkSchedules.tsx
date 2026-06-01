@@ -34,6 +34,9 @@ export default function WorkSchedules() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<any>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLTableSectionElement>(null);
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState<any>(null);
@@ -57,6 +60,7 @@ export default function WorkSchedules() {
       ]);
 
       if (shiftRes.error) throw shiftRes.error;
+      if (empRes.error) console.warn("WorkSchedules: Gagal memuat data personel shift", empRes.error);
 
       if (isMounted.current) {
         const counts: Record<string, number> = {};
@@ -83,9 +87,50 @@ export default function WorkSchedules() {
     }
   }, []);
 
+  useEffect(() => { fetchShifts(); }, [fetchShifts]);
+
+  const recalculateSticky = () => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl || !scrollContainerRef.current || !headerRef.current) return;
+    const rect = scrollContainerRef.current.getBoundingClientRect();
+    const stickThreshold = Math.max(0, mainEl.getBoundingClientRect().top);
+    let finalOffset = 0;
+    if (rect.top < stickThreshold) {
+      const maxOffset = rect.height - 44;
+      const offset = Math.min(stickThreshold - rect.top, maxOffset);
+      finalOffset = Math.max(0, offset);
+    }
+    headerRef.current.style.setProperty('--sticky-offset', `${finalOffset}px`);
+  };
+
   useEffect(() => {
-    fetchShifts();
-  }, [fetchShifts]);
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => { recalculateSticky(); ticking = false; });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(recalculateSticky, 50);
+    return () => clearTimeout(timer);
+  }, [shifts]);
+
+  const handleHorizontalScroll = () => {
+    if (scrollContainerRef.current) {
+      const scrolled = scrollContainerRef.current.scrollLeft > 2;
+      if (scrolled !== isScrolled) setIsScrolled(scrolled);
+    }
+  };
 
   const handleOpenDialog = (shift = null) => {
     if (shift) {
@@ -211,13 +256,10 @@ export default function WorkSchedules() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col space-y-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Jadwal Kerja</h1>
-          </div>
+      <div className="page-header">
+        <h1 className="page-title">Jadwal Kerja</h1>
+        <div className="flex items-center gap-3">
           
-          <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
               size="sm" 
@@ -244,80 +286,66 @@ export default function WorkSchedules() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6 space-y-10">
-                {/* Section 1: Detail Shift */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-                    <div className="h-4 w-1 bg-primary rounded-full"></div>
-                    Detail Shift
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground/90 font-bold">Nama Shift</Label>
+                  <Input 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                    placeholder="Contoh: Shift Pagi" 
+                    className="h-9 text-sm text-slate-900 shadow-sm"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground/90 font-bold">Jam Mulai (Check In)</Label>
+                    <Input 
+                      type="time" 
+                      value={formData.start_time} 
+                      onChange={(e) => setFormData({...formData, start_time: e.target.value})} 
+                      className="h-9 text-sm text-slate-900 shadow-sm"
+                    />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-3 border-l-2 border-muted/50 py-1">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-sm text-muted-foreground/90 font-bold">Nama Shift</Label>
-                      <Input 
-                        value={formData.name} 
-                        onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                        placeholder="Misal: Shift Pagi" 
-                        className="h-9 text-sm text-slate-900 shadow-sm"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm text-muted-foreground/90 font-bold">Toleransi Terlambat (Menit)</Label>
-                      <Input 
-                        type="number" 
-                        min="0"
-                        value={formData.late_tolerance_minutes} 
-                        onChange={(e) => setFormData({...formData, late_tolerance_minutes: parseInt(e.target.value) || 0})} 
-                        className="h-9 text-sm text-slate-900 shadow-sm"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground/90 font-bold">Jam Selesai (Check Out)</Label>
+                    <Input 
+                      type="time" 
+                      value={formData.end_time} 
+                      onChange={(e) => setFormData({...formData, end_time: e.target.value})} 
+                      className="h-9 text-sm text-slate-900 shadow-sm"
+                    />
                   </div>
                 </div>
 
-                {/* Section 2: Jadwal & Waktu */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-                    <div className="h-4 w-1 bg-primary rounded-full"></div>
-                    Jadwal & Waktu
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-3 border-l-2 border-muted/50 py-1">
-                    <div className="space-y-2">
-                      <Label className="text-sm text-muted-foreground/90 font-bold">Jam Mulai (Check In)</Label>
-                      <Input 
-                        type="time" 
-                        value={formData.start_time} 
-                        onChange={(e) => setFormData({...formData, start_time: e.target.value})} 
-                        className="h-9 text-sm text-slate-900 shadow-sm"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm text-muted-foreground/90 font-bold">Jam Selesai (Check Out)</Label>
-                      <Input 
-                        type="time" 
-                        value={formData.end_time} 
-                        onChange={(e) => setFormData({...formData, end_time: e.target.value})} 
-                        className="h-9 text-sm text-slate-900 shadow-sm"
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-sm text-muted-foreground/90 font-bold">Hari Kerja</Label>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {dayNames.map(day => (
-                          <button
-                            key={day.value}
-                            type="button"
-                            onClick={() => toggleDay(day.value)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all transform active:scale-95 ${
-                              formData.work_days.includes(day.value) 
-                                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' 
-                                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 shadow-sm'
-                            }`}
-                          >
-                            {day.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground/90 font-bold">Toleransi Terlambat (Menit)</Label>
+                  <Input 
+                    type="number" 
+                    min="0"
+                    value={formData.late_tolerance_minutes} 
+                    onChange={(e) => setFormData({...formData, late_tolerance_minutes: parseInt(e.target.value) || 0})} 
+                    className="h-9 text-sm text-slate-900 shadow-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground/90 font-bold">Hari Kerja</Label>
+                  <div className="grid grid-cols-7 gap-1.5 pt-1">
+                    {dayNames.map(day => (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => toggleDay(day.value)}
+                        className={`py-1.5 text-xs font-semibold rounded-md transition-all transform active:scale-95 text-center ${
+                          formData.work_days.includes(day.value) 
+                            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' 
+                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 shadow-sm'
+                        }`}
+                      >
+                        {day.label.substring(0, 3)}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -340,28 +368,46 @@ export default function WorkSchedules() {
             </form>
           </DialogContent>
         </Dialog>
-          </div>
         </div>
+      </div>
 
       <div className="relative border rounded-md bg-white flex flex-col">
-        <div className="overflow-x-auto overflow-y-visible flex-1 h-auto relative">
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleHorizontalScroll}
+          className="overflow-x-auto overflow-y-visible flex-1 h-auto relative"
+        >
           <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[800px]">
-            <TableHeader className="z-20 transition-none [&_th]:sticky [&_th]:top-0 [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted">
+            <TableHeader
+              ref={headerRef}
+              className="z-20 transition-none [&_th]:sticky [&_th]:top-[var(--sticky-offset)] [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted"
+              style={{ "--sticky-offset": "0px" } as React.CSSProperties}
+            >
               <TableRow className="border-none hover:bg-transparent">
-                <TableHead className="w-14 text-center font-semibold text-slate-900 whitespace-nowrap">No.</TableHead>
-                <TableHead className="font-semibold text-slate-900 whitespace-nowrap">Nama Shift</TableHead>
-                <TableHead className="font-semibold text-slate-900 whitespace-nowrap">Hari Kerja</TableHead>
-                <TableHead className="font-semibold text-slate-900 text-center whitespace-nowrap">Jam Mulai</TableHead>
-                <TableHead className="font-semibold text-slate-900 text-center whitespace-nowrap">Jam Selesai</TableHead>
-                <TableHead className="font-semibold text-slate-900 text-center whitespace-nowrap">Toleransi</TableHead>
-                <TableHead className="font-semibold text-slate-900 text-center whitespace-nowrap">Personel</TableHead>
-                <TableHead className="w-24 font-semibold text-slate-900 whitespace-nowrap" />
+                <TableHead
+                  className={`sticky left-0 z-[40] bg-muted transition-none w-[40px] min-w-[40px] font-semibold text-center whitespace-nowrap
+                    ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
+                >
+                  No.
+                </TableHead>
+                <TableHead
+                  className={`sticky left-[40px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold whitespace-nowrap
+                    ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
+                >
+                  Nama Shift
+                </TableHead>
+                <TableHead className="font-semibold whitespace-nowrap">Hari Kerja</TableHead>
+                <TableHead className="font-semibold text-center whitespace-nowrap">Jam Mulai</TableHead>
+                <TableHead className="font-semibold text-center whitespace-nowrap">Jam Selesai</TableHead>
+                <TableHead className="font-semibold text-center whitespace-nowrap">Toleransi</TableHead>
+                <TableHead className="font-semibold text-center whitespace-nowrap">Personel</TableHead>
+                <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                       Memuat data jadwal...
@@ -370,21 +416,25 @@ export default function WorkSchedules() {
                 </TableRow>
               ) : shifts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground border-b border-dashed">
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground border-b border-dashed">
                     Belum ada jadwal shift. Silakan buat baru.
                   </TableCell>
                 </TableRow>
               ) : (
                 shifts.map((shift, index) => (
-                  <TableRow 
-                    key={shift.id} 
+                  <TableRow
+                    key={shift.id}
                     className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                   >
-                    <TableCell className="text-center text-slate-500 py-1.5 font-medium">{index + 1}</TableCell>
-                    <TableCell className="font-semibold text-slate-900 py-1.5">{shift.name}</TableCell>
-                    <TableCell className="text-slate-600 py-1.5 text-xs font-medium">{formatWorkDays(shift.work_days)}</TableCell>
-                    <TableCell className="text-center text-slate-700 py-1.5 font-medium">{shift.start_time.slice(0, 5)}</TableCell>
-                    <TableCell className="text-center text-slate-700 py-1.5 font-medium">{shift.end_time.slice(0, 5)}</TableCell>
+                    <TableCell className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[40px] max-w-[40px] min-w-[40px] group-hover:bg-[#f8fafc] py-1.5 text-slate-500 ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 truncate text-slate-900 ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}>
+                      {shift.name}
+                    </TableCell>
+                    <TableCell className="text-slate-900 py-1.5">{formatWorkDays(shift.work_days)}</TableCell>
+                    <TableCell className="text-center text-slate-900 py-1.5">{shift.start_time.slice(0, 5)}</TableCell>
+                    <TableCell className="text-center text-slate-900 py-1.5">{shift.end_time.slice(0, 5)}</TableCell>
                     <TableCell className="text-center py-1.5">
                       <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">
                         {shift.late_tolerance_minutes}m
@@ -396,22 +446,22 @@ export default function WorkSchedules() {
                           {shift.employee_count} Org
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400 font-medium">—</span>
+                        <span className="text-slate-400">—</span>
                       )}
                     </TableCell>
                     <TableCell className="py-1.5 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="h-7 w-7 p-0 text-slate-400 hover:text-primary hover:bg-primary/10"
                           onClick={() => handleOpenDialog(shift)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="h-7 w-7 p-0 text-slate-400 hover:text-destructive hover:bg-destructive/10"
                           onClick={() => handleDeleteClick(shift)}
                         >
@@ -426,7 +476,6 @@ export default function WorkSchedules() {
           </table>
         </div>
       </div>
-    </div>
       <ConfirmDeleteDialog 
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}

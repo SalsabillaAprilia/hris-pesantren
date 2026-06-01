@@ -82,7 +82,8 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
   const totalTelat = filteredRecords.filter(r => r.late_minutes && r.late_minutes > 0).length;
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const totalMangkir = filteredRecords.filter(r => !r.check_in && new Date(r.date) < todayStart).length;
+  const totalMangkir = filteredRecords.filter(r => !r.check_in && new Date(r.date) < todayStart && !['Izin','Cuti','Sakit'].includes(r.daily_status)).length;
+  const totalIzin = filteredRecords.filter(r => r.daily_status && ['Izin','Cuti','Sakit'].includes(r.daily_status)).length;
 
   return (
     <div className="space-y-4">
@@ -116,7 +117,10 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
               Hadir: {totalHadir}
             </div>
             <div className="px-3 h-9 flex items-center bg-[hsl(38,55%,94%)] text-[hsl(38,55%,30%)] border border-[hsl(38,55%,88%)] rounded-md text-xs font-semibold">
-              Telat: {totalTelat}
+              Terlambat: {totalTelat}
+            </div>
+            <div className="px-3 h-9 flex items-center bg-[hsl(232,59%,96%)] text-[hsl(232,59%,21%)] border border-[hsl(232,59%,90%)] rounded-md text-xs font-semibold">
+              Berhalangan: {totalIzin}
             </div>
             <div className="px-3 h-9 flex items-center bg-[hsl(0,55%,96%)] text-[hsl(0,55%,35%)] border border-[hsl(0,55%,90%)] rounded-md text-xs font-semibold">
               Mangkir: {totalMangkir}
@@ -195,16 +199,16 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                           {r.employees?.name ?? "—"}
                         </TableCell>
                       )}
-                      <TableCell className="text-slate-900 py-1.5 font-medium">
+                      <TableCell className="text-slate-900 py-1.5">
                         {format(new Date(r.date), "dd MMM yyyy")}
                       </TableCell>
-                      <TableCell className="text-slate-900 py-1.5 text-center font-medium">
+                      <TableCell className="text-slate-900 py-1.5 text-center">
                         {r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}
                         {r.late_minutes && r.late_minutes > 0 ? (
                           <span className="ml-2 text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">+{r.late_minutes}m</span>
                         ) : null}
                       </TableCell>
-                      <TableCell className="text-slate-900 py-1.5 text-center font-medium">
+                      <TableCell className="text-slate-900 py-1.5 text-center">
                         {r.check_out ? format(new Date(r.check_out), "HH:mm") : (isLupaCheckOut ? <span className="text-rose-500 text-xs italic">Lupa absen</span> : "—")}
                         {r.early_leave_minutes && r.early_leave_minutes > 0 ? (
                           <span className="ml-2 text-[10px] text-rose-600 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">-{r.early_leave_minutes}m</span>
@@ -215,12 +219,14 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                           <span className="text-[11px] font-semibold text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] px-2 py-0.5 rounded border border-[hsl(0,55%,90%)] whitespace-nowrap">Mangkir</span>
                         ) : isLupaCheckOut ? (
                           <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Lupa Check-out</span>
-                        ) : statusLabel.toLowerCase() === "hadir" ? (
-                           <span className="text-[11px] font-semibold text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] px-2 py-0.5 rounded border border-[hsl(142,45%,90%)] whitespace-nowrap">Hadir</span>
+                        ) : statusLabel === "Hadir" || statusLabel === "WFA" ? (
+                           <span className="text-[11px] font-semibold text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] px-2 py-0.5 rounded border border-[hsl(142,45%,90%)] whitespace-nowrap">{statusLabel}</span>
+                        ) : statusLabel === "Terlambat" ? (
+                           <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Terlambat</span>
                         ) : statusLabel === "Belum mulai" ? (
                            <span className="text-xs font-semibold text-slate-500">—</span>
                         ) : (
-                           <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">{statusLabel}</span>
+                           <span className="text-[11px] font-semibold text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] px-2 py-0.5 rounded border border-[hsl(232,59%,90%)] whitespace-nowrap">{statusLabel}</span>
                         )}
                       </TableCell>
                       <TableCell className="text-slate-500 py-1.5 truncate max-w-[200px]" title={r.notes || undefined}>

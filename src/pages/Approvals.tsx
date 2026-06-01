@@ -20,6 +20,7 @@ import { Check, X, ChevronLeft, ChevronRight, Filter, FileText, MessageSquare, A
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useTerminology } from "@/hooks/useTerminology";
+import { generateLeaveAttendanceRecords, rollbackLeaveAttendanceRecords } from "@/utils/attendance-generator";
 
 const PAGE_SIZE = 10;
 
@@ -153,18 +154,38 @@ export default function Approvals() {
 
   const handleApprove = async (id: string) => {
     if (!user) return;
+    const approval = approvals.find(a => a.id === id);
+    if (!approval) return;
+
     setIsProcessing(true);
     try {
+      const { data: empData, error: empErr } = await supabase.from("employees").select("shift_id").eq("id", approval.employee_id).single();
+      if (empErr) throw empErr;
+
+      if (!empData?.shift_id) {
+        toast.error("Karyawan belum memiliki jadwal shift. Tentukan shift di menu Karyawan terlebih dahulu.");
+        setIsProcessing(false);
+        return;
+      }
+
+      const { data: shiftData } = await supabase.from("work_shifts").select("*").eq("id", empData.shift_id).single();
+      const { data: holidaysData } = await supabase.from("national_holidays").select("date").or(`instansi_id.eq.${approval.instansi_id},instansi_id.is.null`);
+      const holidayDates = holidaysData ? holidaysData.map(h => h.date) : [];
+
       const newStatus = isAdminOrHr ? "approved_hr" : "approved_unit_leader";
       const { error } = await supabase.from("approvals")
         .update({ status: newStatus })
         .eq("id", id);
       
       if (error) throw error;
+
+      await generateLeaveAttendanceRecords(approval, shiftData, holidayDates);
+
       toast.success("Pengajuan disetujui");
       setDetailModalOpen(false);
       fetchData();
     } catch (err) {
+      console.error(err);
       toast.error("Gagal menyetujui pengajuan");
     } finally {
       setIsProcessing(false);
@@ -190,6 +211,8 @@ export default function Approvals() {
       return;
     }
 
+    const approval = approvals.find(a => a.id === selectedApprovalId);
+
     setIsProcessing(true);
     try {
       const { error } = await supabase.from("approvals")
@@ -197,10 +220,16 @@ export default function Approvals() {
         .eq("id", selectedApprovalId);
       
       if (error) throw error;
+
+      if (approval) {
+        await rollbackLeaveAttendanceRecords(approval);
+      }
+
       toast.success("Pengajuan ditolak");
       setRejectModalOpen(false);
       fetchData();
     } catch (err) {
+      console.error(err);
       toast.error("Gagal menolak pengajuan");
     } finally {
       setIsProcessing(false);

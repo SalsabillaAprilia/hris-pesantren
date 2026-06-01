@@ -157,7 +157,7 @@ export default function Reports() {
   // =============== REPORT GENERATORS ===============
 
   const getAttendanceReport = useCallback(() => {
-    const headers = ["Nama", "Tanggal", "Check-in", "Check-out", "Status", "Telat (mnt)", term];
+    const headers = ["Nama", "Tanggal", "Check-in", "Check-out", "Status", "Terlambat (mnt)", term];
     const rows = filteredAttendance.map((a) => [
       a.employees?.name || "-",
       a.date ? format(parseISO(a.date), "dd/MM/yyyy") : "-",

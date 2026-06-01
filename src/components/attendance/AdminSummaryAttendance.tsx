@@ -141,7 +141,7 @@ export function AdminSummaryAttendance({ records, loading, isAdminOrHr, onRefres
                 <TableHead className="font-semibold w-[120px] whitespace-nowrap text-left">ID Karyawan</TableHead>
                 <TableHead className="font-semibold w-[80px] text-center whitespace-nowrap">Hadir</TableHead>
                 <TableHead className="font-semibold w-[80px] text-center whitespace-nowrap">Terlambat</TableHead>
-                <TableHead className="font-semibold w-[110px] text-center whitespace-nowrap">Durasi Telat</TableHead>
+                <TableHead className="font-semibold w-[110px] text-center whitespace-nowrap">Durasi Keterlambatan</TableHead>
                 <TableHead className="font-semibold w-[90px] text-center whitespace-nowrap">Lembur</TableHead>
                 <TableHead className="font-semibold w-[70px] text-center whitespace-nowrap">Cuti</TableHead>
                 <TableHead className="font-semibold w-[70px] text-center whitespace-nowrap">Sakit</TableHead>
@@ -171,7 +171,7 @@ export function AdminSummaryAttendance({ records, loading, isAdminOrHr, onRefres
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.hadir}</TableCell>
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.telat}</TableCell>
                     <TableCell className="text-sm py-1.5 text-center">
-                      {stat.total_late_minutes > 0 ? <span className="text-red-500 font-medium">{stat.total_late_minutes}mnt</span> : "—"}
+                      {stat.total_late_minutes > 0 ? <span className="text-slate-900">{stat.total_late_minutes}mnt</span> : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.overtime > 0 ? `${stat.overtime}mnt` : "—"}</TableCell>
                     <TableCell className="text-sm text-slate-900 py-1.5 text-center">{stat.cuti}</TableCell>
