@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
@@ -11,38 +11,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { MonthPicker } from "@/components/ui/month-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, ChevronLeft, ChevronRight, Filter, FileText, MessageSquare, AlertCircle, User as UserIcon } from "lucide-react";
+import { Check, X, ChevronLeft, ChevronRight, Filter, FileText, MessageSquare, AlertCircle, Tag, Calendar, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useTerminology } from "@/hooks/useTerminology";
 import { generateLeaveAttendanceRecords, rollbackLeaveAttendanceRecords } from "@/utils/attendance-generator";
 
-const PAGE_SIZE = 10;
-
 // Global memory cache untuk Stale-While-Revalidate lintas navigasi halaman.
 // Memungkinkan data langsung tampil tanpa loading saat user pindah-pindah menu.
 let globalApprovalsCache: any[] | null = null;
-let globalApprovalsCount = 0;
 
 export default function Approvals() {
-  const { user, employee, isAdminOrHr, isSuperAdmin, hasRole } = useAuth();
+  const { user, employee, isAdminOrHr, isSuperAdmin, isHr, hasRole } = useAuth();
   const { term } = useTerminology();
+  
+
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLTableSectionElement>(null);
 
-  const handleHorizontalScroll = () => {
-    if (scrollContainerRef.current) {
-      const scrolled = scrollContainerRef.current.scrollLeft > 2;
-      if (scrolled !== isScrolled) {
-        setIsScrolled(scrolled);
-      }
-    }
-  };
   const { effectiveInstansiId } = useInstansiFilter();
   const [approvals, setApprovals] = useState<any[]>(globalApprovalsCache || []);
   const [loading, setLoading] = useState(globalApprovalsCache === null);
@@ -51,17 +43,12 @@ export default function Approvals() {
   // Pemuatan ulang akan berjalan diam-diam di background.
   const isFirstFetch = useRef(globalApprovalsCache === null);
 
-  // Pagination & Filter States
+  // Filter States
   const [activeTab, setActiveTab] = useState("menunggu");
   const [typeFilter, setTypeFilter] = useState("Semua");
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-
-  // Advanced Date Filters
-  const [createdAtStart, setCreatedAtStart] = useState("");
-  const [createdAtEnd, setCreatedAtEnd] = useState("");
-  const [eventDateStart, setEventDateStart] = useState("");
-  const [eventDateEnd, setEventDateEnd] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    format(new Date(), "yyyy-MM")
+  );
 
   // UI States
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -74,17 +61,17 @@ export default function Approvals() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isUnitLeader = hasRole("unit_leader");
-  const isDirector = hasRole("director");
-  const isReadOnly = isSuperAdmin || isDirector;
+  // Super admin hanya read-only
+  const isReadOnly = isSuperAdmin;
 
+  // Derive can action logic untuk detail modal
+  const selectedSubmitterRole = selectedDetail?.employees?.role;
   const selectedCanAction = selectedDetail && !isReadOnly && 
-    ((isUnitLeader && selectedDetail.employees?.unit_id === employee?.unit_id) || isAdminOrHr) &&
+    ((isUnitLeader && selectedDetail.employees?.unit_id === employee?.unit_id && selectedSubmitterRole !== "unit_leader") || 
+     (isHr && selectedSubmitterRole === "unit_leader")) &&
     selectedDetail.status === "pending";
 
-  // Reset page ke 1 setiap kali filter berubah
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab, typeFilter, effectiveInstansiId, createdAtStart, createdAtEnd, eventDateStart, eventDateEnd]);
+
 
   // isMounted ref: mencegah request dari komponen yang sudah di-navigate
   // memperbarui state atau memunculkan toast di halaman lain.
@@ -94,18 +81,78 @@ export default function Approvals() {
     return () => { isMounted.current = false; };
   }, []);
 
+  const recalculateSticky = () => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl || !scrollContainerRef.current || !headerRef.current) return;
+
+    const rect = scrollContainerRef.current.getBoundingClientRect();
+    const stickThreshold = Math.max(0, mainEl.getBoundingClientRect().top);
+    
+    let finalOffset = 0;
+    if (rect.top < stickThreshold) {
+      const maxOffset = rect.height - 44; 
+      const offset = Math.min(stickThreshold - rect.top, maxOffset);
+      finalOffset = Math.max(0, offset);
+    }
+    
+    headerRef.current.style.setProperty('--sticky-offset', `${finalOffset}px`);
+    if (finalOffset > 0) {
+      headerRef.current.classList.add('[&_th]:shadow-sm');
+    } else {
+      headerRef.current.classList.remove('[&_th]:shadow-sm');
+    }
+  };
+
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          recalculateSticky();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    window.addEventListener('resize', handleScroll);
+    
+    handleScroll();
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(recalculateSticky, 50);
+    return () => clearTimeout(timer);
+  }, [approvals, activeTab]);
+
+  const handleHorizontalScroll = () => {
+    if (scrollContainerRef.current) {
+      const scrolled = scrollContainerRef.current.scrollLeft > 2;
+      if (scrolled !== isScrolled) {
+        setIsScrolled(scrolled);
+      }
+    }
+  };
+
   const fetchData = useCallback(async () => {
     if (isFirstFetch.current) setLoading(true);
 
-    const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
     let finalData: any[] = [];
     let finalCount = 0;
 
     try {
       let q = supabase
         .from("approvals")
-        .select("*, employees!approvals_employee_id_fkey!inner(name, unit_id, units!employees_unit_id_fkey(name))", { count: 'exact' });
+        .select("*, employees!approvals_employee_id_fkey!inner(name, unit_id, user_id, avatar_url, units!employees_unit_id_fkey(name))", { count: 'exact' });
 
       if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
       if (isUnitLeader && !isAdminOrHr && employee?.unit_id) q = q.eq("employees.unit_id", employee.unit_id);
@@ -113,44 +160,86 @@ export default function Approvals() {
       else q = q.in("status", ["approved_hr", "approved_unit_leader", "rejected"]);
 
       if (typeFilter !== "Semua") {
-        const reverseMap: Record<string, string> = { "Cuti": "leave", "Izin": "permission", "Lembur": "overtime", "Sakit": "sick", "WFA": "wfa" };
+        const reverseMap: Record<string, string> = { "Cuti": "leave", "Izin": "permission", "Lembur": "overtime", "Sakit": "sick", "WFA / WFH": "wfa" };
         if (reverseMap[typeFilter]) q = q.eq("type", reverseMap[typeFilter] as any);
       }
 
-      if (createdAtStart) q = q.gte("created_at", `${createdAtStart}T00:00:00`);
-      if (createdAtEnd)   q = q.lte("created_at", `${createdAtEnd}T23:59:59`);
-      if (eventDateStart) q = q.gte("end_date", eventDateStart);
-      if (eventDateEnd)   q = q.lte("start_date", eventDateEnd);
+      if (activeTab === "riwayat" && selectedMonth) {
+        // Asumsi format selectedMonth adalah YYYY-MM
+        const startOfMonth = `${selectedMonth}-01`;
+        // Hack simpel mencari tanggal terakhir di bulan itu
+        const [year, month] = selectedMonth.split("-");
+        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+        const endOfMonth = `${selectedMonth}-${lastDay}`;
+        
+        // Filter berdasarkan start_date pengajuan
+        q = q.gte("start_date", startOfMonth).lte("start_date", endOfMonth);
+      }
 
-      q = q.order("created_at", { ascending: false }).range(from, to);
+      q = q.order("created_at", { ascending: false });
 
       const res = await supabaseFetchWithTimeout<any>(q);
       if (res.error && res.error.code !== "PGRST116") {
         throw res.error;
       }
 
-      finalData = res.data ?? [];
+      let rawData = res.data ?? [];
+      
+      // Fetch user_roles untuk cek role pengaju secara paralel
+      if (rawData.length > 0) {
+        const userIds = [...new Set(rawData.map((a: any) => a.employees?.user_id).filter(Boolean))];
+        if (userIds.length > 0) {
+          const { data: rolesData } = await supabaseFetchWithTimeout<any>(
+            supabase.from("user_roles").select("user_id, role").in("user_id", userIds as string[])
+          );
+          const rolesMap = Object.fromEntries((rolesData ?? []).map((r: any) => [r.user_id, r.role]));
+          rawData = rawData.map((a: any) => ({
+            ...a,
+            employees: {
+              ...a.employees,
+              role: rolesMap[a.employees?.user_id] ?? "employee"
+            }
+          }));
+
+          if (activeTab === "menunggu") {
+            rawData = rawData.filter((a: any) => {
+              if (isSuperAdmin) return true;
+              
+              const submitterRole = a.employees?.role;
+              const isFromMyUnit = a.employees?.unit_id === employee?.unit_id;
+              
+              const canSeeAsLeader = isUnitLeader && isFromMyUnit && submitterRole !== "unit_leader";
+              const canSeeAsHr = isHr && submitterRole === "unit_leader";
+              
+              return canSeeAsLeader || canSeeAsHr;
+            });
+          }
+        }
+      }
+
+      finalData = rawData;
       finalCount = res.count ?? 0;
+
+
     } catch (err: any) {
       console.error("Approvals: Fetch error", err);
       if (isMounted.current) toast.error("Gagal memuat data Pengajuan");
     } finally {
       if (isMounted.current) {
-        // Simpan ke cache global agar navigasi berikutnya instan
         globalApprovalsCache = finalData;
-        globalApprovalsCount = finalCount;
         
         setApprovals(finalData);
-        setTotalCount(finalCount);
         setLoading(false);
         isFirstFetch.current = false;
       }
     }
-  }, [page, activeTab, typeFilter, effectiveInstansiId, createdAtStart, createdAtEnd, eventDateStart, eventDateEnd, isUnitLeader, isAdminOrHr, employee?.unit_id]);
+  }, [activeTab, typeFilter, selectedMonth, effectiveInstansiId, isUnitLeader, isAdminOrHr, isHr, employee?.unit_id]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+
 
   const handleApprove = async (id: string) => {
     if (!user) return;
@@ -183,6 +272,9 @@ export default function Approvals() {
 
       toast.success("Pengajuan disetujui");
       setDetailModalOpen(false);
+      
+      // Invalidasi cache agar tab update dengan benar
+      globalApprovalsCache = null;
       fetchData();
     } catch (err) {
       console.error(err);
@@ -227,6 +319,10 @@ export default function Approvals() {
 
       toast.success("Pengajuan ditolak");
       setRejectModalOpen(false);
+      setDetailModalOpen(false);
+      
+      // Invalidasi cache agar tab update dengan benar
+      globalApprovalsCache = null;
       fetchData();
     } catch (err) {
       console.error(err);
@@ -238,7 +334,7 @@ export default function Approvals() {
 
   // UI Helpers
   const mapTypeLabel = (dbType: string) => {
-    const map: Record<string, string> = { leave: "Cuti", permission: "Izin", overtime: "Lembur", sick: "Sakit", wfa: "WFA" };
+    const map: Record<string, string> = { leave: "Cuti", permission: "Izin", overtime: "Lembur", sick: "Sakit", wfa: "WFA / WFH" };
     return map[dbType] ?? dbType;
   };
 
@@ -258,185 +354,146 @@ export default function Approvals() {
 
   return (
     <DashboardLayout>
-      <div className="page-header mb-6">
-        <h1 className="page-title text-2xl font-bold">Dasbor Persetujuan</h1>
-      </div>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Approval</h1>
+        </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="menunggu">Menunggu</TabsTrigger>
-            <TabsTrigger value="riwayat">Riwayat</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        
-        <div className="flex items-center gap-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2 bg-white">
-                <Filter className="h-4 w-4" /> Filter Lanjutan
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-4" align="end">
-              <div className="space-y-4">
-                <h4 className="font-semibold text-sm">Filter Tanggal</h4>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Tanggal Pengajuan Dibuat</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={createdAtStart} onChange={e => setCreatedAtStart(e.target.value)} className="h-8 text-xs" />
-                    <Input type="date" value={createdAtEnd} onChange={e => setCreatedAtEnd(e.target.value)} className="h-8 text-xs" />
-                  </div>
-                </div>
+        {/* Tombol filter di kanan — persis seperti Attendance */}
+        <div className="flex gap-2 shrink-0">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[170px] h-9 bg-white/50 shadow-sm border-primary/20 text-sm font-medium transition-all transform active:scale-95 hover:bg-accent hover:text-accent-foreground hover:border-accent">
+              <SelectValue placeholder="Semua Pengajuan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Semua">Semua Pengajuan</SelectItem>
+              <SelectItem value="Cuti">Cuti</SelectItem>
+              <SelectItem value="Izin">Izin</SelectItem>
+              <SelectItem value="Sakit">Sakit</SelectItem>
+              <SelectItem value="Lembur">Lembur</SelectItem>
+              <SelectItem value="WFA / WFH">WFA / WFH</SelectItem>
+            </SelectContent>
+          </Select>
 
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Tanggal Kegiatan</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={eventDateStart} onChange={e => setEventDateStart(e.target.value)} className="h-8 text-xs" />
-                    <Input type="date" value={eventDateEnd} onChange={e => setEventDateEnd(e.target.value)} className="h-8 text-xs" />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <Button variant="ghost" size="sm" onClick={() => { setCreatedAtStart(""); setCreatedAtEnd(""); setEventDateStart(""); setEventDateEnd(""); }}>
-                    Reset Filter
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          <div className="flex items-center gap-2 border-l pl-3 ml-1">
-            <Label className="text-sm font-medium text-slate-600 whitespace-nowrap">Jenis:</Label>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[140px] bg-white">
-                <SelectValue placeholder="Semua Jenis" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Semua">Semua Pengajuan</SelectItem>
-                <SelectItem value="Izin">Izin</SelectItem>
-                <SelectItem value="Cuti">Cuti</SelectItem>
-                <SelectItem value="Sakit">Sakit</SelectItem>
-                <SelectItem value="Lembur">Lembur</SelectItem>
-                <SelectItem value="WFA">WFA</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {activeTab === "riwayat" && (
+            <MonthPicker 
+              value={selectedMonth} 
+              onChange={setSelectedMonth}
+              className="bg-white/50 border-primary/20 text-sm font-medium h-9 w-fit pr-4"
+            />
+          )}
         </div>
       </div>
 
-      <div className="relative border rounded-md bg-white flex flex-col">
-        <div 
-          ref={scrollContainerRef}
-          onScroll={handleHorizontalScroll}
-          className="overflow-x-auto overflow-y-visible flex-1 h-auto relative"
-        >
-          <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[900px]">
-            <thead className="bg-muted">
-              <tr className="border-none hover:bg-transparent text-muted-foreground">
-                <th 
-                  className={`sticky left-0 z-[40] bg-muted transition-none w-[50px] min-w-[50px] text-center font-semibold whitespace-nowrap border-b border-gray-200 h-11 px-4 align-middle
-                    ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
-                >
-                  No.
-                </th>
-                <th 
-                  className={`sticky left-[50px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold text-left whitespace-nowrap border-b border-gray-200 px-4 align-middle
-                    ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}
-                >
-                  Nama
-                </th>
-                <th className="min-w-[150px] font-semibold text-center whitespace-nowrap border-b border-gray-200 px-4 align-middle">{term}</th>
-                <th className="font-semibold text-left whitespace-nowrap border-b border-gray-200 px-4 align-middle">Jenis</th>
-                <th className="font-semibold text-left whitespace-nowrap border-b border-gray-200 px-4 align-middle">Tanggal Kegiatan</th>
-                <th className="w-[250px] font-semibold text-left whitespace-nowrap border-b border-gray-200 px-4 align-middle">Alasan</th>
-                <th className="font-semibold text-center whitespace-nowrap border-b border-gray-200 px-4 align-middle">Status</th>
-                {activeTab === "menunggu" && !isReadOnly && <th className="font-semibold text-center w-[120px] whitespace-nowrap border-b border-gray-200 px-4 align-middle">Aksi</th>}
-              </tr>
-            </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} className="text-center py-10 text-muted-foreground align-middle">Memuat data...</td></tr>
-            ) : approvals.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-10 text-muted-foreground align-middle">Tidak ada data pengajuan.</td></tr>
-            ) : (
-              approvals.map((a, index) => {
-                const canAction = !isReadOnly && ((isUnitLeader && a.employees?.unit_id === employee?.unit_id) || isAdminOrHr);
-                return (
-                  <tr 
-                    key={a.id} 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
-                    onClick={() => openDetailModal(a)}
-                  >
-                    <td 
-                      className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[50px] max-w-[50px] min-w-[50px] group-hover:bg-[#f1f5f9] py-1.5 px-4 align-middle text-slate-500 border-b border-gray-200
-                        ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}
-                    >
-                      {(page - 1) * PAGE_SIZE + index + 1}
-                    </td>
-                    <td 
-                      className={`sticky left-[50px] z-[20] bg-white font-medium text-slate-900 transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f1f5f9] py-1.5 px-4 align-middle truncate text-left border-b border-gray-200
-                        ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}
-                      title={a.employees?.name ?? "—"}
-                    >
-                      {a.employees?.name ?? "—"}
-                    </td>
-                    <td className="text-center text-slate-900 max-w-[150px] truncate py-1.5 px-4 align-middle border-b border-gray-200" title={a.employees?.units?.name ?? "—"}>
-                      {a.employees?.units?.name ?? "—"}
-                    </td>
-                    <td className="whitespace-nowrap py-1.5 px-4 align-middle text-left text-slate-900 border-b border-gray-200 font-medium">
-                      {mapTypeLabel(a.type)}
-                    </td>
-                    <td className="text-slate-900 whitespace-nowrap py-1.5 px-4 align-middle text-left border-b border-gray-200">
-                      {a.type === "overtime" || (a.start_date === a.end_date) 
-                        ? format(new Date(a.start_date), "dd/MM/yy", { locale: id })
-                        : `${format(new Date(a.start_date), "dd/MM/yy", { locale: id })} - ${format(new Date(a.end_date), "dd/MM/yy", { locale: id })}`}
-                    </td>
-                    <td className="max-w-[200px] py-1.5 px-4 align-middle text-left border-b border-gray-200">
-                      <p className="truncate text-slate-700">{a.reason}</p>
-                    </td>
-                    <td className="text-center py-1.5 px-4 align-middle border-b border-gray-200">{statusBadge(a.status)}</td>
-                    {activeTab === "menunggu" && !isReadOnly && (
-                      <td className="text-center py-1.5 px-4 align-middle border-b border-gray-200">
-                        {canAction ? (
-                          <div className="flex justify-center gap-1">
-                            <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleApprove(a.id); }} disabled={isProcessing} className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600" title="Setujui">
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openRejectModal(a.id); }} disabled={isProcessing} className="h-8 w-8 hover:bg-red-50 hover:text-red-600" title="Tolak">
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
+      {/* Tabs full-width langsung di bawah header — persis seperti Attendance */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
+          <TabsTrigger value="menunggu" className="text-xs">Menunggu Persetujuan</TabsTrigger>
+          <TabsTrigger value="riwayat" className="text-xs">Riwayat Persetujuan</TabsTrigger>
+        </TabsList>
+
+        <div className="relative border rounded-md bg-white flex flex-col">
+          <div 
+            ref={scrollContainerRef}
+            onScroll={handleHorizontalScroll}
+            className="overflow-x-auto overflow-y-visible flex-1 h-auto relative"
+          >
+            <Table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[900px]">
+              <TableHeader 
+                ref={headerRef}
+                className="z-20 transition-none [&_th]:sticky [&_th]:top-[var(--sticky-offset)] [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted"
+                style={{ "--sticky-offset": "0px" } as React.CSSProperties}
+              >
+                <TableRow className="border-none hover:bg-transparent text-muted-foreground">
+                  <TableHead className={`sticky left-0 z-[40] bg-muted transition-none w-[50px] min-w-[50px] text-center font-semibold whitespace-nowrap px-4 align-middle ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}>
+                    No.
+                  </TableHead>
+                  <TableHead className={`sticky left-[50px] z-[40] bg-muted transition-none w-[180px] min-w-[180px] font-semibold text-left whitespace-nowrap px-4 align-middle ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-none'}`}>
+                    Nama
+                  </TableHead>
+                  <TableHead className="min-w-[150px] font-semibold text-center whitespace-nowrap px-4 align-middle">{term}</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap px-4 align-middle">Pengajuan</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap px-4 align-middle">Tanggal Kegiatan</TableHead>
+                  <TableHead className="w-[250px] font-semibold text-left whitespace-nowrap px-4 align-middle">Alasan</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap px-4 align-middle">Status</TableHead>
+                  {activeTab === "menunggu" && !isReadOnly && <TableHead className="font-semibold text-center w-[120px] whitespace-nowrap px-4 align-middle">Keputusan</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
+                      Memuat data pengajuan...
+                    </TableCell>
+                  </TableRow>
+                ) : approvals.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
+                      Tidak ada data pengajuan.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  approvals.map((a, index) => {
+                    const submitterRole = a.employees?.role;
+                    const canAction = !isReadOnly && (
+                      (isUnitLeader && a.employees?.unit_id === employee?.unit_id && submitterRole !== "unit_leader") ||
+                      (isHr && submitterRole === "unit_leader")
+                    );
+
+                    return (
+                      <TableRow 
+                        key={a.id} 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
+                        onClick={() => openDetailModal(a)}
+                      >
+                        <TableCell className={`sticky left-0 z-[20] bg-white text-center transition-all duration-75 w-[50px] max-w-[50px] min-w-[50px] group-hover:bg-[#f8fafc] py-1.5 px-4 align-middle text-slate-500 ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}>
+                          {index + 1}
+                        </TableCell>
+                        <TableCell className={`sticky left-[50px] z-[20] bg-white font-medium text-slate-900 transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 px-4 align-middle truncate text-left ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`} title={a.employees?.name ?? "—"}>
+                          {a.employees?.name ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-center text-slate-900 max-w-[150px] truncate py-1.5 px-4 align-middle" title={a.employees?.units?.name ?? "—"}>
+                          {a.employees?.units?.name ?? "—"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap py-1.5 px-4 align-middle text-left text-slate-900 font-medium">
+                          {mapTypeLabel(a.type)}
+                        </TableCell>
+                        <TableCell className="text-slate-900 whitespace-nowrap py-1.5 px-4 align-middle text-left">
+                          {a.type === "overtime" || (a.start_date === a.end_date) 
+                            ? format(new Date(a.start_date), "dd/MM/yy", { locale: id })
+                            : `${format(new Date(a.start_date), "dd/MM/yy", { locale: id })} - ${format(new Date(a.end_date), "dd/MM/yy", { locale: id })}`}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] py-1.5 px-4 align-middle text-left">
+                          <p className="truncate text-slate-700">{a.reason}</p>
+                        </TableCell>
+                        <TableCell className="text-center py-1.5 px-4 align-middle">{statusBadge(a.status)}</TableCell>
+                        {activeTab === "menunggu" && !isReadOnly && (
+                          <TableCell className="text-center py-1.5 px-4 align-middle">
+                            {canAction ? (
+                              <div className="flex justify-center gap-1">
+                                <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); handleApprove(a.id); }} disabled={isProcessing} className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600" title="Setujui">
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openRejectModal(a.id); }} disabled={isProcessing} className="h-8 w-8 hover:bg-red-50 hover:text-red-600" title="Tolak">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
+                          </TableCell>
                         )}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-        </div>
-      </div>
-
-      {/* Pagination Controls */}
-      {totalCount > 0 && (
-        <div className="flex items-center justify-between mt-4 bg-white p-3 rounded-xl border shadow-sm">
-          <p className="text-sm text-slate-500">
-            Menampilkan <span className="font-medium text-slate-900">{Math.min((page - 1) * PAGE_SIZE + 1, totalCount)}</span> - <span className="font-medium text-slate-900">{Math.min(page * PAGE_SIZE, totalCount)}</span> dari total <span className="font-medium text-slate-900">{totalCount}</span> data
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Prev
-            </Button>
-            <Button variant="outline" size="sm" disabled={page * PAGE_SIZE >= totalCount || loading} onClick={() => setPage(p => p + 1)}>
-              Next <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
-      )}
+
+
+        </Tabs>
 
       {/* Reject Modal */}
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
@@ -477,139 +534,107 @@ export default function Approvals() {
 
       {/* Detail Modal */}
       <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
-        <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden shadow-2xl border-none flex flex-col max-h-[90vh]">
-          <DialogHeader className="p-6 border-b bg-primary/5">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 border-2 border-white shadow-md">
-                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
-                    {selectedDetail?.employees?.name?.charAt(0) ?? "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <DialogTitle className="text-2xl font-bold tracking-tight">{selectedDetail?.employees?.name ?? "—"}</DialogTitle>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">{selectedDetail?.employees?.units?.name ?? "—"}</span>
-                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30"></div>
-                    {selectedDetail && statusBadge(selectedDetail.status)}
-                  </div>
-                </div>
-              </div>
-
-              {selectedCanAction && (
-                <div className="flex items-center gap-2 pr-6">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => handleApprove(selectedDetail.id)} 
-                    disabled={isProcessing} 
-                    className="gap-1.5 font-semibold bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200 shadow-none"
-                  >
-                    <Check className="h-3.5 w-3.5" /> Setujui
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => {
-                      setDetailModalOpen(false);
-                      setTimeout(() => openRejectModal(selectedDetail.id), 100);
-                    }} 
-                    disabled={isProcessing} 
-                    className="gap-1.5 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none"
-                  >
-                    <X className="h-3.5 w-3.5" /> Tolak
-                  </Button>
-                </div>
-              )}
-            </div>
+        <DialogContent className="sm:max-w-[550px] shadow-lg border-slate-200 p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary/80" /> Detail Pengajuan
+            </DialogTitle>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="space-y-6 pt-4 max-h-[75vh] overflow-y-auto overflow-x-hidden pr-2">
             {selectedDetail && (
-              <div className="space-y-10">
-                {/* Seksi Detail Pengajuan */}
-                <section>
-                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-6">
-                    <div className="h-4 w-1 bg-primary rounded-full"></div>
-                    <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Informasi Pengajuan</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pl-3 border-l-2 border-muted/50 py-1">
-                    <div className="space-y-1">
-                      <span className="text-sm font-bold text-muted-foreground/90">Jenis Pengajuan</span>
-                      <p className="text-sm font-semibold text-slate-900">{mapTypeLabel(selectedDetail.type)}</p>
+              <>
+                {/* Info Pengaju */}
+                <div className="flex justify-between items-center bg-primary/5 p-4 rounded-xl border border-primary/10">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shadow-sm border border-primary/20">
+                      {selectedDetail.employees?.name?.charAt(0) ?? "U"}
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-sm font-bold text-muted-foreground/90">Tanggal Kegiatan</span>
-                      <p className="text-sm font-semibold text-slate-900">
-                        {selectedDetail.type === "overtime" || (selectedDetail.start_date === selectedDetail.end_date) 
-                          ? format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })
-                          : `${format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })} - ${format(new Date(selectedDetail.end_date), "dd MMMM yyyy", { locale: id })}`}
-                        {selectedDetail.type === "overtime" && selectedDetail.start_time && (
-                          <span className="text-slate-500 font-normal ml-1">({selectedDetail.start_time.slice(0,5)} - {selectedDetail.end_time?.slice(0,5)})</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="space-y-1 md:col-span-2">
-                      <span className="text-sm font-bold text-muted-foreground/90">Tanggal Pengajuan</span>
-                      <p className="text-sm font-semibold text-slate-900">{format(new Date(selectedDetail.created_at || new Date()), "dd MMMM yyyy, HH:mm", { locale: id })}</p>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">{selectedDetail.employees?.name ?? "—"}</h3>
+                      <p className="text-xs text-slate-500 font-medium">{selectedDetail.employees?.units?.name ?? "—"}</p>
                     </div>
                   </div>
-                </section>
+                  <div className="text-right">
+                    {statusBadge(selectedDetail.status)}
+                  </div>
+                </div>
 
-                {/* Seksi Alasan / Keterangan */}
-                <section>
-                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-6">
-                    <div className="h-4 w-1 bg-primary rounded-full"></div>
-                    <span className="flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> Alasan Pengajuan</span>
+                {/* Grid Info */}
+                <div className="grid grid-cols-2 gap-4 px-1">
+                  <div className="space-y-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <Tag className="h-3.5 w-3.5" /> Jenis Pengajuan
+                    </span>
+                    <p className="text-sm font-semibold text-slate-900 pl-5">{mapTypeLabel(selectedDetail.type)}</p>
                   </div>
-                  <div className="pl-3 py-1">
-                    <p className="text-sm bg-slate-50/50 p-4 rounded-xl border border-slate-200/60 text-slate-700 whitespace-pre-wrap leading-relaxed">
-                      {selectedDetail.reason}
+                  <div className="space-y-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" /> Tanggal Kegiatan
+                    </span>
+                    <p className="text-sm font-semibold text-slate-900 pl-5">
+                      {selectedDetail.type === "overtime" || (selectedDetail.start_date === selectedDetail.end_date) 
+                        ? format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })
+                        : `${format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })} - ${format(new Date(selectedDetail.end_date), "dd MMMM yyyy", { locale: id })}`}
+                      {selectedDetail.type === "overtime" && selectedDetail.start_time && (
+                        <span className="text-slate-500 font-normal ml-1">({selectedDetail.start_time.slice(0,5)} - {selectedDetail.end_time?.slice(0,5)})</span>
+                      )}
                     </p>
                   </div>
-                </section>
+                </div>
 
-                {/* Seksi Lampiran */}
+                {/* Alasan */}
+                <div className="space-y-2 px-1">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <MessageSquare className="h-3.5 w-3.5" /> Alasan Pengajuan
+                  </span>
+                  <p className="text-sm text-slate-700 bg-slate-50 p-3.5 rounded-lg border border-slate-200/60 whitespace-pre-wrap leading-relaxed ml-5">
+                    {selectedDetail.reason}
+                  </p>
+                </div>
+
+                {/* Lampiran */}
                 {selectedDetail.attachment_url && (
-                  <section>
-                    <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-6">
-                      <div className="h-4 w-1 bg-primary rounded-full"></div>
-                      <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Lampiran Pendukung</span>
-                    </div>
-                    <div className="pl-3 py-1">
-                      <a 
-                        href={selectedDetail.attachment_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 rounded-lg text-sm font-medium border border-blue-200 transition-colors"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Buka Surat / Dokumen Lampiran
+                  <div className="space-y-2 px-1">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <Paperclip className="h-3.5 w-3.5" /> Lampiran
+                    </span>
+                    <div className="ml-5">
+                      <a href={selectedDetail.attachment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md text-xs font-semibold border border-blue-200 transition-colors">
+                        <FileText className="h-3.5 w-3.5" /> Buka Dokumen Pendukung
                       </a>
                     </div>
-                  </section>
+                  </div>
                 )}
 
-                {/* Seksi Alasan Penolakan */}
+                {/* Alasan Penolakan */}
                 {selectedDetail.status === "rejected" && selectedDetail.reject_reason && (
-                  <section>
-                    <div className="flex items-center gap-2 text-red-600 font-bold text-xs uppercase tracking-wider mb-6">
-                      <div className="h-4 w-1 bg-red-600 rounded-full"></div>
-                      <span className="flex items-center gap-1.5"><AlertCircle className="h-3.5 w-3.5" /> Alasan Penolakan</span>
-                    </div>
-                    <div className="pl-3 py-1">
-                      <p className="text-sm bg-red-50/50 p-4 rounded-xl border border-red-100/60 text-red-700 whitespace-pre-wrap leading-relaxed">
-                        {selectedDetail.reject_reason}
-                      </p>
-                    </div>
-                  </section>
+                  <div className="space-y-2 px-1">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
+                      <AlertCircle className="h-3.5 w-3.5" /> Alasan Penolakan
+                    </span>
+                    <p className="text-sm text-red-700 bg-red-50 p-3.5 rounded-lg border border-red-100 whitespace-pre-wrap leading-relaxed ml-5">
+                      {selectedDetail.reject_reason}
+                    </p>
+                  </div>
                 )}
-              </div>
+
+                {/* Actions Footer */}
+                {selectedCanAction && (
+                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-2">
+                    <Button variant="outline" onClick={() => { setDetailModalOpen(false); setTimeout(() => openRejectModal(selectedDetail.id), 100); }} disabled={isProcessing} className="gap-1.5 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none">
+                      <X className="h-4 w-4" /> Tolak
+                    </Button>
+                    <Button variant="outline" onClick={() => handleApprove(selectedDetail.id)} disabled={isProcessing} className="gap-1.5 font-semibold bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200 shadow-none">
+                      <Check className="h-4 w-4" /> Setujui
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </DialogContent>
       </Dialog>
-
     </DashboardLayout>
   );
 }

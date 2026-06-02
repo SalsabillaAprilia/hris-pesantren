@@ -37,3 +37,15 @@ Jika terdapat perbedaan angka statistik karyawan aktif antara Mode Cabang vs Mod
 1. Pastikan karyawan manajerial (`hr`, `director`, `super_admin`) tidak secara tidak sengaja terdaftar sebagai `employee` di tabel profil tanpa diselaraskan dengan tabel `user_roles`.
 2. Pastikan nilai `instansi_id` untuk `super_admin` dan `director` dibiarkan kosong (`NULL`).
 3. Karyawan yang sedang berstatus `on_leave` (Cuti) atau `inactive` di tabel `employees` tidak akan masuk ke dalam hitungan total karyawan aktif, meski peran mereka adalah `employee`.
+
+---
+
+## Aturan Khusus Halaman Approvals (`/approvals`)
+
+| Role | Akses Halaman | Hak Approve/Reject |
+|---|---|---|
+| `super_admin` | ✅ Read-only | ❌ Tidak bisa |
+| `hr` | ✅ Read-write (terbatas) | ✅ Hanya pengajuan dari `unit_leader` |
+| `unit_leader` | ✅ Read-write (terbatas) | ✅ Hanya pengajuan dari unitnya sendiri |
+| `director` | ❌ Tidak bisa akses | ❌ |
+| `employee` | ❌ Tidak bisa akses | ❌ |

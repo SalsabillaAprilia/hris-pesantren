@@ -120,14 +120,14 @@ export default function Attendance() {
         {isAdminOrHr ? (
           // Admin/HR: hanya 2 tab global, tanpa Presensi Saya
           <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
-            <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
-            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
+            <TabsTrigger value="harian" className="text-xs">Rekapitulasi Harian</TabsTrigger>
+            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan Kehadiran</TabsTrigger>
           </TabsList>
         ) : isUnitLeader ? (
           // Unit Leader: 4 tab (global unit + personal)
           <TabsList className="grid grid-cols-4 mb-3 bg-muted/50 h-9 rounded-lg">
-            <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
-            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan</TabsTrigger>
+            <TabsTrigger value="harian" className="text-xs">Rekapitulasi Harian</TabsTrigger>
+            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan Kehadiran</TabsTrigger>
             <TabsTrigger value="presensi" className="text-xs">Presensi Saya</TabsTrigger>
             <TabsTrigger value="pengajuan" className="text-xs">Pengajuan</TabsTrigger>
           </TabsList>

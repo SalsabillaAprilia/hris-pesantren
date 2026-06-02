@@ -49,7 +49,7 @@ export function AppSidebar() {
     { title: "Karyawan", url: "/employees", icon: Users, show: !isGlobalMode && (isAdminOrHr || isUnitLeader) },
     { title: "Organisasi", url: "/organization", icon: Building2, show: !isGlobalMode && isAdminOrHr },
     { title: "Kehadiran", url: "/attendance", icon: Clock, show: !isGlobalMode && !isDirector },
-    { title: "Persetujuan", url: "/approvals", icon: FileCheck, show: !isGlobalMode && (isAdminOrHr || isUnitLeader) },
+    { title: "Approval", url: "/approvals", icon: FileCheck, show: !isGlobalMode && (isAdminOrHr || isUnitLeader) },
     { title: "Tugas", url: "/tasks", icon: ListTodo, show: !isGlobalMode && !isDirector },
     { title: "Agenda", url: "/agenda", icon: CalendarDays, show: !isGlobalMode && !isDirector },
     { title: "KPI", url: "/kpi", icon: BarChart3, show: !isGlobalMode && !isDirector },

@@ -38,7 +38,7 @@ const BREADCRUMB_MAP: Record<string, BreadcrumbSegment[]> = {
   "/work-schedules": [{ name: "Kehadiran", path: "/attendance" }, { name: "Jadwal Kerja" }],
   "/holidays": [{ name: "Organisasi", path: "/organization" }, { name: "Libur Nasional" }],
   "/attendance": [{ name: "Kehadiran" }],
-  "/approvals": [{ name: "Persetujuan" }],
+  "/approvals": [{ name: "Approval" }],
   "/tasks": [{ name: "Tugas" }],
   "/agenda": [{ name: "Agenda" }],
   "/kpi": [{ name: "KPI" }],

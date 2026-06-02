@@ -203,7 +203,7 @@ export default function Agendas() {
 
     const { error } = await supabase.from("agendas").update(updates as any).eq("id", agendaId);
     if (error) { toast.error("Gagal mengubah status persetujuan."); return; }
-    toast.success(isApproved ? "Persetujuan dibatalkan." : "Agenda disetujui! ✅");
+    toast.success(isApproved ? "Approval dibatalkan." : "Agenda disetujui! ✅");
     fetchData();
   };
 
@@ -251,7 +251,7 @@ export default function Agendas() {
               <TableHead className="font-semibold border-r border-gray-200 bg-muted w-[70px]">Jam</TableHead>
               <TableHead className="font-semibold border-r border-gray-200 bg-muted">Aktivitas</TableHead>
               <TableHead className="font-semibold border-r border-gray-200 bg-muted w-[130px] text-center">Status</TableHead>
-              <TableHead className="font-semibold border-r border-gray-200 bg-muted w-[110px] text-center">Persetujuan</TableHead>
+              <TableHead className="font-semibold border-r border-gray-200 bg-muted w-[110px] text-center">Approval</TableHead>
               <TableHead className="font-semibold bg-muted w-[80px] text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -318,7 +318,7 @@ export default function Agendas() {
               <TableHead className="font-semibold border-r border-gray-200 bg-muted w-[70px]">Jam</TableHead>
               <TableHead className="font-semibold border-r border-gray-200 bg-muted">Aktivitas</TableHead>
               <TableHead className="font-semibold border-r border-gray-200 bg-muted w-[110px] text-center">Status</TableHead>
-              <TableHead className={`font-semibold bg-muted w-[130px] text-center ${isUnitLeader ? "border-r border-gray-200" : ""}`}>Persetujuan</TableHead>
+              <TableHead className={`font-semibold bg-muted w-[130px] text-center ${isUnitLeader ? "border-r border-gray-200" : ""}`}>Approval</TableHead>
               {isUnitLeader && <TableHead className="font-semibold bg-muted w-[90px] text-center">Aksi</TableHead>}
             </TableRow>
           </TableHeader>

@@ -21,7 +21,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   const [approvals, setApprovals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ type: "leave" as "leave" | "permission" | "overtime" | "wfa", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
+  const [form, setForm] = useState({ type: "leave" as "leave" | "permission" | "overtime" | "wfa" | "sick", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
   const [attachment, setAttachment] = useState<File | null>(null);
 
   const now = new Date();
@@ -98,7 +98,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
       employee_id: employee.id,
       type: form.type as any,
       start_date: form.start_date,
-      end_date: form.type === "overtime" ? form.start_date : form.end_date,
+      end_date: form.type === "overtime" ? form.start_date : (form.end_date || form.start_date),
       start_time: form.type === "overtime" ? form.start_time : null,
       end_time: form.type === "overtime" ? form.end_time : null,
       reason: form.reason,
@@ -170,6 +170,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                     <SelectContent>
                       <SelectItem value="leave" className="text-sm">Cuti</SelectItem>
                       <SelectItem value="permission" className="text-sm">Izin</SelectItem>
+                      <SelectItem value="sick" className="text-sm">Sakit</SelectItem>
                       <SelectItem value="overtime" className="text-sm">Lembur</SelectItem>
                       <SelectItem value="wfa" className="text-sm">WFA / WFH</SelectItem>
                     </SelectContent>
@@ -178,12 +179,12 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-sm text-muted-foreground/90 font-bold">{form.type === "overtime" ? "Tanggal Lembur" : "Tanggal Mulai"}</Label>
-                    <Input className="h-9 text-sm text-slate-900 shadow-sm" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required />
+                    <Input className="h-9 text-sm text-slate-900 shadow-sm cursor-pointer" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (err) {} }} required />
                   </div>
                   {form.type !== "overtime" && (
                     <div className="space-y-2">
-                      <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal Selesai</Label>
-                      <Input className="h-9 text-sm text-slate-900 shadow-sm" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} required />
+                      <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal Selesai (Opsional)</Label>
+                      <Input className="h-9 text-sm text-slate-900 shadow-sm cursor-pointer" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (err) {} }} />
                     </div>
                   )}
                 </div>
@@ -191,11 +192,11 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm text-muted-foreground/90 font-bold">Waktu Mulai Lembur</Label>
-                      <Input className="h-9 text-sm text-slate-900 shadow-sm" type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} required />
+                      <Input className="h-9 text-sm text-slate-900 shadow-sm cursor-pointer" type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (err) {} }} required />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm text-muted-foreground/90 font-bold">Waktu Selesai (Estimasi)</Label>
-                      <Input className="h-9 text-sm text-slate-900 shadow-sm" type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} required />
+                      <Input className="h-9 text-sm text-slate-900 shadow-sm cursor-pointer" type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} onClick={e => { try { (e.target as HTMLInputElement).showPicker(); } catch (err) {} }} required />
                     </div>
                   </div>
                 )}
@@ -245,7 +246,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                   <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm">
                     <TableCell className="text-slate-500 py-1.5 text-center">{index + 1}</TableCell>
                     <TableCell className="text-slate-900 py-1.5 font-medium">
-                      {a.type === "leave" ? "Cuti" : a.type === "overtime" ? "Lembur" : a.type === "wfa" ? "WFA" : "Izin"}
+                      {a.type === "leave" ? "Cuti" : a.type === "overtime" ? "Lembur" : a.type === "wfa" ? "WFA / WFH" : a.type === "sick" ? "Sakit" : "Izin"}
                       {a.type === "overtime" && a.start_time && <span className="block text-xs text-muted-foreground">{a.start_time.slice(0,5)} - {a.end_time?.slice(0,5)}</span>}
                     </TableCell>
                     <TableCell className="text-slate-900 py-1.5">
