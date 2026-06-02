@@ -24,6 +24,7 @@ import {
 import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatError } from "@/utils/error-handler";
 
 // Modular Components
 import { UnitCard } from "@/components/units/UnitCard";
@@ -135,7 +136,7 @@ export default function Organization() {
       }
     } catch (err: any) {
       console.error("Units: Fetch error details:", err);
-      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat data unit: " + (err.message || "Timeout"));
+      if (isMounted.current && err.code !== "PGRST116") toast.error(formatError(err, "Gagal memuat data unit"));
     } finally {
       if (isMounted.current) {
         setLoading(false);
@@ -205,7 +206,7 @@ export default function Organization() {
       (window as any).__hrisInvalidateEmployeesCache?.();
       fetchData();
     } catch (err: any) {
-      toast.error(err.message || `Gagal menyimpan data ${termLower}`);
+      toast.error(formatError(err, `Gagal menyimpan data ${termLower}`));
     } finally {
       setIsActionLoading(false);
     }
@@ -263,7 +264,7 @@ export default function Organization() {
       (window as any).__hrisInvalidateEmployeesCache?.();
       fetchData();
     } catch (err: any) {
-      toast.error(`Gagal mengarsipkan ${termLower}`);
+      toast.error(formatError(err, `Gagal mengarsipkan ${termLower}`));
     } finally {
       setIsActionLoading(false);
     }

@@ -34,6 +34,7 @@ import { ExportConfigDialog, getColumnsMap } from "@/components/employees/Export
 import { ImportEmployeeDialog } from "@/components/employees/ImportEmployeeDialog";
 import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { uploadFile } from "@/utils/supabase-storage";
+import { formatError } from "@/utils/error-handler";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -178,7 +179,7 @@ export default function EmployeesPage() {
       
     } catch (err: any) {
       console.error("Employees: Fetch Data Error Details:", err);
-      if (isMounted.current) toast.error("Gagal memuat data karyawan. Koneksi mungkin terputus.");
+      if (isMounted.current) toast.error(formatError(err, "Gagal memuat data karyawan"));
     } finally {
       if (isMounted.current) {
         setLoading(false);
@@ -374,7 +375,7 @@ export default function EmployeesPage() {
       toast.success("Berhasil disimpan");
     } catch (err: any) { 
       console.error("Submit Error:", err);
-      toast.error(err.message || "Gagal menyimpan data"); 
+      toast.error(formatError(err, "Gagal menyimpan data")); 
     } finally {
       setIsSaving(false);
     }
@@ -405,7 +406,7 @@ export default function EmployeesPage() {
       fetchData();
       toast.success("Data berhasil dihapus");
     } catch (err: any) {
-      toast.error(err.message || "Gagal menghapus data");
+      toast.error(formatError(err, "Gagal menghapus data"));
     } finally {
       setIsDeleting(false);
     }

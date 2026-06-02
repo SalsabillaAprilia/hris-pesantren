@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatError } from "@/utils/error-handler";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -74,7 +75,7 @@ export function AttendanceDayEditDialog({ open, onOpenChange, record, onSuccess 
       onSuccess();
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err.message || "Gagal menyimpan koreksi");
+      toast.error(formatError(err, "Gagal menyimpan koreksi"));
     } finally {
       setIsSaving(false);
     }

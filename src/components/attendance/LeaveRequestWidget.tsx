@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
+import { formatError } from "@/utils/error-handler";
 
 interface LeaveRequestWidgetProps {
   employee: any;
@@ -104,7 +105,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
       reason: form.reason,
       attachment_url: attachment_url
     });
-    if (error) { toast.error("Gagal mengajukan: " + error.message); return; }
+    if (error) { toast.error(formatError(error, "Gagal mengajukan")); return; }
     toast.success("Pengajuan berhasil");
     setDialogOpen(false);
     setForm({ type: "leave", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });

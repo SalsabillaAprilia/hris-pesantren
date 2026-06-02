@@ -88,13 +88,6 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
     }
   };
 
-  if (loading) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Memuat data karyawan...</div>;
-  }
-
-  if (employees.length === 0) {
-    return <div className="p-8 text-center text-muted-foreground border-2 border-dashed rounded-lg">Tidak ada data karyawan ditemukan.</div>;
-  }
 
   return (
     <div className="relative border rounded-md bg-white flex flex-col">
@@ -166,7 +159,20 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
             </TableRow>
           </TableHeader>
           <TableBody>
-            {employees.map((emp) => (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={12} className="h-32 text-center text-muted-foreground animate-pulse">
+                  Memuat data karyawan...
+                </TableCell>
+              </TableRow>
+            ) : employees.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={12} className="h-32 text-center text-muted-foreground">
+                  Tidak ada data karyawan ditemukan.
+                </TableCell>
+              </TableRow>
+            ) : (
+              employees.map((emp) => (
               <TableRow 
                 key={emp.id} 
                 className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
@@ -235,7 +241,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                   </>
                 )}
               </TableRow>
-            ))}
+            )))}
           </TableBody>
         </table>
       </div>

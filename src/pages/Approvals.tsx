@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useTerminology } from "@/hooks/useTerminology";
 import { generateLeaveAttendanceRecords, rollbackLeaveAttendanceRecords } from "@/utils/attendance-generator";
+import { formatError } from "@/utils/error-handler";
 
 // Global memory cache untuk Stale-While-Revalidate lintas navigasi halaman.
 // Memungkinkan data langsung tampil tanpa loading saat user pindah-pindah menu.
@@ -223,7 +224,7 @@ export default function Approvals() {
 
     } catch (err: any) {
       console.error("Approvals: Fetch error", err);
-      if (isMounted.current) toast.error("Gagal memuat data Pengajuan");
+      if (isMounted.current) toast.error(formatError(err, "Gagal memuat data Pengajuan"));
     } finally {
       if (isMounted.current) {
         globalApprovalsCache = finalData;
@@ -278,7 +279,7 @@ export default function Approvals() {
       fetchData();
     } catch (err) {
       console.error(err);
-      toast.error("Gagal menyetujui pengajuan");
+      toast.error(formatError(err, "Gagal menyetujui pengajuan"));
     } finally {
       setIsProcessing(false);
     }
@@ -326,7 +327,7 @@ export default function Approvals() {
       fetchData();
     } catch (err) {
       console.error(err);
-      toast.error("Gagal menolak pengajuan");
+      toast.error(formatError(err, "Gagal menolak pengajuan"));
     } finally {
       setIsProcessing(false);
     }

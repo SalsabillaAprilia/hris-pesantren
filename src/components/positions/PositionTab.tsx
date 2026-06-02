@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { PositionFormDialog } from "./PositionFormDialog";
+import { formatError } from "@/utils/error-handler";
 import {
   Table,
   TableBody,
@@ -106,7 +107,7 @@ export function PositionTab({ isAdminOrHr, isSuperAdmin, onAdd, isFormOpen, onFo
       }
     } catch (err: any) {
       console.error(err);
-      if (isMounted.current && err.code !== "PGRST116") toast.error("Gagal memuat master jabatan. Pastikan script SQL sudah dijalankan.");
+      if (isMounted.current && err.code !== "PGRST116") toast.error(formatError(err, "Gagal memuat master jabatan. Pastikan script SQL sudah dijalankan."));
     } finally {
       if (isMounted.current) {
         setLoading(false);
@@ -150,7 +151,7 @@ export function PositionTab({ isAdminOrHr, isSuperAdmin, onAdd, isFormOpen, onFo
       onFormOpenChange(false);
       fetchPositions();
     } catch (err: any) {
-      toast.error(err.message || "Gagal menyimpan jabatan");
+      toast.error(formatError(err, "Gagal menyimpan jabatan"));
     } finally {
       setIsActionLoading(false);
     }
@@ -194,7 +195,7 @@ export function PositionTab({ isAdminOrHr, isSuperAdmin, onAdd, isFormOpen, onFo
       setDeleteConfirmOpen(false);
       fetchPositions();
     } catch (err: any) {
-      toast.error("Gagal mengarsipkan jabatan");
+      toast.error(formatError(err, "Gagal mengarsipkan jabatan"));
     } finally {
       setIsActionLoading(false);
     }
@@ -240,7 +241,7 @@ export function PositionTab({ isAdminOrHr, isSuperAdmin, onAdd, isFormOpen, onFo
                   key={pos.id}
                   className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                 >
-                  <TableCell className="text-center text-slate-500 py-1.5 font-medium">{idx + 1}</TableCell>
+                  <TableCell className="text-center text-slate-500 py-1.5">{idx + 1}</TableCell>
                   <TableCell className="font-semibold text-slate-900 py-1.5">
                     {pos.name}
                     {pos.is_active === false && (
