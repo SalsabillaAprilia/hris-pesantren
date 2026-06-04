@@ -481,6 +481,7 @@ export type Database = {
           threshold_cukup: number
           updated_at: string
           instansi_id: string | null
+          is_active: boolean
         }
         Insert: {
           created_at?: string
@@ -494,6 +495,7 @@ export type Database = {
           threshold_cukup?: number
           updated_at?: string
           instansi_id?: string | null
+          is_active?: boolean
         }
         Update: {
           created_at?: string
@@ -507,6 +509,7 @@ export type Database = {
           threshold_cukup?: number
           updated_at?: string
           instansi_id?: string | null
+          is_active?: boolean
         }
         Relationships: []
       }

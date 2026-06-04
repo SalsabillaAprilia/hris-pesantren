@@ -46,13 +46,13 @@ export function AppSidebar() {
   const navItems = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, show: true },
     // Modul operasional — disembunyikan di global mode agar tidak bisa input data tanpa cabang
-    { title: "Karyawan", url: "/employees", icon: Users, show: !isGlobalMode && (isAdminOrHr || isUnitLeader) },
-    { title: "Organisasi", url: "/organization", icon: Building2, show: !isGlobalMode && isAdminOrHr },
+    { title: "Karyawan", url: "/employees", icon: Users, show: !isGlobalMode && (isAdminOrHr || isUnitLeader || isDirector) },
+    { title: "Organisasi", url: "/organization", icon: Building2, show: !isGlobalMode && (isAdminOrHr || isDirector) },
     { title: "Kehadiran", url: "/attendance", icon: Clock, show: !isGlobalMode && !isDirector },
     { title: "Approval", url: "/approvals", icon: FileCheck, show: !isGlobalMode && (isAdminOrHr || isUnitLeader) },
     { title: "Tugas", url: "/tasks", icon: ListTodo, show: !isGlobalMode && !isDirector },
     { title: "Agenda", url: "/agenda", icon: CalendarDays, show: !isGlobalMode && !isDirector },
-    { title: "KPI", url: "/kpi", icon: BarChart3, show: !isGlobalMode && !isDirector },
+    { title: "KPI", url: "/kpi", icon: BarChart3, show: !isGlobalMode },
     // Modul monitoring — tetap tampil di global mode
     { title: "Laporan", url: "/reports", icon: FileText, show: isAdminOrHr || isUnitLeader || isDirector },
     // Menu khusus Super Admin
