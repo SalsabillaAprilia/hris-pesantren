@@ -15,7 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTerminology } from "@/hooks/useTerminology";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { toast } from "sonner";
-import { Plus, Trash2, BarChart3, Pencil, Users, Calendar, ChevronDown, ChevronUp, Search, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Trash2, BarChart3, Pencil, Users, Calendar, ChevronDown, ChevronUp, Search, Archive, ArchiveRestore, Target, AlignLeft } from "lucide-react";
+import { DetailHeader, DetailSection, DetailItem } from "@/components/ui/detail-layout";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 
 type KpiEvalStatus = "TODO" | "DRAFT" | "SUBMITTED";
@@ -972,38 +973,30 @@ export default function KPI() {
       />
       {/* Dialog View Evaluasi */}
       <Dialog open={viewEvalOpen} onOpenChange={setViewEvalOpen}>
-        <DialogContent className="sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-          <DialogHeader className="p-6 border-b bg-muted/30 shrink-0">
-            <DialogTitle className="text-xl font-bold tracking-tight">Detail Evaluasi KPI</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar">
-            {viewingEval && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Karyawan</Label>
-                    <p className="text-sm font-semibold">{viewingEval.employees?.name ?? "—"}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Dinilai Oleh</Label>
-                    <p className="text-sm font-semibold">{employeeMap[viewingEval.evaluator_id] ?? "—"}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Periode</Label>
-                    <p className="text-sm font-semibold">{formatDateRange(viewingEval)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Nilai Akhir</Label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-primary">{viewingEval.total_score ?? "—"}</p>
-                      {viewingEval.total_score ? getScoreBadge(viewingEval.total_score, templates.find(t => t.id === viewingEval.template_id)) : null}
-                    </div>
-                  </div>
-                </div>
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+          {viewingEval && (
+            <>
+              <DetailHeader title="Detail Evaluasi KPI" />
+              
+              <div className="flex-1 p-6 space-y-10 overflow-y-auto custom-scrollbar">
+                
+                <DetailSection icon={Target} title="Informasi Evaluasi">
+                  <DetailItem label="Karyawan" value={viewingEval.employees?.name} />
+                  <DetailItem label="Dinilai Oleh" value={employeeMap[viewingEval.evaluator_id]} />
+                  <DetailItem label="Periode" value={formatDateRange(viewingEval)} />
+                  <DetailItem 
+                    label="Nilai Akhir" 
+                    value={
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-primary">{viewingEval.total_score ?? "—"}</span>
+                        {viewingEval.total_score ? getScoreBadge(viewingEval.total_score, templates.find(t => t.id === viewingEval.template_id)) : null}
+                      </div>
+                    } 
+                  />
+                </DetailSection>
 
-                <div className="space-y-3">
-                  <Label className="text-sm font-bold border-b pb-2 flex">Nilai per Indikator</Label>
-                  <div className="space-y-2">
+                <DetailSection icon={BarChart3} title="Nilai per Indikator">
+                  <div className="md:col-span-2 space-y-2">
                     {indicators.filter(i => i.template_id === viewingEval.template_id).map(ind => {
                       const scoreRec = scores.find(s => s.evaluation_id === viewingEval.id && s.indicator_id === ind.id);
                       return (
@@ -1019,22 +1012,18 @@ export default function KPI() {
                       );
                     })}
                   </div>
-                </div>
+                </DetailSection>
 
                 {viewingEval.qualitative_feedback && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold border-b pb-2 flex">Catatan Penilai</Label>
-                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-md text-sm text-slate-800 whitespace-pre-wrap">
+                  <DetailSection icon={AlignLeft} title="Catatan Penilai">
+                    <div className="md:col-span-2 p-4 bg-amber-50 border border-amber-100 rounded-md text-sm text-slate-800 whitespace-pre-wrap">
                       {viewingEval.qualitative_feedback}
                     </div>
-                  </div>
+                  </DetailSection>
                 )}
-              </>
-            )}
-          </div>
-          <div className="p-6 border-t bg-muted/30 flex justify-end shrink-0">
-            <Button variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => setViewEvalOpen(false)}>Tutup</Button>
-          </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>

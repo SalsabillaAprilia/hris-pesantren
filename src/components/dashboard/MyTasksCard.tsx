@@ -4,6 +4,7 @@ import { id as localeId } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListTodo, Circle, CircleDot, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { TASK_STATUS_MAP, getTaskStatusBadgeClass } from "@/utils/task-mapping";
 
 interface MyTasksCardProps {
   tasks: any[];
@@ -120,9 +121,9 @@ export function MyTasksCard({ tasks, loading }: MyTasksCardProps) {
                     )}
                   </div>
                   <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap shrink-0 ${cfg.class}`}
+                    className={getTaskStatusBadgeClass(task.status)}
                   >
-                    {cfg.label}
+                    {TASK_STATUS_MAP[task.status]?.label || task.status}
                   </span>
                 </div>
               );

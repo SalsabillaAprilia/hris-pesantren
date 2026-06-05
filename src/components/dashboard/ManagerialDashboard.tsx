@@ -6,6 +6,7 @@ import { BranchDistributionChart } from "./BranchDistributionChart";
 import { ExpiringContractsCard } from "./ExpiringContractsCard";
 import { RecentApprovalsCard } from "./RecentApprovalsCard";
 import { TodayAgendaCard } from "./TodayAgendaCard";
+import { PendingTasksCard } from "./PendingTasksCard";
 
 interface Stats {
   totalEmployees: number;
@@ -22,6 +23,7 @@ interface ManagerialDashboardProps {
   units: any[];
   approvals: any[];
   agendas: any[];
+  tasks?: any[];
   loading: boolean;
   isUnitLeader?: boolean;
   isGlobalMode?: boolean;
@@ -36,6 +38,7 @@ export function ManagerialDashboard({
   units,
   approvals,
   agendas,
+  tasks = [],
   loading,
   isUnitLeader = false,
   isGlobalMode = false,
@@ -99,12 +102,14 @@ export function ManagerialDashboard({
       </div>
 
       {/* Charts Row */}
-      <div className={`grid grid-cols-1 ${!isUnitLeader ? "lg:grid-cols-2" : ""} gap-4`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <WeeklyAttendanceChart attendanceRecords={attendanceRecords} loading={loading} />
-        {!isUnitLeader && (
+        {!isUnitLeader ? (
           isGlobalMode
             ? <BranchDistributionChart allEmployees={employees} institutions={institutions} loading={loading} />
             : <UnitDistributionChart employees={employees} units={units} loading={loading} />
+        ) : (
+          <PendingTasksCard tasks={tasks} loading={loading} />
         )}
       </div>
 

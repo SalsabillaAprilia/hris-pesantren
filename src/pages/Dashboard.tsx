@@ -34,6 +34,7 @@ interface DashboardCache {
   approvals: any[];
   agendas: any[];
   tasks: any[];
+  personalTasks?: any[];
   personalAttendance: any[];
   personalApprovals: any[];
 }
@@ -70,6 +71,7 @@ export default function Dashboard() {
   const [approvals, setApprovals] = useState<any[]>(initialCache?.approvals || []);
   const [agendas, setAgendas] = useState<any[]>(initialCache?.agendas || []);
   const [tasks, setTasks] = useState<any[]>(initialCache?.tasks || []);
+  const [personalTasks, setPersonalTasks] = useState<any[]>(initialCache?.personalTasks || []);
   // Riwayat presensi personal (untuk karyawan)
   const [personalAttendance, setPersonalAttendance] = useState<any[]>(initialCache?.personalAttendance || []);
   const [personalApprovals, setPersonalApprovals] = useState<any[]>(initialCache?.personalApprovals || []);
@@ -87,6 +89,7 @@ export default function Dashboard() {
     setApprovals(cache?.approvals || []);
     setAgendas(cache?.agendas || []);
     setTasks(cache?.tasks || []);
+    setPersonalTasks(cache?.personalTasks || []);
     setPersonalAttendance(cache?.personalAttendance || []);
     setPersonalApprovals(cache?.personalApprovals || []);
   }
@@ -134,7 +137,7 @@ export default function Dashboard() {
           ),
           supabaseFetchWithTimeout(
             (() => {
-              let q = supabase.from("tasks").select("*").in("status", ["todo", "in_progress"]);
+              let q = supabase.from("tasks").select("*, employees(name)").in("status", ["todo", "in_progress", "pending_review"] as any[]);
               if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
               return q;
             })(),
@@ -305,7 +308,7 @@ export default function Dashboard() {
         if (isMounted.current) {
           setPersonalAttendance(personalAttRes?.data || []);
           setPersonalApprovals(personalApprRes?.data || []);
-          setTasks(personalTasksRes?.data || []);
+          setPersonalTasks(personalTasksRes?.data || []);
           setAgendas(personalAgendasRes?.data || []);
           setTodayRecord(todayResData);
           
@@ -314,7 +317,7 @@ export default function Dashboard() {
             ...(globalDashboardCaches[currentCacheKey] || {}),
             personalAttendance: personalAttRes?.data || [],
             personalApprovals: personalApprRes?.data || [],
-            tasks: personalTasksRes?.data || [],
+            personalTasks: personalTasksRes?.data || [],
             agendas: personalAgendasRes?.data || [],
             todayRecord: todayResData,
             // Ensure we don't wipe out managerial data if it exists
@@ -323,6 +326,7 @@ export default function Dashboard() {
             allEmployees: globalDashboardCaches[currentCacheKey]?.allEmployees || [],
             attendanceRecords: globalDashboardCaches[currentCacheKey]?.attendanceRecords || [],
             approvals: globalDashboardCaches[currentCacheKey]?.approvals || [],
+            tasks: globalDashboardCaches[currentCacheKey]?.tasks || [],
             units: globalDashboardCaches[currentCacheKey]?.units || [],
           };
         }
@@ -363,6 +367,7 @@ export default function Dashboard() {
           units={units}
           approvals={approvals}
           agendas={agendas}
+          tasks={tasks}
           loading={loading}
           isUnitLeader={isUnitLeader && !isAdminOrHr && !isDirector}
           isGlobalMode={isGlobalMode}
@@ -376,7 +381,7 @@ export default function Dashboard() {
           employee={employee}
           todayRecord={todayRecord}
           attendanceRecords={personalAttendance}
-          tasks={tasks}
+          tasks={personalTasks}
           agendas={agendas}
           approvals={personalApprovals}
           loading={loading}

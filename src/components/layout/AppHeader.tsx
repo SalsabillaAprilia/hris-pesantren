@@ -63,7 +63,8 @@ const toTitleCase = (str: string) => {
 };
 
 export function AppHeader() {
-  const { employee, isEmployee, isAdminOrHr, isDirector, signOut, isGlobalRole, allInstitutions, selectedInstansiId, setSelectedInstansiId } = useAuth();
+  const { employee, isEmployee, hasRole, isAdminOrHr, isDirector, signOut, isGlobalRole, allInstitutions, selectedInstansiId, setSelectedInstansiId } = useAuth();
+  const isUnitLeader = hasRole("unit_leader");
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbs = BREADCRUMB_MAP[location.pathname] || [{ name: "Sistem" }];
@@ -103,6 +104,29 @@ export function AppHeader() {
         });
       }
 
+      if (isUnitLeader && employee?.unit_id) {
+        // Unit Leader: Tugas yang menunggu konfirmasi (pending_review)
+        const res = await supabaseFetchWithTimeout(
+          supabase
+            .from("tasks")
+            .select("id, title, created_at, employees!inner(unit_id)")
+            .eq("status", "pending_review" as any)
+            .eq("employees.unit_id", employee.unit_id)
+            .order("created_at", { ascending: false })
+            .limit(10),
+          15000
+        );
+        (res?.data || []).forEach((t: any) => {
+          items.push({
+            id: t.id,
+            type: "task",
+            message: `Tugas menunggu konfirmasi: "${t.title}"`,
+            created_at: t.created_at,
+            read: false,
+          });
+        });
+      }
+
       if (isEmployee) {
         // Karyawan: tugas yang baru diassign (status todo)
         const res = await supabaseFetchWithTimeout(
@@ -133,7 +157,7 @@ export function AppHeader() {
     } catch (err) {
       console.error("AppHeader: notif fetch failed", err);
     }
-  }, [employee, isAdminOrHr, isEmployee, readIds]);
+  }, [employee, isAdminOrHr, isEmployee, isUnitLeader, readIds]);
 
   useEffect(() => {
     fetchNotifs();
