@@ -269,7 +269,7 @@ export default function AdminAccounts() {
                       )}
                     </TableCell>
                     <TableCell className="text-slate-700 py-1.5">
-                      {format(new Date(acc.created_at), "dd MMM yyyy")}
+                      {format(new Date(acc.created_at), "dd/MM/yyyy")}
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <div className="flex justify-center gap-1">

@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { useTerminology } from "@/hooks/useTerminology";
 import { toast } from "sonner";
-import { CalendarDays, Plus, Pencil, Trash2, Search, Send, AlertCircle, CheckCircle, XCircle, ClipboardCheck, ListTodo, Filter, FileSpreadsheet, Crown } from "lucide-react";
+import { CalendarDays, Plus, Pencil, Trash2, Search, Send, AlertCircle, CheckCircle, XCircle, ClipboardCheck, ListTodo, Filter, FileSpreadsheet, Crown, User } from "lucide-react";
 import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -907,12 +907,7 @@ export default function Agendas() {
       <Dialog open={viewReportOpen} onOpenChange={setViewReportOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none bg-slate-50">
           <DetailHeader 
-            title={viewingReport?.employees?.name || "Karyawan"}
-            subtitle={(() => {
-              if (!viewingReport?.employees?.units?.name) return "Tanpa Unit";
-              const isLeader = userRolesMap[viewingReport.employees.user_id]?.includes("unit_leader") || unitsList.some((u: any) => u.leader_id === viewingReport.employee_id);
-              return isLeader ? `Kepala ${term} ${viewingReport.employees.units.name}` : viewingReport.employees.units.name;
-            })()}
+            title="Detail Laporan Agenda"
             badge={viewingReport && renderStatusBadge(viewingReport.status)}
             actions={
               isUnitLeader && viewingReport?.status === "SUBMITTED" && viewingReport?.employees?.unit_id === employee?.unit_id ? (
@@ -944,6 +939,19 @@ export default function Agendas() {
             }
           />
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
+            <DetailSection icon={User} title="Informasi Karyawan">
+              <DetailItem label="Nama Karyawan" value={viewingReport?.employees?.name || "—"} />
+              <DetailItem 
+                label={(() => {
+                  const capitalizedTerm = term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit";
+                  if (!viewingReport?.employees?.user_id) return capitalizedTerm;
+                  const isLeader = userRolesMap[viewingReport.employees.user_id]?.includes("unit_leader") || unitsList.some((u: any) => u.leader_id === viewingReport.employee_id);
+                  return isLeader ? `Kepala ${capitalizedTerm}` : capitalizedTerm;
+                })()} 
+                value={viewingReport?.employees?.units?.name ?? "—"} 
+              />
+            </DetailSection>
+
             <DetailSection icon={ClipboardCheck} title="Informasi Laporan">
               <DetailItem 
                 label="Periode Laporan" 

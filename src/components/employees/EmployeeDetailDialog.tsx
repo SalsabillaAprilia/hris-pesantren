@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit, Trash, User as UserIcon, Phone, Briefcase, FileDown } from "lucide-react";
 import { useTerminology } from "@/hooks/useTerminology";
 import { DetailHeader, DetailSection, DetailItem } from "@/components/ui/detail-layout";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 interface EmployeeDetailDialogProps {
   open: boolean;
@@ -68,7 +70,7 @@ export function EmployeeDetailDialog({
               <DetailItem label="Nama Lengkap" value={employee.name} />
               <DetailItem label="ID Karyawan" value={employee.employee_id_number} />
               <DetailItem label="Tempat Lahir" value={employee.birth_place} />
-              <DetailItem label="Tanggal Lahir" value={employee.birth_date ? new Date(employee.birth_date).toLocaleDateString("id-ID") : null} />
+              <DetailItem label="Tanggal Lahir" value={employee.birth_date ? format(new Date(employee.birth_date), "dd MMMM yyyy", { locale: id }) : null} />
               <DetailItem label="Jenis Kelamin" value={employee.gender} />
               <DetailItem label="Agama" value={employee.religion} />
               <DetailItem label="Status Perkawinan" value={employee.marital_status} />
@@ -91,9 +93,9 @@ export function EmployeeDetailDialog({
               <DetailItem label="Jabatan" value={employee.positions?.name} />
               <DetailItem label="Jadwal Kerja" value={employee.shifts ? `${employee.shifts.name} (${employee.shifts.start_time?.slice(0,5)} - ${employee.shifts.end_time?.slice(0,5)})` : "—"} />
               <DetailItem label="Status Karyawan" value={employee.status === "active" ? "Aktif" : (employee.status === "inactive" ? "Nonaktif" : "Cuti")} />
-              <DetailItem label="Tanggal Bergabung" value={employee.join_date ? new Date(employee.join_date).toLocaleDateString("id-ID") : null} />
+              <DetailItem label="Tanggal Bergabung" value={employee.join_date ? format(new Date(employee.join_date), "dd MMMM yyyy", { locale: id }) : null} />
               <DetailItem label="Masa Kerja" value={calculateMasaKerja(employee.join_date)} />
-              <DetailItem label="Akhir Kontrak" value={employee.contract_end_date ? new Date(employee.contract_end_date).toLocaleDateString("id-ID") : null} />
+              <DetailItem label="Akhir Kontrak" value={employee.contract_end_date ? format(new Date(employee.contract_end_date), "dd MMMM yyyy", { locale: id }) : null} />
               <DetailItem label="Jenjang Pendidikan" value={employee.education_level} />
               <DetailItem label="Lembaga Pendidikan" value={employee.education_institution} />
               <DetailItem label="Program Studi" value={employee.education_major} />

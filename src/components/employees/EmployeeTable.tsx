@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Employee } from "@/types/employee";
 import { getStatusBadge, calculateMasaKerja } from "@/utils/employee-format";
 import { useTerminology } from "@/hooks/useTerminology";
+import { format } from "date-fns";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -195,7 +196,7 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                       {emp.identity_card_type && `${emp.identity_card_type}: `}{emp.identity_card_number || "—"}
                     </TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
-                      {emp.birth_date ? new Date(emp.birth_date).toLocaleDateString("id-ID") : "—"}
+                      {emp.birth_date ? format(new Date(emp.birth_date), "dd/MM/yyyy") : "—"}
                     </TableCell>
                     <TableCell className="py-1.5 text-slate-900 text-center">{emp.religion || "—"}</TableCell>
                     <TableCell className="py-1.5 text-slate-900 text-center">{emp.education_level || "—"}</TableCell>
@@ -219,13 +220,13 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-left">{emp.positions?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center text-[13px]">{emp.shifts ? `${emp.shifts.name}` : "—"}</TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
-                      {emp.join_date ? new Date(emp.join_date).toLocaleDateString("id-ID") : "—"}
+                      {emp.join_date ? format(new Date(emp.join_date), "dd/MM/yyyy") : "—"}
                     </TableCell>
                     <TableCell className="font-normal py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {calculateMasaKerja(emp.join_date)}
                     </TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
-                      {emp.contract_end_date ? new Date(emp.contract_end_date).toLocaleDateString("id-ID") : "—"}
+                      {emp.contract_end_date ? format(new Date(emp.contract_end_date), "dd/MM/yyyy") : "—"}
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell className="py-1.5 text-slate-900 whitespace-nowrap text-center">

@@ -21,6 +21,7 @@ import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { toast } from "sonner";
 import { Plus, ClipboardCheck, Pencil, Trash2, Search, AlertCircle, CheckSquare, X as XIcon, Loader2, FileText, AlignLeft, User, Calendar, Flag, Target, Briefcase } from "lucide-react";
 import { format, isWithinInterval, parseISO } from "date-fns";
+import { id } from "date-fns/locale";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { TASK_STATUS_MAP, TASK_PRIORITY_MAP, getTaskStatusBadgeClass, getTaskPriorityBadgeClass } from "@/utils/task-mapping";
 import { DetailHeader, DetailSection, DetailItem } from "@/components/ui/detail-layout";
@@ -102,7 +103,7 @@ export default function Tasks() {
           (() => {
             let q = supabase
               .from("tasks")
-              .select("*, employees!tasks_assigned_to_fkey!inner(name, user_id, unit_id), kpi_indicators(name)");
+              .select("*, employees!tasks_assigned_to_fkey!inner(name, user_id, unit_id, units!employees_unit_id_fkey(name)), kpi_indicators(name)");
             
             // 1. Instansi Filter
             if (effectiveInstansiId) q = (q as any).eq("instansi_id", effectiveInstansiId);
@@ -556,6 +557,7 @@ export default function Tasks() {
                     <TableHead className="font-semibold bg-transparent text-left whitespace-nowrap px-4 align-middle">Judul Tugas</TableHead>
                     <TableHead className="font-semibold bg-transparent text-left whitespace-nowrap px-4 align-middle w-[90px]">Prioritas</TableHead>
                     {(isAdminOrHr || isUnitLeader) && <TableHead className="font-semibold bg-transparent text-left whitespace-nowrap px-4 align-middle w-[160px]">Ditugaskan Ke</TableHead>}
+                    {isAdminOrHr && <TableHead className="font-semibold bg-transparent text-left whitespace-nowrap px-4 align-middle w-[120px]">Unit</TableHead>}
                     <TableHead className="font-semibold bg-transparent text-center whitespace-nowrap px-4 align-middle w-[110px]">Tanggal Dibuat</TableHead>
                     <TableHead className="font-semibold bg-transparent text-center whitespace-nowrap px-4 align-middle w-[110px]">Batas Waktu</TableHead>
                     <TableHead className="font-semibold bg-transparent text-center whitespace-nowrap px-4 align-middle w-[220px]">Status</TableHead>
@@ -586,10 +588,13 @@ export default function Tasks() {
                           {(isAdminOrHr || isUnitLeader) && (
                             <TableCell className="text-slate-900 py-1.5 px-4 align-middle">{t.employees?.name ?? "—"}</TableCell>
                           )}
+                          {isAdminOrHr && (
+                            <TableCell className="text-slate-900 py-1.5 px-4 align-middle">{t.employees?.units?.name ?? "—"}</TableCell>
+                          )}
                           <TableCell className="text-slate-900 py-1.5 px-4 align-middle text-center">
-                            {t.created_at ? format(new Date(t.created_at), "dd/MM/yy") : "—"}
+                            {t.created_at ? format(new Date(t.created_at), "dd/MM/yyyy") : "—"}
                           </TableCell>
-                          <TableCell className="text-slate-900 py-1.5 px-4 align-middle text-center">{t.due_date ? format(new Date(t.due_date), "dd/MM/yy") : "—"}</TableCell>
+                          <TableCell className="text-slate-900 py-1.5 px-4 align-middle text-center">{t.due_date ? format(new Date(t.due_date), "dd/MM/yyyy") : "—"}</TableCell>
                           <TableCell className="py-1.5 px-4 align-middle text-center" onClick={(e) => e.stopPropagation()}>
                             {renderSmartStatusBadge(t)}
                           </TableCell>
@@ -787,7 +792,7 @@ export default function Tasks() {
 
                 <DetailSection icon={Briefcase} title="Informasi Penugasan">
                   <DetailItem label="Ditugaskan Kepada" value={viewingTask.employees?.name} />
-                  <DetailItem label="Tenggat Waktu" value={viewingTask.due_date ? format(new Date(viewingTask.due_date), "dd/MM/yyyy") : null} />
+                  <DetailItem label="Tenggat Waktu" value={viewingTask.due_date ? format(new Date(viewingTask.due_date), "dd MMMM yyyy", { locale: id }) : null} />
                   <DetailItem label="Prioritas" value={renderPriorityBadge(viewingTask.priority ?? "Medium")} />
                   <DetailItem 
                     label="Tautan KPI" 

@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { Plus, Trash2, BarChart3, Pencil, Users, Calendar, ChevronDown, ChevronUp, Search, Archive, ArchiveRestore, Target, AlignLeft } from "lucide-react";
 import { DetailHeader, DetailSection, DetailItem } from "@/components/ui/detail-layout";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 type KpiEvalStatus = "TODO" | "DRAFT" | "SUBMITTED";
 
@@ -56,7 +58,7 @@ interface KpiEvaluation {
   qualitative_feedback: string | null;
   created_at: string;
   updated_at: string;
-  employees?: { name: string; unit_id: string | null; user_id?: string };
+  employees?: { name: string; unit_id: string | null; user_id?: string; units?: { name: string } };
 }
 
 interface IndicatorRow { name: string; weight: string; description: string; }
@@ -72,7 +74,7 @@ let globalKpiCacheInstansiId: string | null | undefined = undefined; // undefine
 
 export default function KPI() {
   const { user, employee, isAdminOrHr, hasRole, isDirector, isSuperAdmin, isHr } = useAuth();
-  const { kepalaTerm } = useTerminology();
+  const { term, kepalaTerm } = useTerminology();
   const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
   const isEmployee   = hasRole("employee");
@@ -128,6 +130,7 @@ export default function KPI() {
   const [filterYear,     setFilterYear]     = useState<string>(String(new Date().getFullYear()));
   const [filterStatus,   setFilterStatus]   = useState<string>("all");
   const [templateSearch, setTemplateSearch] = useState<string>("");
+  const [evalSearch,     setEvalSearch]     = useState<string>("");
   const [activeTab,      setActiveTab]      = useState<string>(canMonitorKPI && !isUnitLeader ? "evaluasi" : "evaluasi");
 
   // ── Fetch ────────────────────────────────────────────────────────────────
@@ -135,7 +138,7 @@ export default function KPI() {
     if (isFirstFetch.current) setLoading(true);
     try {
       let tplQuery: any = supabase.from("kpi_templates").select("*").order("created_at", { ascending: false });
-      let evalQuery: any = supabase.from("kpi_evaluations").select("*, employees!inner(name,unit_id,user_id,instansi_id)").order("created_at", { ascending: false });
+      let evalQuery: any = supabase.from("kpi_evaluations").select("*, employees!inner(name,unit_id,user_id,instansi_id,units!employees_unit_id_fkey(name))").order("created_at", { ascending: false });
       let empQuery: any = supabase.from("employees").select("id,name,unit_id,user_id,instansi_id").eq("status","active");
       let rolesQuery: any = supabase.from("user_roles").select("user_id,role,instansi_id");
 
@@ -233,12 +236,19 @@ export default function KPI() {
         return year === filterYear;
       });
     }
+
+    // Search by employee name
+    if (evalSearch.trim()) {
+      const q = evalSearch.toLowerCase();
+      evs = evs.filter(ev => ev.employees?.name?.toLowerCase().includes(q));
+    }
+
     return evs.sort((a, b) => {
       const dateA = new Date(a.end_date || a.start_date || a.created_at).getTime();
       const dateB = new Date(b.end_date || b.start_date || b.created_at).getTime();
       return dateB - dateA;
     });
-  }, [evaluations, isEmployee, isUnitLeader, isAdminOrHr, employee?.unit_id, employee?.id, user?.id, filterYear, filterStatus]);
+  }, [evaluations, isEmployee, isUnitLeader, isAdminOrHr, employee?.unit_id, employee?.id, user?.id, filterYear, filterStatus, evalSearch]);
 
   const myLeaderEvals = useMemo(() => {
     // KPI Saya (untuk Kepala Unit) juga HANYA menampilkan yang sudah Dipublikasi
@@ -302,8 +312,14 @@ export default function KPI() {
 
   const formatDateRange = (ev: KpiEvaluation) => {
     if (!ev.start_date && !ev.end_date) return "—";
-    const fmt = (d: string) => new Date(d).toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" });
-    if (ev.start_date && ev.end_date) return `${fmt(ev.start_date)} – ${fmt(ev.end_date)}`;
+    if (ev.start_date && ev.end_date) return `${format(new Date(ev.start_date), "dd/MM/yyyy")} - ${format(new Date(ev.end_date), "dd/MM/yyyy")}`;
+    return format(new Date((ev.start_date ?? ev.end_date)!), "dd/MM/yyyy");
+  };
+
+  const formatFullDateRange = (ev: KpiEvaluation) => {
+    if (!ev.start_date && !ev.end_date) return "—";
+    const fmt = (d: string) => format(new Date(d), "dd MMMM yyyy", { locale: id });
+    if (ev.start_date && ev.end_date) return `${fmt(ev.start_date)} - ${fmt(ev.end_date)}`;
     return fmt((ev.start_date ?? ev.end_date)!);
   };
 
@@ -316,6 +332,7 @@ export default function KPI() {
             <TableRow className="border-none hover:bg-transparent">
               <TableHead className="bg-muted font-semibold text-center w-10 min-w-[40px]">No.</TableHead>
               {showName && <TableHead className="bg-muted font-semibold whitespace-nowrap">Nama</TableHead>}
+              {showName && isAdminOrHr && <TableHead className="bg-muted font-semibold whitespace-nowrap">{term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit"}</TableHead>}
               <TableHead className="bg-muted font-semibold whitespace-nowrap w-[160px]">Periode</TableHead>
               <TableHead className="bg-muted font-semibold whitespace-nowrap">Template</TableHead>
               <TableHead className="bg-muted font-semibold text-center whitespace-nowrap w-[80px]">Nilai</TableHead>
@@ -344,7 +361,8 @@ export default function KPI() {
                 >
                   <TableCell className="text-center text-slate-500 py-1.5">{idx + 1}</TableCell>
                   {showName && <TableCell className="font-semibold text-slate-900 py-1.5 truncate max-w-[150px]" title={ev.employees?.name ?? "—"}>{ev.employees?.name ?? "—"}</TableCell>}
-                  <TableCell className="text-xs text-slate-600 py-1.5 whitespace-nowrap">{formatDateRange(ev)}</TableCell>
+                  {showName && isAdminOrHr && <TableCell className="text-slate-900 py-1.5 truncate max-w-[150px]" title={ev.employees?.units?.name ?? "—"}>{ev.employees?.units?.name ?? "—"}</TableCell>}
+                  <TableCell className="text-slate-700 py-1.5 whitespace-nowrap">{formatDateRange(ev)}</TableCell>
                   <TableCell className="text-slate-700 py-1.5 truncate max-w-[150px]" title={tpl?.name ?? "—"}>{tpl?.name ?? "—"}</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 py-1.5">{ev.total_score ?? "—"}</TableCell>
                   <TableCell className="text-center py-1.5">{ev.total_score ? getScoreBadge(ev.total_score, tpl) : "—"}</TableCell>
@@ -627,9 +645,9 @@ export default function KPI() {
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-4">
-        <div className="page-header">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="page-title">Key Performance Indicator (KPI)</h1>
+            <h1 className="text-2xl font-bold">Key Performance Indicator (KPI)</h1>
             {isEmployee && !isUnitLeader && (
               <p className="text-sm text-muted-foreground mt-0.5">
                 Daftar riwayat penilaian kinerja Anda.
@@ -637,11 +655,53 @@ export default function KPI() {
             )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            {(activeTab === "evaluasi" || activeTab === "kpi-saya" || (isEmployee && !isUnitLeader)) && (
-              <div className="flex gap-2">
+            {isHr && activeTab === "evaluasi" && (
+              <Button size="sm" onClick={() => openCreateEval()} className="gap-2 bg-primary hover:bg-primary/90 shadow-md font-medium">
+                <Plus className="h-4 w-4" /> Buat Evaluasi
+              </Button>
+            )}
+            {(isHr || isUnitLeader) && activeTab === "template" && (
+              <Button size="sm" onClick={openCreateTpl} className="gap-2 bg-primary hover:bg-primary/90 shadow-md font-medium">
+                <Plus className="h-4 w-4" /> Buat Template
+              </Button>
+            )}
+            {isUnitLeader && activeTab === "evaluasi" && (
+              <Button size="sm" onClick={() => openCreateEval()} className="gap-2 bg-primary hover:bg-primary/90 shadow-md font-medium">
+                <Plus className="h-4 w-4" /> Buat Evaluasi
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Toolbar filter ── */}
+        {(isAdminOrHr || isUnitLeader || isDirector) && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Kiri: Search bar */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {activeTab === "evaluasi" ? (
+                <Input
+                  placeholder="Cari nama karyawan..."
+                  className="pl-9 h-9 text-sm shadow-sm border-primary/40 bg-white/50 transition-all"
+                  value={evalSearch}
+                  onChange={(e) => setEvalSearch(e.target.value)}
+                />
+              ) : activeTab === "template" ? (
+                <Input
+                  placeholder="Cari nama atau deskripsi template..."
+                  className="pl-9 h-9 text-sm shadow-sm border-primary/40 bg-white/50 transition-all"
+                  value={templateSearch}
+                  onChange={(e) => setTemplateSearch(e.target.value)}
+                />
+              ) : <div />}
+            </div>
+
+            {/* Kanan: Dropdown Status & Rentang Waktu */}
+            {(activeTab === "evaluasi" || activeTab === "kpi-saya") && (
+              <div className="flex flex-wrap items-center gap-2">
                 {activeTab === "evaluasi" && !(isDirector || isSuperAdmin) && (isHr || isUnitLeader) && (
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-[160px] h-9 bg-white/50 shadow-sm border-primary/20 text-sm font-medium transition-all transform active:scale-95 hover:bg-accent hover:text-accent-foreground hover:border-accent">
+                    <SelectTrigger className="w-[160px] h-9 bg-white/50 shadow-sm border-primary/20 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground hover:border-accent">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -652,7 +712,7 @@ export default function KPI() {
                   </Select>
                 )}
                 <Select value={filterYear} onValueChange={setFilterYear}>
-                  <SelectTrigger className="w-[160px] h-9 bg-white/50 shadow-sm border-primary/20 text-sm font-medium transition-all transform active:scale-95 hover:bg-accent hover:text-accent-foreground hover:border-accent">
+                  <SelectTrigger className="w-[160px] h-9 bg-white/50 shadow-sm border-primary/20 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground hover:border-accent">
                     <SelectValue placeholder="Pilih Tahun" />
                   </SelectTrigger>
                   <SelectContent>
@@ -664,23 +724,8 @@ export default function KPI() {
                 </Select>
               </div>
             )}
-            {isHr && activeTab === "evaluasi" && (
-              <Button size="sm" onClick={() => openCreateEval()} className="gap-2 bg-primary hover:bg-primary/90 shadow-md">
-                <Plus className="h-4 w-4" /> Buat Evaluasi
-              </Button>
-            )}
-            {(isHr || isUnitLeader) && activeTab === "template" && (
-              <Button size="sm" onClick={openCreateTpl} className="gap-2 bg-primary hover:bg-primary/90 shadow-md">
-                <Plus className="h-4 w-4" /> Buat Template
-              </Button>
-            )}
-            {isUnitLeader && activeTab === "evaluasi" && (
-              <Button size="sm" onClick={() => openCreateEval()} className="gap-2 bg-primary hover:bg-primary/90 shadow-md">
-                <Plus className="h-4 w-4" /> Buat Evaluasi
-              </Button>
-            )}
           </div>
-        </div>
+        )}
 
       {isEmployee && !isUnitLeader && (
         <div className="mt-2">
@@ -698,16 +743,7 @@ export default function KPI() {
           <TabsContent value="evaluasi">
             {loading ? <p className="text-center py-10 text-muted-foreground">Memuat...</p> : renderEvalTable(visibleEvals, isHr)}
           </TabsContent>
-          <TabsContent value="template" className="space-y-4">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari nama atau deskripsi template..."
-                className="pl-9 h-9 text-sm shadow-sm border-slate-200"
-                value={templateSearch}
-                onChange={(e) => setTemplateSearch(e.target.value)}
-              />
-            </div>
+          <TabsContent value="template">
             {loading ? <p className="text-center py-10 text-muted-foreground">Memuat...</p> : renderTemplateGrid(filteredTemplates)}
           </TabsContent>
         </Tabs>
@@ -983,7 +1019,7 @@ export default function KPI() {
                 <DetailSection icon={Target} title="Informasi Evaluasi">
                   <DetailItem label="Karyawan" value={viewingEval.employees?.name} />
                   <DetailItem label="Dinilai Oleh" value={employeeMap[viewingEval.evaluator_id]} />
-                  <DetailItem label="Periode" value={formatDateRange(viewingEval)} />
+                  <DetailItem label="Periode" value={formatFullDateRange(viewingEval)} />
                   <DetailItem 
                     label="Nilai Akhir" 
                     value={

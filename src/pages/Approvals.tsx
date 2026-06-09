@@ -16,8 +16,9 @@ import { Label } from "@/components/ui/label";
 import { MonthPicker } from "@/components/ui/month-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, ChevronLeft, ChevronRight, Filter, FileText, MessageSquare, AlertCircle, Tag, Calendar, Paperclip } from "lucide-react";
+import { Check, X, ChevronLeft, ChevronRight, Filter, FileText, MessageSquare, AlertCircle, Tag, Calendar, Paperclip, ClipboardCheck, User } from "lucide-react";
 import { format } from "date-fns";
+import { DetailHeader, DetailSection, DetailItem } from "@/components/ui/detail-layout";
 import { id } from "date-fns/locale";
 import { useTerminology } from "@/hooks/useTerminology";
 import { generateLeaveAttendanceRecords, rollbackLeaveAttendanceRecords } from "@/utils/attendance-generator";
@@ -461,8 +462,8 @@ export default function Approvals() {
                         </TableCell>
                         <TableCell className="text-slate-900 whitespace-nowrap py-1.5 px-4 align-middle text-left">
                           {a.type === "overtime" || (a.start_date === a.end_date) 
-                            ? format(new Date(a.start_date), "dd/MM/yy", { locale: id })
-                            : `${format(new Date(a.start_date), "dd/MM/yy", { locale: id })} - ${format(new Date(a.end_date), "dd/MM/yy", { locale: id })}`}
+                            ? format(new Date(a.start_date), "dd/MM/yyyy", { locale: id })
+                            : `${format(new Date(a.start_date), "dd/MM/yyyy", { locale: id })} - ${format(new Date(a.end_date), "dd/MM/yyyy", { locale: id })}`}
                         </TableCell>
                         <TableCell className="max-w-[200px] py-1.5 px-4 align-middle text-left">
                           <p className="truncate text-slate-700">{a.reason}</p>
@@ -535,105 +536,77 @@ export default function Approvals() {
 
       {/* Detail Modal */}
       <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
-        <DialogContent className="sm:max-w-[550px] shadow-lg border-slate-200 p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary/80" /> Detail Pengajuan
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6 pt-4 max-h-[75vh] overflow-y-auto overflow-x-hidden pr-2">
-            {selectedDetail && (
-              <>
-                {/* Info Pengaju */}
-                <div className="flex justify-between items-center bg-primary/5 p-4 rounded-xl border border-primary/10">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shadow-sm border border-primary/20">
-                      {selectedDetail.employees?.name?.charAt(0) ?? "U"}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900">{selectedDetail.employees?.name ?? "—"}</h3>
-                      <p className="text-xs text-slate-500 font-medium">{selectedDetail.employees?.units?.name ?? "—"}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    {statusBadge(selectedDetail.status)}
-                  </div>
-                </div>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none bg-slate-50">
+          {selectedDetail && (
+            <>
+              <DetailHeader 
+                title="Detail Pengajuan"
+                badge={statusBadge(selectedDetail.status)}
+                actions={
+                  selectedCanAction ? (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => { setDetailModalOpen(false); setTimeout(() => openRejectModal(selectedDetail.id), 100); }} disabled={isProcessing} className="h-8 gap-1.5 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none transition-all">
+                        <X className="h-3.5 w-3.5" /> Tolak
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleApprove(selectedDetail.id)} disabled={isProcessing} className="h-8 gap-1.5 font-semibold bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200 shadow-none transition-all">
+                        <Check className="h-3.5 w-3.5" /> Setujui
+                      </Button>
+                    </>
+                  ) : undefined
+                }
+              />
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                <DetailSection icon={User} title="Informasi Pengaju">
+                  <DetailItem label="Nama Karyawan" value={selectedDetail.employees?.name ?? "—"} />
+                  <DetailItem label={term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit"} value={selectedDetail.employees?.units?.name ?? "—"} />
+                </DetailSection>
 
-                {/* Grid Info */}
-                <div className="grid grid-cols-2 gap-4 px-1">
-                  <div className="space-y-1.5">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <Tag className="h-3.5 w-3.5" /> Jenis Pengajuan
-                    </span>
-                    <p className="text-sm font-semibold text-slate-900 pl-5">{mapTypeLabel(selectedDetail.type)}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" /> Tanggal Kegiatan
-                    </span>
-                    <p className="text-sm font-semibold text-slate-900 pl-5">
-                      {selectedDetail.type === "overtime" || (selectedDetail.start_date === selectedDetail.end_date) 
+                <DetailSection icon={ClipboardCheck} title="Informasi Pengajuan">
+                  <DetailItem label="Jenis Pengajuan" value={mapTypeLabel(selectedDetail.type)} />
+                  <DetailItem 
+                    label="Tanggal Kegiatan" 
+                    value={
+                      selectedDetail.type === "overtime" || (selectedDetail.start_date === selectedDetail.end_date) 
                         ? format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })
-                        : `${format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })} - ${format(new Date(selectedDetail.end_date), "dd MMMM yyyy", { locale: id })}`}
-                      {selectedDetail.type === "overtime" && selectedDetail.start_time && (
-                        <span className="text-slate-500 font-normal ml-1">({selectedDetail.start_time.slice(0,5)} - {selectedDetail.end_time?.slice(0,5)})</span>
-                      )}
-                    </p>
+                        : `${format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })} - ${format(new Date(selectedDetail.end_date), "dd MMMM yyyy", { locale: id })}`
+                    } 
+                  />
+                  {selectedDetail.type === "overtime" && selectedDetail.start_time && (
+                    <DetailItem label="Jam Lembur" value={`${selectedDetail.start_time.slice(0,5)} - ${selectedDetail.end_time?.slice(0,5)}`} />
+                  )}
+                </DetailSection>
+
+                <DetailSection icon={MessageSquare} title="Keterangan Tambahan">
+                  <div className="col-span-1 md:col-span-2">
+                    <DetailItem label="Alasan Pengajuan" value={selectedDetail.reason} />
                   </div>
-                </div>
-
-                {/* Alasan */}
-                <div className="space-y-2 px-1">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                    <MessageSquare className="h-3.5 w-3.5" /> Alasan Pengajuan
-                  </span>
-                  <p className="text-sm text-slate-700 bg-slate-50 p-3.5 rounded-lg border border-slate-200/60 whitespace-pre-wrap leading-relaxed ml-5">
-                    {selectedDetail.reason}
-                  </p>
-                </div>
-
-                {/* Lampiran */}
-                {selectedDetail.attachment_url && (
-                  <div className="space-y-2 px-1">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <Paperclip className="h-3.5 w-3.5" /> Lampiran
-                    </span>
-                    <div className="ml-5">
-                      <a href={selectedDetail.attachment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md text-xs font-semibold border border-blue-200 transition-colors">
-                        <FileText className="h-3.5 w-3.5" /> Buka Dokumen Pendukung
-                      </a>
+                  
+                  {selectedDetail.attachment_url && (
+                    <div className="col-span-1 md:col-span-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-semibold text-muted-foreground">Lampiran Dokumen</Label>
+                        <div className="pt-1">
+                          <a href={selectedDetail.attachment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md text-xs font-semibold border border-blue-200 transition-colors">
+                            <FileText className="h-3.5 w-3.5" /> Buka Dokumen Pendukung
+                          </a>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Alasan Penolakan */}
-                {selectedDetail.status === "rejected" && selectedDetail.reject_reason && (
-                  <div className="space-y-2 px-1">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
-                      <AlertCircle className="h-3.5 w-3.5" /> Alasan Penolakan
-                    </span>
-                    <p className="text-sm text-red-700 bg-red-50 p-3.5 rounded-lg border border-red-100 whitespace-pre-wrap leading-relaxed ml-5">
-                      {selectedDetail.reject_reason}
-                    </p>
-                  </div>
-                )}
-
-                {/* Actions Footer */}
-                {selectedCanAction && (
-                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-2">
-                    <Button variant="outline" onClick={() => { setDetailModalOpen(false); setTimeout(() => openRejectModal(selectedDetail.id), 100); }} disabled={isProcessing} className="gap-1.5 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none">
-                      <X className="h-4 w-4" /> Tolak
-                    </Button>
-                    <Button variant="outline" onClick={() => handleApprove(selectedDetail.id)} disabled={isProcessing} className="gap-1.5 font-semibold bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200 shadow-none">
-                      <Check className="h-4 w-4" /> Setujui
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                  {selectedDetail.status === "rejected" && selectedDetail.reject_reason && (
+                    <div className="col-span-1 md:col-span-2 mt-2">
+                      <DetailItem 
+                        label="Catatan Penolakan" 
+                        value={<span className="text-red-600 font-medium">{selectedDetail.reject_reason}</span>} 
+                      />
+                    </div>
+                  )}
+                </DetailSection>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>
