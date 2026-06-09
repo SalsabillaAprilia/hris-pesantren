@@ -12,20 +12,20 @@ interface TodayAgendaCardProps {
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
-  todo: {
-    label: "Belum",
+  DRAFT: {
+    label: "Draft",
     class: "text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] border-[hsl(232,59%,90%)]",
   },
-  on_progress: {
-    label: "Berjalan",
+  SUBMITTED: {
+    label: "Menunggu",
     class: "text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] border-[hsl(38,55%,88%)]",
   },
-  done: {
-    label: "Selesai",
+  APPROVED: {
+    label: "Disetujui",
     class: "text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] border-[hsl(142,45%,90%)]",
   },
-  cancelled: {
-    label: "Batal",
+  REVISION_REQUESTED: {
+    label: "Revisi",
     class: "text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] border-[hsl(0,55%,90%)]",
   },
 };
@@ -37,15 +37,22 @@ export function TodayAgendaCard({ agendas, loading, isGlobalMode }: TodayAgendaC
     const today = format(new Date(), "yyyy-MM-dd");
     return agendas
       .filter((a) => a.date === today)
-      .sort((a, b) => (a.time || "").localeCompare(b.time || ""))
       .slice(0, 5)
-      .map((a) => ({
-        id: a.id,
-        activity: a.activity,
-        time: a.time ? a.time.substring(0, 5) : "--:--",
-        status: a.status,
-        employeeName: a.employees?.name || "-",
-      }));
+      .map((a) => {
+        const report = a.agenda_reports;
+        const employeeName = report?.employees?.name || a.employees?.name || "-";
+        const h = Math.floor(a.duration_minutes / 60);
+        const m = a.duration_minutes % 60;
+        const durationStr = h > 0 ? `${h}j ${m}m` : `${m}m`;
+        
+        return {
+          id: a.id,
+          activity: a.activity,
+          time: durationStr,
+          status: report?.status || "DRAFT",
+          employeeName: employeeName,
+        };
+      });
   }, [agendas]);
 
   return (

@@ -97,6 +97,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
 
     const { error } = await supabase.from("approvals").insert({
       employee_id: employee.id,
+      instansi_id: employee.instansi_id,
       type: form.type as any,
       start_date: form.start_date,
       end_date: form.type === "overtime" ? form.start_date : (form.end_date || form.start_date),

@@ -153,8 +153,8 @@ export default function Dashboard() {
           ),
           supabaseFetchWithTimeout(
             (() => {
-              let q = supabase.from("agendas").select("*, employees(name)").eq("date", today).order("time", { ascending: true });
-              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              let q = supabase.from("agenda_items").select("*, agenda_reports!inner(employee_id, instansi_id, employees(name))").eq("date", today).order("created_at", { ascending: true });
+              if (effectiveInstansiId) q = q.eq("agenda_reports.instansi_id", effectiveInstansiId);
               return q;
             })(),
             20000
@@ -204,7 +204,7 @@ export default function Dashboard() {
             apprData = apprData.filter(a => subordinateIds.has(a.employee_id));
             tasksData = tasksData.filter((t: any) => subordinateIds.has(t.assigned_to));
             unitsData = unitsData.filter((u: any) => u.id === myUnitId);
-            agendasData = agendasData.filter((a: any) => subordinateIds.has(a.employee_id));
+            agendasData = agendasData.filter((a: any) => subordinateIds.has(a.agenda_reports?.employee_id));
           } else {
             filteredEmps = [];
             filteredAllEmps = [];
@@ -275,7 +275,7 @@ export default function Dashboard() {
             20000
           ),
           supabaseFetchWithTimeout(
-            supabase.from("agendas").select("*, employees(name)").eq("employee_id", employee.id).eq("date", today).order("time", { ascending: true }),
+            supabase.from("agenda_items").select("*, agenda_reports!inner(employee_id, employees(name))").eq("agenda_reports.employee_id", employee.id).eq("date", today).order("created_at", { ascending: true }),
             20000
           ),
         ]);

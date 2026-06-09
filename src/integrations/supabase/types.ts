@@ -38,43 +38,87 @@ export type Database = {
         }
         Relationships: []
       }
-      agendas: {
+      agenda_reports: {
         Row: {
           id: string
           employee_id: string
-          date: string
-          time: string
-          activity: string
-          status: Database["public"]["Enums"]["agenda_status"]
+          instansi_id: string
+          start_date: string
+          end_date: string
+          status: Database["public"]["Enums"]["report_status"]
+          manager_notes: string | null
+          approved_by: string | null
+          approved_at: string | null
           created_at: string
-          instansi_id: string | null
+          updated_at: string
         }
         Insert: {
           id?: string
           employee_id: string
-          date: string
-          time: string
-          activity: string
-          status?: Database["public"]["Enums"]["agenda_status"]
+          instansi_id: string
+          start_date: string
+          end_date: string
+          status?: Database["public"]["Enums"]["report_status"]
+          manager_notes?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
           created_at?: string
-          instansi_id?: string | null
+          updated_at?: string
         }
         Update: {
           id?: string
           employee_id?: string
-          date?: string
-          time?: string
-          activity?: string
-          status?: Database["public"]["Enums"]["agenda_status"]
+          instansi_id?: string
+          start_date?: string
+          end_date?: string
+          status?: Database["public"]["Enums"]["report_status"]
+          manager_notes?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
           created_at?: string
-          instansi_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "agendas_employee_id_fkey"
+            foreignKeyName: "agenda_reports_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_items: {
+        Row: {
+          id: string
+          report_id: string
+          date: string
+          duration_minutes: number
+          activity: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          report_id: string
+          date: string
+          duration_minutes: number
+          activity: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          report_id?: string
+          date?: string
+          duration_minutes?: number
+          activity?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_items_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_reports"
             referencedColumns: ["id"]
           },
         ]
@@ -681,7 +725,7 @@ export type Database = {
       is_admin_or_hr: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      agenda_status: "todo" | "on_progress" | "done" | "cancelled"
+      report_status: "DRAFT" | "SUBMITTED" | "REVISION_REQUESTED" | "APPROVED"
       app_role: "super_admin" | "hr" | "unit_leader" | "employee" | "director"
       approval_status: "pending" | "approved_unit_leader" | "approved_hr" | "rejected"
       approval_type: "leave" | "permission" | "overtime" | "sick" | "wfa"
