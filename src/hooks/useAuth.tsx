@@ -14,6 +14,7 @@ export type Institution = {
   primary_color: string | null;
   created_at: string;
   organization_term?: string | null;
+  is_active?: boolean;
 };
 
 interface AuthContextType {
@@ -37,6 +38,7 @@ interface AuthContextType {
   selectedInstansiId: string | null;   // Filter cabang yang dipilih akun Global
   setSelectedInstansiId: (id: string | null) => void;
   refreshInstitutions: () => Promise<void>;
+  setAllInstitutions: (institutions: Institution[]) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabase.from("institutions").select("*").order("name"),
           10000
         );
-        if (data) setAllInstitutions(data as Institution[]);
+        if (data) setAllInstitutions((data as Institution[]).filter(i => i.is_active !== false));
         setCurrentInstitution(null); // Global tidak terikat 1 institusi
       }
     } catch (err) {
@@ -90,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabase.from("institutions").select("*").order("name"),
           10000
         );
-        if (data) setAllInstitutions(data as Institution[]);
+        if (data) setAllInstitutions((data as Institution[]).filter(i => i.is_active !== false));
       } else {
         await fetchInstitution(instansiId);
       }
@@ -312,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn, signOut, hasRole,
       isAdminOrHr, isSuperAdmin, isHr, isEmployee, isDirector,
       instansiId, isGlobalRole, currentInstitution, allInstitutions,
-      selectedInstansiId, setSelectedInstansiId, refreshInstitutions,
+      selectedInstansiId, setSelectedInstansiId, refreshInstitutions, setAllInstitutions,
     }}>
       {children}
     </AuthContext.Provider>

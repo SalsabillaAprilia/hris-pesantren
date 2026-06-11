@@ -44,8 +44,8 @@ const BREADCRUMB_MAP: Record<string, BreadcrumbSegment[]> = {
   "/kpi": [{ name: "KPI" }],
   "/reports": [{ name: "Laporan" }],
   "/my-data": [{ name: "Data Diri" }],
-  "/branches": [{ name: "Manajemen Cabang" }],
-  "/admin-accounts": [{ name: "Akun Admin" }],
+  "/branches": [{ name: "Pengaturan Cabang" }],
+  "/admin-accounts": [{ name: "Manajemen Akun" }],
   "/profile": [{ name: "Profil" }]
 };
 

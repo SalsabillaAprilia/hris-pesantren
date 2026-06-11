@@ -129,6 +129,7 @@ export default function KPI() {
   const [isDeletingTpl,  setIsDeletingTpl]  = useState(false);
   const [filterYear,     setFilterYear]     = useState<string>(String(new Date().getFullYear()));
   const [filterStatus,   setFilterStatus]   = useState<string>("all");
+  const [filterUnit,     setFilterUnit]     = useState<string>("all");
   const [templateSearch, setTemplateSearch] = useState<string>("");
   const [evalSearch,     setEvalSearch]     = useState<string>("");
   const [activeTab,      setActiveTab]      = useState<string>(canMonitorKPI && !isUnitLeader ? "evaluasi" : "evaluasi");
@@ -237,6 +238,11 @@ export default function KPI() {
       });
     }
 
+    // Unit filter (khusus superadmin/director)
+    if ((isSuperAdmin || isDirector) && filterUnit !== "all") {
+      evs = evs.filter(ev => ev.employees?.unit_id === filterUnit);
+    }
+
     // Search by employee name
     if (evalSearch.trim()) {
       const q = evalSearch.toLowerCase();
@@ -248,7 +254,7 @@ export default function KPI() {
       const dateB = new Date(b.end_date || b.start_date || b.created_at).getTime();
       return dateB - dateA;
     });
-  }, [evaluations, isEmployee, isUnitLeader, isAdminOrHr, employee?.unit_id, employee?.id, user?.id, filterYear, filterStatus, evalSearch]);
+  }, [evaluations, isEmployee, isUnitLeader, isAdminOrHr, isSuperAdmin, isDirector, employee?.unit_id, employee?.id, user?.id, filterYear, filterStatus, filterUnit, evalSearch]);
 
   const myLeaderEvals = useMemo(() => {
     // KPI Saya (untuk Kepala Unit) juga HANYA menampilkan yang sudah Dipublikasi
@@ -279,6 +285,18 @@ export default function KPI() {
     // Tampilkan 5 tahun ke belakang dari tahun sekarang
     return Array.from({ length: 5 }, (_, i) => String(currentYear - i));
   }, []);
+
+  const availableUnits = useMemo(() => {
+    const unitsMap = new Map<string, string>();
+    evaluations.forEach(ev => {
+      if (ev.employees?.unit_id && ev.employees?.units?.name) {
+        unitsMap.set(ev.employees.unit_id, ev.employees.units.name);
+      }
+    });
+    return Array.from(unitsMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [evaluations]);
 
   const filteredTemplates = useMemo(() => {
     if (!templateSearch.trim()) return templates;
@@ -332,7 +350,7 @@ export default function KPI() {
             <TableRow className="border-none hover:bg-transparent">
               <TableHead className="bg-muted font-semibold text-center w-10 min-w-[40px]">No.</TableHead>
               {showName && <TableHead className="bg-muted font-semibold whitespace-nowrap">Nama</TableHead>}
-              {showName && isAdminOrHr && <TableHead className="bg-muted font-semibold whitespace-nowrap">{term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit"}</TableHead>}
+              {showName && canMonitorKPI && <TableHead className="bg-muted font-semibold whitespace-nowrap">{term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit"}</TableHead>}
               <TableHead className="bg-muted font-semibold whitespace-nowrap w-[160px]">Periode</TableHead>
               <TableHead className="bg-muted font-semibold whitespace-nowrap">Template</TableHead>
               <TableHead className="bg-muted font-semibold text-center whitespace-nowrap w-[80px]">Nilai</TableHead>
@@ -344,7 +362,7 @@ export default function KPI() {
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showName ? 8 : 7} className="h-32 text-center text-muted-foreground">Belum ada evaluasi.</TableCell>
+                <TableCell colSpan={showName ? (canMonitorKPI ? 9 : 8) : 7} className="h-32 text-center text-muted-foreground">Belum ada evaluasi.</TableCell>
               </TableRow>
             ) : data.map((ev, idx) => {
               const tpl = templates.find(t => t.id === ev.template_id);
@@ -361,7 +379,7 @@ export default function KPI() {
                 >
                   <TableCell className="text-center text-slate-500 py-1.5">{idx + 1}</TableCell>
                   {showName && <TableCell className="font-semibold text-slate-900 py-1.5 truncate max-w-[150px]" title={ev.employees?.name ?? "—"}>{ev.employees?.name ?? "—"}</TableCell>}
-                  {showName && isAdminOrHr && <TableCell className="text-slate-900 py-1.5 truncate max-w-[150px]" title={ev.employees?.units?.name ?? "—"}>{ev.employees?.units?.name ?? "—"}</TableCell>}
+                  {showName && canMonitorKPI && <TableCell className="text-slate-900 py-1.5 truncate max-w-[150px]" title={ev.employees?.units?.name ?? "—"}>{ev.employees?.units?.name ?? "—"}</TableCell>}
                   <TableCell className="text-slate-700 py-1.5 whitespace-nowrap">{formatDateRange(ev)}</TableCell>
                   <TableCell className="text-slate-700 py-1.5 truncate max-w-[150px]" title={tpl?.name ?? "—"}>{tpl?.name ?? "—"}</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 py-1.5">{ev.total_score ?? "—"}</TableCell>
@@ -708,6 +726,19 @@ export default function KPI() {
                       <SelectItem value="all">Semua Status</SelectItem>
                       <SelectItem value="DRAFT">Proses Penilaian</SelectItem>
                       <SelectItem value="SUBMITTED">Dipublikasi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {(isSuperAdmin || isDirector) && (
+                  <Select value={filterUnit} onValueChange={setFilterUnit}>
+                    <SelectTrigger className="w-[160px] h-9 bg-white/50 shadow-sm border-primary/20 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground hover:border-accent">
+                      <SelectValue placeholder={`Semua ${term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit"}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua {term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit"}</SelectItem>
+                      {availableUnits.map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 )}

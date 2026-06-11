@@ -21,6 +21,8 @@ export type Database = {
           logo_url: string | null
           primary_color: string | null
           created_at: string
+          organization_term?: string | null
+          is_active?: boolean | null
         }
         Insert: {
           id?: string
@@ -28,6 +30,8 @@ export type Database = {
           logo_url?: string | null
           primary_color?: string | null
           created_at?: string
+          organization_term?: string | null
+          is_active?: boolean | null
         }
         Update: {
           id?: string
@@ -35,6 +39,8 @@ export type Database = {
           logo_url?: string | null
           primary_color?: string | null
           created_at?: string
+          organization_term?: string | null
+          is_active?: boolean | null
         }
         Relationships: []
       }

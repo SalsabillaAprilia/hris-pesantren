@@ -106,9 +106,9 @@ function AppRoutes() {
       <Route path="/work-schedules" element={<GuardedRoute allowed={adminOrHr}><GlobalModeGuard><WorkSchedules /></GlobalModeGuard></GuardedRoute>} />
       <Route path="/holidays"       element={<GuardedRoute allowed={adminOrHr}><GlobalModeGuard><NationalHolidays /></GlobalModeGuard></GuardedRoute>} />
 
-      {/* Khusus Super Admin */}
+      {/* Khusus Super Admin & Director */}
       <Route path="/admin-accounts" element={<GuardedRoute allowed={isSuperAdmin}><AdminAccounts /></GuardedRoute>} />
-      <Route path="/branches"       element={<GuardedRoute allowed={isSuperAdmin}><Branches /></GuardedRoute>} />
+      <Route path="/branches"       element={<GuardedRoute allowed={isSuperAdmin || isDirector}><Branches /></GuardedRoute>} />
 
       {/* Khusus Employee & Unit Leader: data diri */}
       <Route path="/my-data" element={<GuardedRoute allowed={isEmployeeOrLeader}><MyData /></GuardedRoute>} />
