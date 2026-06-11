@@ -214,21 +214,24 @@ export default function EmployeesPage() {
       if (form.avatar_file) {
         try {
           finalAvatarUrl = await uploadFile(form.avatar_file);
-          
-          // Delete old avatar if in edit mode and the avatar changed
-          if (dialogMode === "edit" && form.avatar_url) {
-            try {
-              const oldPathMatch = form.avatar_url.match(/avatars\/(.+)$/);
-              if (oldPathMatch && oldPathMatch[1]) {
-                await supabase.storage.from("avatars").remove([oldPathMatch[1]]);
-              }
-            } catch (e) {
-              console.error("Failed to delete old avatar:", e);
-            }
-          }
         } catch (uploadErr) {
           console.error("Avatar upload failed:", uploadErr);
           toast.error("Gagal mengunggah foto profil, mencoba melanjutkan tanpa foto.");
+        }
+      }
+
+      // Bersihkan file lama dari bucket jika foto diubah atau dihapus
+      if (dialogMode === "edit" && editingId) {
+        const originalEmp = employees.find(e => e.id === editingId);
+        if (originalEmp && originalEmp.avatar_url && originalEmp.avatar_url !== finalAvatarUrl) {
+          try {
+            const oldPathMatch = originalEmp.avatar_url.match(/avatars\/(.+)$/);
+            if (oldPathMatch && oldPathMatch[1]) {
+              await supabase.storage.from("avatars").remove([oldPathMatch[1]]);
+            }
+          } catch (e) {
+            console.error("Failed to delete old avatar:", e);
+          }
         }
       }
 

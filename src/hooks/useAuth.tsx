@@ -39,6 +39,7 @@ interface AuthContextType {
   setSelectedInstansiId: (id: string | null) => void;
   refreshInstitutions: () => Promise<void>;
   setAllInstitutions: (institutions: Institution[]) => void;
+  refreshSession: (force?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -315,6 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdminOrHr, isSuperAdmin, isHr, isEmployee, isDirector,
       instansiId, isGlobalRole, currentInstitution, allInstitutions,
       selectedInstansiId, setSelectedInstansiId, refreshInstitutions, setAllInstitutions,
+      refreshSession,
     }}>
       {children}
     </AuthContext.Provider>
