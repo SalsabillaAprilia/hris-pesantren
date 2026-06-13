@@ -56,6 +56,62 @@ export default function NationalHolidays() {
   const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
   const [isFetchingApi, setIsFetchingApi] = useState(false);
   
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLTableSectionElement>(null);
+
+  const recalculateSticky = useCallback(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl || !scrollContainerRef.current || !headerRef.current) return;
+
+    const rect = scrollContainerRef.current.getBoundingClientRect();
+    const stickThreshold = Math.max(0, mainEl.getBoundingClientRect().top);
+    
+    let finalOffset = 0;
+    if (rect.top < stickThreshold) {
+      const maxOffset = rect.height - 44;
+      const offset = Math.min(stickThreshold - rect.top, maxOffset);
+      finalOffset = Math.max(0, offset);
+    }
+    
+    headerRef.current.style.setProperty('--sticky-offset', `${finalOffset}px`);
+    if (finalOffset > 0) {
+      headerRef.current.classList.add('[&_th]:shadow-sm');
+    } else {
+      headerRef.current.classList.remove('[&_th]:shadow-sm');
+    }
+  }, []);
+
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          recalculateSticky();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    window.addEventListener('resize', handleScroll);
+    
+    handleScroll();
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [recalculateSticky]);
+
+  useEffect(() => {
+    const timer = setTimeout(recalculateSticky, 50);
+    return () => clearTimeout(timer);
+  }, [holidays, recalculateSticky]);
+
   const [formData, setFormData] = useState({
     date: "",
     endDate: "",
@@ -347,14 +403,23 @@ export default function NationalHolidays() {
         </div>
 
         <div className="relative border rounded-md bg-white flex flex-col">
-          <div className="overflow-x-auto overflow-y-visible flex-1 h-auto relative">
+          <div 
+            ref={scrollContainerRef}
+            className="overflow-x-auto overflow-y-visible flex-1 h-auto relative"
+          >
             <table className="w-full caption-bottom text-sm relative border-separate border-spacing-0 min-w-[600px]">
-              <TableHeader className="z-20 transition-none [&_th]:sticky [&_th]:top-0 [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted">
+              <TableHeader 
+                ref={headerRef}
+                className="z-20 transition-none [&_th]:sticky [&_th]:top-[var(--sticky-offset)] [&_th:not(.sticky)]:z-30 [&_th:not(.sticky)]:bg-muted"
+                style={{ 
+                  "--sticky-offset": "0px",
+                } as React.CSSProperties}
+              >
                 <TableRow className="border-none hover:bg-transparent">
-                  <TableHead className="w-14 text-center font-semibold text-slate-900 whitespace-nowrap">No.</TableHead>
-                  <TableHead className="font-semibold text-slate-900 whitespace-nowrap">Tanggal</TableHead>
-                  <TableHead className="font-semibold text-slate-900 whitespace-nowrap">Keterangan Libur</TableHead>
-                  <TableHead className="w-24 font-semibold text-slate-900 whitespace-nowrap" />
+                  <TableHead className="w-14 text-center font-semibold whitespace-nowrap">No.</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">Tanggal</TableHead>
+                  <TableHead className="font-semibold text-left whitespace-nowrap">Keterangan Libur</TableHead>
+                  <TableHead className="w-24 font-semibold whitespace-nowrap" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -380,10 +445,10 @@ export default function NationalHolidays() {
                       className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                     >
                       <TableCell className="text-center text-slate-500 py-1.5">{index + 1}</TableCell>
-                      <TableCell className="text-slate-900 py-1.5 whitespace-nowrap">
+                      <TableCell className="text-slate-900 py-1.5 whitespace-nowrap text-left font-semibold">
                         {format(parseISO(holiday.date), "dd MMMM yyyy", { locale: id })}
                       </TableCell>
-                      <TableCell className="text-slate-900 font-semibold py-1.5">{holiday.description}</TableCell>
+                      <TableCell className="text-slate-900 py-1.5 text-left truncate max-w-[250px]">{holiday.description}</TableCell>
                       <TableCell className="py-1.5 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 

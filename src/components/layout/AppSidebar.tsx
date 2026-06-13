@@ -63,16 +63,16 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className={`pt-6 pb-2 transition-all ${collapsed ? 'px-2' : 'px-4'}`}>
         <div className={`flex items-center ${collapsed ? 'justify-center w-full' : 'gap-3'}`}>
-          <div className={`rounded-lg flex items-center justify-center font-bold shrink-0 overflow-hidden transition-all bg-transparent ${collapsed ? 'h-8 w-8' : 'h-11 w-11'}`}>
+          <div className={`rounded-lg flex items-center justify-center font-bold shrink-0 transition-all bg-transparent p-0.5 ${collapsed ? 'h-8 w-8' : 'h-11 w-11'}`}>
             {currentInstitution?.logo_url ? (
               <img src={currentInstitution.logo_url} alt="Logo" className="w-full h-full object-contain" />
             ) : (
-              <img src="/logo_dark.png" alt="AmanaHR" className="w-full h-full object-contain" />
+              <img src="/logo_3_dark.png" alt="AmanaHR" className="w-full h-full object-contain" />
             )}
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className={`line-clamp-2 text-sidebar-foreground ${!currentInstitution ? 'text-[17px] font-extrabold tracking-tight' : 'text-[14px] leading-[1.3] font-bold'}`} title={instName}>
+              <p className={`line-clamp-2 text-sidebar-foreground ${!currentInstitution ? 'text-[20px] font-extrabold tracking-tight' : 'text-[14px] leading-[1.3] font-bold'}`} title={instName}>
                 {instName}
               </p>
             </div>

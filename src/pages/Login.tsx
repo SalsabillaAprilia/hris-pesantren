@@ -82,7 +82,7 @@ export default function Login() {
       <Card className="w-full max-w-[400px] shadow-2xl shadow-primary/5 border-white/80 bg-white/95 backdrop-blur-md z-10">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 h-16 w-16 flex items-center justify-center">
-            <img src="/logo_1.png" alt="AmanaHR Logo" className="h-full w-full object-contain" />
+            <img src="/logo_3.png" alt="AmanaHR Logo" className="h-full w-full object-contain" />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-primary">AmanaHR</h1>
           <p className="text-sm text-muted-foreground mt-1.5">
@@ -165,8 +165,8 @@ export default function Login() {
                 </Button>
                 <Button 
                   type="button" 
-                  variant="ghost" 
-                  className="w-full mt-2 text-sm" 
+                  variant="outline" 
+                  className="w-full h-10 mt-2 text-sm transition-all active:scale-95" 
                   onClick={() => setMode("login")}
                   disabled={loading}
                 >
