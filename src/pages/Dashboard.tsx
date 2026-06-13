@@ -129,7 +129,7 @@ export default function Dashboard() {
           ),
           supabaseFetchWithTimeout(
             (() => {
-              let q = supabase.from("approvals").select("*, employees(name)").order("created_at", { ascending: false }).limit(20);
+              let q = supabase.from("approvals").select("*, employees(name)").eq("status", "pending").order("created_at", { ascending: false });
               if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
               return q;
             })(),
@@ -226,8 +226,8 @@ export default function Dashboard() {
           setAgendas(agendasData);
 
           const totalEmployees = filteredEmps.length;
-          const presentToday = attData.filter((r: any) => r.date === today && r.status === "present").length;
-          const pendingApprovals = apprData.filter((r: any) => r.status === "pending").length;
+          const presentToday = attData.filter((r: any) => r.date === today && r.check_in !== null).length;
+          const pendingApprovals = apprData.length;
           const activeTasks = tasksData.length;
           
           const newStats = {
@@ -259,11 +259,11 @@ export default function Dashboard() {
 
       if (isEmployee && employee) {
         // ========= DATA KARYAWAN PRIBADI =========
-        const thirtyDaysAgo = format(new Date(Date.now() - 30 * 86400000), "yyyy-MM-dd");
+        const startOfCurrentMonth = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd");
 
         const [personalAttRes, personalApprRes, personalTasksRes, personalAgendasRes] = await Promise.all([
           supabaseFetchWithTimeout(
-            supabase.from("attendance").select("*").eq("employee_id", employee.id).gte("date", thirtyDaysAgo).order("date", { ascending: false }),
+            supabase.from("attendance").select("*").eq("employee_id", employee.id).gte("date", startOfCurrentMonth).order("date", { ascending: false }),
             20000
           ),
           supabaseFetchWithTimeout(

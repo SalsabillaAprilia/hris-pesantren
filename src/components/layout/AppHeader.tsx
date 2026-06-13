@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Bell, BellRing, Maximize, Minimize, LogOut, User, UserCog, CheckCheck, FileCheck, FileText, Building2, ChevronDown, Plus, Globe, Settings, ListTodo } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { formatDistanceToNow } from "date-fns";
@@ -64,6 +65,7 @@ const toTitleCase = (str: string) => {
 
 export function AppHeader() {
   const { employee, isEmployee, hasRole, isAdminOrHr, isDirector, signOut, isGlobalRole, allInstitutions, selectedInstansiId, setSelectedInstansiId } = useAuth();
+  const { effectiveInstansiId } = useInstansiFilter();
   const isUnitLeader = hasRole("unit_leader");
   const navigate = useNavigate();
   const location = useLocation();
@@ -72,24 +74,45 @@ export function AppHeader() {
   // ── Notifikasi ───────────────────────────────────────────
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [notifsOpen, setNotifsOpen] = useState(false);
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem("amanahr_read_notifs");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
   const fetchNotifs = useCallback(async () => {
     try {
       const items: NotifItem[] = [];
 
-      if (isAdminOrHr) {
-        // HR/Admin: approval yang masih pending
-        const res = await supabaseFetchWithTimeout(
-          supabase
-            .from("approvals")
-            .select("id, type, created_at, employees(name)")
-            .eq("status", "pending")
-            .order("created_at", { ascending: false })
-            .limit(10),
-          15000
-        );
-        (res?.data || []).forEach((a: any) => {
+      // 1. Approvals: pending (untuk Admin, HR, Director, Unit Leader)
+      if (isAdminOrHr || isDirector || isUnitLeader) {
+        let q = supabase
+          .from("approvals")
+          .select("id, type, created_at, employee_id, employees!inner(name, unit_id)")
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(10);
+          
+        if (effectiveInstansiId) {
+          q = q.eq("instansi_id", effectiveInstansiId);
+        }
+
+        const res = await supabaseFetchWithTimeout(q, 15000);
+        let approvalsData = res?.data || [];
+        
+        // Filter spesifik untuk Unit Leader (hanya bawahannya)
+        if (isUnitLeader && !isAdminOrHr && !isDirector) {
+           if (employee?.unit_id) {
+               approvalsData = approvalsData.filter((a: any) => a.employees.unit_id === employee.unit_id);
+           } else {
+               approvalsData = [];
+           }
+        }
+
+        approvalsData.forEach((a: any) => {
           const typeLabel: Record<string, string> = {
             leave: "cuti", permission: "izin", overtime: "lembur",
           };
@@ -103,18 +126,21 @@ export function AppHeader() {
         });
       }
 
+      // 2. Tasks: pending_review (HANYA untuk Unit Leader)
       if (isUnitLeader && employee?.unit_id) {
-        // Unit Leader: Tugas yang menunggu konfirmasi (pending_review)
-        const res = await supabaseFetchWithTimeout(
-          supabase
-            .from("tasks")
-            .select("id, title, created_at, employees!inner(unit_id)")
-            .eq("status", "pending_review" as any)
-            .eq("employees.unit_id", employee.unit_id)
-            .order("created_at", { ascending: false })
-            .limit(10),
-          15000
-        );
+        let q = supabase
+          .from("tasks")
+          .select("id, title, created_at, employees!inner(unit_id)")
+          .eq("status", "pending_review" as any)
+          .eq("employees.unit_id", employee.unit_id)
+          .order("created_at", { ascending: false })
+          .limit(10);
+          
+        if (effectiveInstansiId) {
+          q = q.eq("instansi_id", effectiveInstansiId);
+        }
+        
+        const res = await supabaseFetchWithTimeout(q, 15000);
         (res?.data || []).forEach((t: any) => {
           items.push({
             id: t.id,
@@ -126,8 +152,8 @@ export function AppHeader() {
         });
       }
 
+      // 3. Employee Tasks: todo (HANYA untuk Karyawan)
       if (isEmployee && employee?.id) {
-        // Karyawan: tugas yang baru diassign (status todo)
         const res = await supabaseFetchWithTimeout(
           supabase
             .from("tasks")
@@ -149,14 +175,14 @@ export function AppHeader() {
         });
       }
 
-      // Mark items that have been read before
+      // Tandai yang sudah dibaca, urutkan berdasarkan waktu, dan limit 20 agar rapi
       const marked = items.map((n) => ({ ...n, read: readIds.has(n.id) }));
       marked.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setNotifs(marked);
+      setNotifs(marked.slice(0, 20));
     } catch (err) {
       console.error("AppHeader: notif fetch failed", err);
     }
-  }, [employee, isAdminOrHr, isEmployee, isUnitLeader, readIds]);
+  }, [employee, isAdminOrHr, isDirector, isEmployee, isUnitLeader, readIds, effectiveInstansiId]);
 
   useEffect(() => {
     fetchNotifs();
@@ -170,11 +196,16 @@ export function AppHeader() {
   const markAllRead = () => {
     const allIds = new Set(notifs.map((n) => n.id));
     setReadIds(allIds);
+    localStorage.setItem("amanahr_read_notifs", JSON.stringify(Array.from(allIds)));
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const handleNotifClick = (notif: NotifItem) => {
-    setReadIds((prev) => new Set([...prev, notif.id]));
+    setReadIds((prev) => {
+      const newSet = new Set([...prev, notif.id]);
+      localStorage.setItem("amanahr_read_notifs", JSON.stringify(Array.from(newSet)));
+      return newSet;
+    });
     setNotifsOpen(false);
     if (notif.type === "approval") navigate("/approvals");
     else navigate("/tasks");
