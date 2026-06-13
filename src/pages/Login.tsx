@@ -71,16 +71,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center bg-slate-50 p-4 overflow-hidden">
-      {/* Modern Grid Pattern Background */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      {/* Elegant Dot Pattern (Sangat Lembut) */}
+      <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.25]"></div>
       
-      {/* Dynamic Glowing Orbs */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary/20 blur-[100px] pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-sky-400/20 blur-[100px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[800px] max-h-[800px] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
+      {/* Soft Brand Geometric Accents */}
+      <div className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-primary/10 to-sky-300/20 blur-[100px] pointer-events-none" />
+      <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-gradient-to-tr from-primary/10 to-indigo-400/20 blur-[100px] pointer-events-none" />
       
-      {/* Glassmorphism Card */}
-      <Card className="w-full max-w-[400px] shadow-2xl shadow-primary/10 border-white/60 bg-white/70 backdrop-blur-xl z-10">
+      {/* Clean Card */}
+      <Card className="w-full max-w-[400px] shadow-2xl shadow-primary/5 border-white/80 bg-white/95 backdrop-blur-md z-10">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 h-16 w-16 flex items-center justify-center">
             <img src="/logo_1.png" alt="AmanaHR Logo" className="h-full w-full object-contain" />
