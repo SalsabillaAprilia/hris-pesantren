@@ -549,6 +549,7 @@ export default function KPI() {
         // Mode create: INSERT baris baru
         const rows = evalEmpIds.map(empId => ({
           employee_id: empId, evaluator_id: user.id, template_id: evalTplId,
+          instansi_id: effectiveInstansiId,
           start_date: evalStartDate || null, end_date: evalEndDate || null,
           status: "DRAFT" as KpiEvalStatus, total_score: total || null,
           qualitative_feedback: evalFeedback || null,
@@ -589,6 +590,7 @@ export default function KPI() {
         for (const empId of evalEmpIds) {
           const { data: ev, error: evErr } = await supabase.from("kpi_evaluations").insert({
             employee_id: empId, evaluator_id: user.id, template_id: evalTplId,
+            instansi_id: effectiveInstansiId,
             start_date: evalStartDate, end_date: evalEndDate,
             status: "SUBMITTED" as KpiEvalStatus, total_score: total,
             qualitative_feedback: evalFeedback || null,

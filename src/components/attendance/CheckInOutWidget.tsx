@@ -59,18 +59,78 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
       console.warn("Could not get geolocation:", err);
     }
 
+    // Ambil waktu dari server eksternal. Jika gagal, gunakan waktu device
+    // tapi tampilkan peringatan agar admin tahu.
     let secureDateObj = new Date();
     let secureTodayStr = today;
+    let usingDeviceTime = false;
     try {
       const res = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=Asia/Jakarta");
       if (res.ok) {
         const timeData = await res.json();
         secureDateObj = new Date(timeData.dateTime + "+07:00");
         secureTodayStr = timeData.dateTime.split("T")[0];
+      } else {
+        usingDeviceTime = true;
       }
     } catch (err) {
-      console.warn("Secure time fetch failed", err);
+      console.warn("Secure time fetch failed, fallback to device time:", err);
+      usingDeviceTime = true;
     }
+
+    // ── Validasi hari libur & work_days (hanya untuk check-in baru) ─────────
+    if (!todayRecord) {
+      // Tentukan hari dalam minggu (1=Senin...7=Minggu, sesuai format work_days)
+      const jsDay = secureDateObj.getDay(); // 0=Sun
+      const workDay = jsDay === 0 ? 7 : jsDay;
+
+      // Cek apakah hari ini adalah hari libur nasional
+      const { data: holidayData } = await supabase
+        .from("national_holidays")
+        .select("id, description")
+        .eq("date", secureTodayStr)
+        .eq("instansi_id", employee.instansi_id)
+        .maybeSingle();
+
+      // Cek apakah hari ini sesuai work_days shift karyawan
+      let isOffDay = false;
+      if (employee.shift_id) {
+        const { data: shiftData } = await (supabase as any)
+          .from("work_shifts")
+          .select("work_days")
+          .eq("id", employee.shift_id)
+          .single();
+        if (shiftData?.work_days && !shiftData.work_days.includes(workDay)) {
+          isOffDay = true;
+        }
+      }
+
+      const isHoliday = !!holidayData;
+
+      // Jika hari libur atau hari off: cek apakah ada approval lembur yang aktif
+      if (isHoliday || isOffDay) {
+        const { data: overtimeApproval } = await supabase
+          .from("approvals")
+          .select("id")
+          .eq("employee_id", employee.id)
+          .eq("type", "overtime")
+          .eq("start_date", secureTodayStr)
+          .in("status", ["approved_unit_leader", "approved_hr"])
+          .maybeSingle();
+
+        if (!overtimeApproval) {
+          // Tidak ada lembur yang disetujui → blokir check-in
+          if (isHoliday) {
+            toast.error(`Hari ini adalah hari libur${holidayData?.description ? ` (${holidayData.description})` : ""}. Presensi tidak tersedia. Hubungi atasan jika Anda bekerja lembur.`);
+          } else {
+            toast.error("Hari ini bukan hari kerja sesuai jadwal shift Anda. Hubungi atasan jika Anda bekerja lembur.");
+          }
+          return;
+        }
+        // Ada approval lembur → lanjutkan dengan status khusus
+      }
+    }
+    // ── End validasi ─────────────────────────────────────────────────────────
 
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
@@ -92,20 +152,26 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
       try {
         if (employee.shift_id) {
           late_minutes = 0;
-          const { data: shift } = await supabase
+          const { data: shift } = await (supabase as any)
             .from("work_shifts")
-            .select("start_time, late_tolerance_minutes")
+            .select("start_time, late_tolerance_minutes, work_days")
             .eq("id", employee.shift_id)
             .single();
 
-          if (shift && shift.start_time) {
-            const [startH, startM] = shift.start_time.split(":").map(Number);
-            const start_dt = new Date(`${secureTodayStr}T${shift.start_time}:00+07:00`);
-            const tolerance = shift.late_tolerance_minutes || 0;
-            const tolerance_dt = new Date(start_dt.getTime() + tolerance * 60000);
-
-            if (secureDateObj > tolerance_dt) {
-              late_minutes = Math.max(0, Math.round((secureDateObj.getTime() - start_dt.getTime()) / 60000));
+          if (shift) {
+            // Tandai sebagai Lembur jika hari ini di luar work_days
+            const jsDay = secureDateObj.getDay();
+            const workDay = jsDay === 0 ? 7 : jsDay;
+            if (shift.work_days && !shift.work_days.includes(workDay)) {
+              daily_status = 'Lembur';
+              late_minutes = null;
+            } else if (shift.start_time) {
+              const start_dt = new Date(`${secureTodayStr}T${shift.start_time}:00+07:00`);
+              const tolerance = shift.late_tolerance_minutes || 0;
+              const tolerance_dt = new Date(start_dt.getTime() + tolerance * 60000);
+              if (secureDateObj > tolerance_dt) {
+                late_minutes = Math.max(0, Math.round((secureDateObj.getTime() - start_dt.getTime()) / 60000));
+              }
             }
           }
         } else {
@@ -117,6 +183,7 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
 
       await supabase.from("attendance").insert({
         employee_id: employee.id,
+        instansi_id: employee.instansi_id,
         date: secureTodayStr,
         check_in: secureDateObj.toISOString(),
         check_in_location: locationStr,
@@ -127,11 +194,16 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
         notes: notes.trim() ? `[Datang]: ${notes.trim()}` : null
       });
 
-      if (late_minutes && late_minutes > 0) {
+      if (usingDeviceTime) {
+        toast.warning("Check-in berhasil menggunakan jam perangkat (server waktu tidak tersedia).");
+      } else if (late_minutes && late_minutes > 0) {
         toast.warning(`Check-in berhasil! Tercatat terlambat ${late_minutes} menit.`);
+      } else if (daily_status === 'Lembur') {
+        toast.success("Check-in lembur berhasil dicatat.");
       } else {
         toast.success("Check-in berhasil!");
       }
+
     } else {
       let overtime_minutes = null;
       let early_leave_minutes: number | null = null;
@@ -225,7 +297,7 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
             </h2>
             <p className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1.5 mt-2">
               <CalendarDays className="h-4 w-4" />
-              {format(currentTime, "EEEE, dd MMM yyyy", { locale: localeId })}
+              {format(currentTime, "EEEE, dd MMMM yyyy", { locale: localeId })}
             </p>
           </div>
         )}

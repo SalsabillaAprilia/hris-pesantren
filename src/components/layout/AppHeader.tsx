@@ -75,7 +75,6 @@ export function AppHeader() {
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const fetchNotifs = useCallback(async () => {
-    if (!employee) return;
     try {
       const items: NotifItem[] = [];
 
@@ -127,7 +126,7 @@ export function AppHeader() {
         });
       }
 
-      if (isEmployee) {
+      if (isEmployee && employee?.id) {
         // Karyawan: tugas yang baru diassign (status todo)
         const res = await supabaseFetchWithTimeout(
           supabase

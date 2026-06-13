@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,16 @@ import {
 } from "@/components/ui/alert-dialog";
 
 let globalHolidaysCache: any[] | null = null;
+let globalHolidaysCacheInstansiId: string | null | undefined = undefined;
 
 export default function NationalHolidays() {
   const navigate = useNavigate();
-  const [holidays, setHolidays] = useState<any[]>(globalHolidaysCache || []);
-  const [loading, setLoading] = useState(globalHolidaysCache === null);
+  const { effectiveInstansiId } = useInstansiFilter();
+  const isCacheValid = globalHolidaysCacheInstansiId === effectiveInstansiId;
+  const [holidays, setHolidays] = useState<any[]>((isCacheValid && globalHolidaysCache) ? globalHolidaysCache : []);
+  const [loading, setLoading] = useState(!isCacheValid || globalHolidaysCache === null);
   
-  const isFirstFetch = useRef(globalHolidaysCache === null);
+  const isFirstFetch = useRef(!isCacheValid || globalHolidaysCache === null);
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
@@ -61,15 +65,18 @@ export default function NationalHolidays() {
   const fetchHolidays = useCallback(async () => {
     if (isFirstFetch.current) setLoading(true);
     try {
-      const { data, error } = await supabase
+      let q: any = supabase
         .from("national_holidays")
         .select("*")
         .order("date", { ascending: false });
+      if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
         
+      const { data, error } = await q;
       if (error) throw error;
       if (isMounted.current && data) {
         setHolidays(data);
         globalHolidaysCache = data;
+        globalHolidaysCacheInstansiId = effectiveInstansiId;
       }
     } catch (err: any) {
       console.error(err);
@@ -80,7 +87,7 @@ export default function NationalHolidays() {
         isFirstFetch.current = false;
       }
     }
-  }, []);
+  }, [effectiveInstansiId]);
 
   useEffect(() => {
     fetchHolidays();
@@ -132,7 +139,8 @@ export default function NationalHolidays() {
         while (currentDate <= end) {
           dates.push({
             date: format(currentDate, "yyyy-MM-dd"),
-            description: formData.description
+            description: formData.description,
+            instansi_id: effectiveInstansiId ?? null,
           });
           currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
         }
@@ -144,7 +152,8 @@ export default function NationalHolidays() {
         // Single date insertion
         const { error } = await supabase.from("national_holidays").insert([{
           date: formData.date,
-          description: formData.description
+          description: formData.description,
+          instansi_id: effectiveInstansiId ?? null,
         }]);
         
         if (error) toast.error("Gagal menambahkan hari libur");
@@ -198,7 +207,8 @@ export default function NationalHolidays() {
         .filter((h: any) => !existingDateSet.has(h.date))
         .map((h: any) => ({
           date: h.date,
-          description: h.localName || h.name
+          description: h.localName || h.name,
+          instansi_id: effectiveInstansiId ?? null,
         }));
 
       if (newHolidays.length === 0) {

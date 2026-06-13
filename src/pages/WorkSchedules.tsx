@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useInstansiFilter } from "@/hooks/useInstansiFilter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -19,13 +20,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 let globalWorkSchedulesCache: any[] | null = null;
+let globalWorkSchedulesCacheInstansiId: string | null | undefined = undefined;
 
 export default function WorkSchedules() {
   const navigate = useNavigate();
-  const [shifts, setShifts] = useState<any[]>(globalWorkSchedulesCache || []);
-  const [loading, setLoading] = useState(globalWorkSchedulesCache === null);
+  const { effectiveInstansiId } = useInstansiFilter();
+  const isCacheValid = globalWorkSchedulesCacheInstansiId === effectiveInstansiId;
+  const [shifts, setShifts] = useState<any[]>((isCacheValid && globalWorkSchedulesCache) ? globalWorkSchedulesCache : []);
+  const [loading, setLoading] = useState(!isCacheValid || globalWorkSchedulesCache === null);
   
-  const isFirstFetch = useRef(globalWorkSchedulesCache === null);
+  const isFirstFetch = useRef(!isCacheValid || globalWorkSchedulesCache === null);
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
@@ -54,10 +58,14 @@ export default function WorkSchedules() {
   const fetchShifts = useCallback(async () => {
     if (isFirstFetch.current) setLoading(true);
     try {
-      const [shiftRes, empRes] = await Promise.all([
-        supabase.from("work_shifts").select("*").order("name"),
-        supabase.from("employees").select("shift_id").not("shift_id", "is", null)
-      ]);
+      let shiftQ: any = supabase.from("work_shifts").select("*").order("name");
+      let empQ: any = supabase.from("employees").select("shift_id").not("shift_id", "is", null);
+      if (effectiveInstansiId) {
+        shiftQ = shiftQ.eq("instansi_id", effectiveInstansiId);
+        empQ = empQ.eq("instansi_id", effectiveInstansiId);
+      }
+
+      const [shiftRes, empRes] = await Promise.all([shiftQ, empQ]);
 
       if (shiftRes.error) throw shiftRes.error;
       if (empRes.error) console.warn("WorkSchedules: Gagal memuat data personel shift", empRes.error);
@@ -75,6 +83,7 @@ export default function WorkSchedules() {
 
         setShifts(formatted);
         globalWorkSchedulesCache = formatted;
+        globalWorkSchedulesCacheInstansiId = effectiveInstansiId;
       }
     } catch (err: any) {
       console.error(err);
@@ -85,7 +94,7 @@ export default function WorkSchedules() {
         isFirstFetch.current = false;
       }
     }
-  }, []);
+  }, [effectiveInstansiId]);
 
   useEffect(() => { fetchShifts(); }, [fetchShifts]);
 
@@ -172,7 +181,10 @@ export default function WorkSchedules() {
       if (error) toast.error("Gagal mengubah shift");
       else toast.success("Shift berhasil diubah");
     } else {
-      const { error } = await supabase.from("work_shifts").insert([formData]);
+      const { error } = await supabase.from("work_shifts").insert([{
+        ...formData,
+        instansi_id: effectiveInstansiId ?? null,
+      }]);
       
       if (error) toast.error("Gagal menambahkan shift");
       else toast.success("Shift berhasil ditambahkan");

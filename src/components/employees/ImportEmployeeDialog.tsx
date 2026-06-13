@@ -112,6 +112,24 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, tar
     let successCount = 0;
     let failCount = 0;
 
+    // Pre-check: validasi email duplikat sebelum memulai import
+    try {
+      const emailsToCheck = previewData.map((r: any) => r.Email?.trim().toLowerCase()).filter(Boolean);
+      const { data: existingEmps } = await supabase
+        .from("employees")
+        .select("email")
+        .in("email", emailsToCheck);
+
+      if (existingEmps && existingEmps.length > 0) {
+        const duplicates = existingEmps.map((e: any) => e.email).join(", ");
+        toast.error(`Import dibatalkan. Email berikut sudah terdaftar: ${duplicates}`);
+        setIsProcessing(false);
+        return;
+      }
+    } catch (_) {
+      // Jika pre-check gagal, tetap lanjutkan dan biarkan error muncul per-baris
+    }
+
     // Create a temporary un-persisted Supabase client for signing up users
     // This ensures the current admin's session is not overwritten
     const tempSupabase = createClient(
@@ -160,7 +178,7 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, tar
             // Auto-create jabatan baru ke master
             const { data: newPos, error: posErr } = await (supabase as any)
               .from("positions")
-              .insert([{ name: row.Jabatan.trim() }])
+              .insert([{ name: row.Jabatan.trim(), instansi_id: targetInstansiId }])
               .select()
               .single();
             if (!posErr && newPos) {
@@ -194,7 +212,7 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, tar
         
         const { error: roleError } = await (supabase as any)
           .from("user_roles")
-          .insert({ user_id: authData.user.id, role: roleStr });
+          .insert({ user_id: authData.user.id, role: roleStr, instansi_id: targetInstansiId });
 
         if (roleError) {
            // Fallback update if insert fails (just in case trigger created one)
