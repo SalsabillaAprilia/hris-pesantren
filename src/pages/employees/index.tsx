@@ -36,8 +36,7 @@ import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { uploadFile } from "@/utils/supabase-storage";
 import { formatError } from "@/utils/error-handler";
 
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { downloadPDF } from "@/utils/export-pdf";
 
 // Global memory cache untuk Stale-While-Revalidate lintas navigasi halaman.
 let globalEmployeesCache: Employee[] | null = null;
@@ -464,30 +463,18 @@ export default function EmployeesPage() {
       document.body.removeChild(link);
       
     } else if (exportType === "pdf") {
-      // Portrait orientation as requested
-      const doc = new jsPDF("p", "pt", "a4");
-      
       const head = [selectedCols.map(c => c.label)];
       const body = dataToExport.map(emp => selectedCols.map(c => getVal(emp, c.id)));
-
-      doc.setFontSize(14);
-      doc.text("Laporan Data Karyawan", 40, 35);
-      
       const subtitle = exportScope === "all" ? "Seluruh Karyawan Terdaftar" : "Sesuai Filter Data Terkini";
-      doc.setFontSize(10);
-      doc.text(subtitle, 40, 50);
 
-      autoTable(doc, {
-        head,
-        body,
-        startY: 65,
-        theme: 'striped',
-        styles: { fontSize: 8, cellPadding: 4 },
-        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
+      downloadPDF({
+        filename: `Data_Karyawan_${new Date().toISOString().split('T')[0]}`,
+        title: "Daftar Karyawan",
+        subtitle,
+        headers: head[0],
+        rows: body,
+        orientation: selectedCols.length > 5 ? "l" : "p",
       });
-
-      doc.save(`Data_Karyawan_${new Date().toISOString().split('T')[0]}.pdf`);
     }
     
     setExportDialogOpen(false);

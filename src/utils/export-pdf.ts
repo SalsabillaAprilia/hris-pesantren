@@ -53,6 +53,18 @@ export function downloadPDF({
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     margin: { left: 40, right: 40 },
+    didParseCell: (data: any) => {
+      // Rata tengah otomatis untuk kolom metrik angka
+      if (data.table.head.length > 0) {
+        const headerText = data.table.head[0].cells[data.column.index]?.raw;
+        if (typeof headerText === "string") {
+          const isCenter = /hadir|telat|lembur|cuti|sakit|izin|mangkir|jumlah|laki-laki|perempuan|total|selesai|proses|belum mulai|skor|^nilai$|predikat|durasi/i.test(headerText);
+          if (isCenter) {
+            data.cell.styles.halign = "center";
+          }
+        }
+      }
+    },
   });
 
   // Footer with date
@@ -75,7 +87,7 @@ export function downloadPDF({
   link.style.display = "none";
   link.href = pdfDataUri;
   link.download = `${filename}.pdf`;
-  
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

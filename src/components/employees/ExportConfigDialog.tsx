@@ -61,7 +61,7 @@ export function ExportConfigDialog({
   const COLUMNS_MAP = getColumnsMap(term);
   
   const selectedCount = Object.values(config).filter(Boolean).length;
-  const maxPdfColumns = 4;
+  const maxPdfColumns = 8;
   const isPdf = type === "pdf";
 
   const handleToggle = (id: string, checked: boolean) => {

@@ -96,20 +96,23 @@ export default function Organization() {
       if (effectiveInstansiId) rolesQuery = (rolesQuery as any).eq("instansi_id", effectiveInstansiId);
       const rolesRes = await rolesQuery;
       
+      let filteredEmps: any[] = [];
       if (empRes.data) {
         const rolesMap = rolesRes.data || [];
-        setEmployees(empRes.data.map(emp => ({ 
+        filteredEmps = empRes.data.map(emp => ({ 
           ...emp, 
           // Petakan unit secara manual untuk menghindari join circular
           units: allUnits.find(u => u.id === emp.unit_id) || null,
           role: rolesMap.find(r => r.user_id === emp.user_id)?.role || "employee" 
-        })) as Employee[]);
+        })).filter(emp => !["super_admin", "director", "hr"].includes(emp.role));
+        setEmployees(filteredEmps as Employee[]);
       }
 
       const activeCounts: Record<string, number> = {};
       const transferableCounts: Record<string, number> = {};
       
-      (empRes.data || []).forEach((e) => { 
+      // Gunakan filtered employees untuk perhitungan count agar admin tidak terhitung
+      (filteredEmps || []).forEach((e) => { 
         if (e.unit_id && e.status === 'active') activeCounts[e.unit_id] = (activeCounts[e.unit_id] || 0) + 1; 
         if (e.unit_id && e.status !== 'inactive') transferableCounts[e.unit_id] = (transferableCounts[e.unit_id] || 0) + 1;
       });
@@ -127,11 +130,7 @@ export default function Organization() {
         globalOrgUnitsCache = processedUnits;
         if (empRes.data) {
           const rolesMap = rolesRes.data || [];
-          globalOrgEmployeesCache = empRes.data.map(emp => ({ 
-            ...emp, 
-            units: allUnits.find(u => u.id === emp.unit_id) || null,
-            role: rolesMap.find(r => r.user_id === emp.user_id)?.role || "employee" 
-          })) as Employee[];
+          globalOrgEmployeesCache = filteredEmps as Employee[];
         }
       }
     } catch (err: any) {

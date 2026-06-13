@@ -161,13 +161,13 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                       {r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}
                     </TableCell>
                     <TableCell className="text-slate-900 py-1.5 text-center">
-                      {r.overtime_minutes ? `${r.overtime_minutes}mnt` : "—"}
+                      {r.overtime_minutes ? `${r.overtime_minutes} menit` : "—"}
                     </TableCell>
                     <TableCell className="py-1.5 text-center">
-                      {r.late_minutes ? <span className="text-slate-900">{r.late_minutes}mnt</span> : "—"}
+                      {r.late_minutes ? <span className="text-slate-900">{r.late_minutes} menit</span> : "—"}
                     </TableCell>
                     <TableCell className="py-1.5 text-center">
-                      {r.early_leave_minutes ? <span className="text-slate-900">{r.early_leave_minutes}mnt</span> : "—"}
+                      {r.early_leave_minutes ? <span className="text-slate-900">{r.early_leave_minutes} menit</span> : "—"}
                     </TableCell>
                     <TableCell className="py-1.5 text-center">
                       {r.daily_status === 'Hadir' || r.daily_status === 'WFA' ? (
