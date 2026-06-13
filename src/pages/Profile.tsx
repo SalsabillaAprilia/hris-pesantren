@@ -194,7 +194,7 @@ export default function ProfilePage() {
             {/* Info read-only */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground/90 font-bold">Status Karyawan</Label>
+                <Label className="text-sm text-muted-foreground/90 font-bold">Status Akun</Label>
                 <div className="h-9 flex items-center px-3 rounded-md bg-muted/40 border text-sm text-slate-600">
                   {employee?.status === "active" ? "Aktif" : employee?.status === "inactive" ? "Nonaktif" : "Cuti"}
                 </div>
