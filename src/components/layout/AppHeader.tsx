@@ -184,7 +184,7 @@ export function AppHeader() {
     <header className="h-14 flex items-center justify-between border-b bg-card px-4 shrink-0 gap-2">
       {/* Kiri: Sidebar toggle + Breadcrumbs */}
       <div className="flex items-center gap-4">
-        <SidebarTrigger className="h-9 w-9 text-slate-500" />
+        <SidebarTrigger className="h-9 w-9 text-slate-500 shrink-0" />
         <div className="hidden sm:flex items-center text-xs font-medium text-slate-500">
           <Link to="/" className="hover:text-slate-900 transition-colors">Beranda</Link> 
           {breadcrumbs.map((bc, idx) => (

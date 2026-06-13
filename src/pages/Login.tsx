@@ -70,19 +70,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-blue-100/80 via-white to-indigo-100/80 p-4 overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-blue-400/20 blur-[120px] z-0 pointer-events-none" />
-      <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-indigo-400/20 blur-[120px] z-0 pointer-events-none" />
+    <div className="min-h-screen relative flex items-center justify-center bg-slate-50 p-4 overflow-hidden">
+      {/* Modern Grid Pattern Background */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       
-      <Card className="w-full max-w-md shadow-2xl border border-white/20 bg-card/95 backdrop-blur-sm z-10">
+      {/* Dynamic Glowing Orbs */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary/20 blur-[100px] pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-sky-400/20 blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[800px] max-h-[800px] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
+      
+      {/* Glassmorphism Card */}
+      <Card className="w-full max-w-[400px] shadow-2xl shadow-primary/10 border-white/60 bg-white/70 backdrop-blur-xl z-10">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-primary flex items-center justify-center">
-            <span className="text-2xl font-bold text-primary-foreground">P</span>
+          <div className="mx-auto mb-4 h-16 w-16 flex items-center justify-center">
+            <img src="/logo_1.png" alt="AmanaHR Logo" className="h-full w-full object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Pesantren HRIS</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {mode === "login" ? "Masuk ke akun Anda" : "Reset Password Anda"}
+          <h1 className="text-2xl font-extrabold tracking-tight text-primary">AmanaHR</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">
+            {mode === "login" ? "Selamat datang kembali!" : "Reset Password"}
           </p>
         </CardHeader>
         <CardContent>
@@ -90,70 +95,73 @@ export default function Login() {
             {mode === "login" ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-sm text-muted-foreground/90 font-bold">Email</Label>
                   <Input
                     id="email"
                     type="email"
+                    className="h-9 text-sm text-slate-900 shadow-sm"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@pesantren.sch.id"
+                    placeholder="masukan email anda"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <button
-                      type="button"
-                      onClick={() => setMode("forgot")}
-                      className="text-xs font-semibold text-primary hover:underline"
-                    >
-                      Lupa Password?
-                    </button>
-                  </div>
+                  <Label htmlFor="password" className="text-sm text-muted-foreground/90 font-bold">Password</Label>
                   <Input
                     id="password"
                     type="password"
+                    className="h-9 text-sm text-slate-900 shadow-sm"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
                   />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="remember" 
-                    checked={rememberMe} 
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <Label 
-                    htmlFor="remember" 
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="remember" 
+                      checked={rememberMe} 
+                      onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    />
+                    <Label 
+                      htmlFor="remember" 
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Ingat saya
+                    </Label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMode("forgot")}
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
                   >
-                    Ingat saya
-                  </Label>
+                    Lupa Password?
+                  </button>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95" disabled={loading}>
                   {loading ? "Memproses..." : "Masuk"}
                 </Button>
               </>
             ) : (
               <>
                 <div className="space-y-2 mb-2">
-                  <Label htmlFor="resetEmail">Email Anda</Label>
+                  <Label htmlFor="resetEmail" className="text-sm text-muted-foreground/90 font-bold">Email Anda</Label>
                   <Input
                     id="resetEmail"
                     type="email"
+                    className="h-9 text-sm text-slate-900 shadow-sm"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    placeholder="email@pesantren.sch.id"
+                    placeholder="masukan email anda"
                     required
                   />
                   <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                    Sistem akan mengirimkan link untuk membuat password baru ke email ini.
+                    Link untuk membuat password baru akan dikirim ke email ini.
                   </p>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95" disabled={loading}>
                   {loading ? "Mengirim..." : "Kirim Link Reset"}
                 </Button>
                 <Button 
@@ -168,8 +176,8 @@ export default function Login() {
               </>
             )}
           </form>
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            Akun dibuat oleh Admin/HR. Hubungi administrator jika belum memiliki akun.
+          <p className="text-[13px] text-muted-foreground/80 text-center mt-8">
+            Belum punya akun? <span className="font-medium text-slate-600">Hubungi Admin</span>
           </p>
         </CardContent>
       </Card>

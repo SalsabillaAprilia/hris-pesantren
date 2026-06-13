@@ -77,7 +77,7 @@ export default function ResetPassword() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Password Baru</Label>
+              <Label htmlFor="password" className="text-sm text-muted-foreground/90 font-bold">Password Baru</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -85,7 +85,7 @@ export default function ResetPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimal 8 karakter"
-                  className="pr-10"
+                  className="pr-10 h-9 text-sm text-slate-900 shadow-sm"
                   required
                   minLength={8}
                 />
@@ -100,7 +100,7 @@ export default function ResetPassword() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Konfirmasi Password Baru</Label>
+              <Label htmlFor="confirmPassword" className="text-sm text-muted-foreground/90 font-bold">Konfirmasi Password Baru</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -108,7 +108,7 @@ export default function ResetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Ulangi password baru"
-                  className="pr-10"
+                  className="pr-10 h-9 text-sm text-slate-900 shadow-sm"
                   required
                 />
                 <button
@@ -128,7 +128,7 @@ export default function ResetPassword() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white mt-4" disabled={loading || !password || !confirmPassword}>
+            <Button type="submit" className="w-full h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 mt-4" disabled={loading || !password || !confirmPassword}>
               {loading ? "Memperbarui..." : "Simpan Password Baru"}
             </Button>
           </form>
