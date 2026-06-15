@@ -1,1 +1,0 @@
-ALTER TABLE public.kpi_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
