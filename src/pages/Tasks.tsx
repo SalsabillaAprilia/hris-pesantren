@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -75,10 +75,14 @@ export default function Tasks() {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewingTask, setViewingTask] = useState<any | null>(null);
 
-  // Delete dialog (unit_leader only)
   const [deleteOpen,   setDeleteOpen]   = useState(false);
   const [deletingTask, setDeletingTask] = useState<any | null>(null);
   const [isDeleting,   setIsDeleting]   = useState(false);
+
+  // Revision dialog
+  const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
+  const [managerNotes, setManagerNotes] = useState("");
+  const [revisionTask, setRevisionTask] = useState<any | null>(null);
 
   const [search,       setSearch]       = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -117,7 +121,7 @@ export default function Tasks() {
 
             // 3. Tab Filter (Aktif vs Riwayat)
             if (activeTab === "aktif") {
-              q = q.in("status", ["todo", "in_progress", "pending_review"] as any[]);
+              q = q.in("status", ["todo", "in_progress", "pending_review", "revision"] as any[]);
             } else {
               q = q.in("status", ["done", "cancelled"]);
               // Filter Bulan untuk Riwayat (berdasarkan due_date atau created_at)
@@ -178,7 +182,11 @@ export default function Tasks() {
     }
   }, [effectiveInstansiId, user?.id, isUnitLeader, isAdminOrHr, isEmployee, currentUser?.unit_id, activeTab, selectedMonth]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+    window.addEventListener('app_data_updated', fetchData);
+    return () => window.removeEventListener('app_data_updated', fetchData);
+  }, [fetchData]);
 
   // ── Filtered tasks (client-side) ────────────────────────────────────────────
 
@@ -327,6 +335,14 @@ export default function Tasks() {
   // ── Status update (unit_leader + employee) ──────────────────────────────────
 
   const updateStatus = async (taskId: string, newStatus: string, assignedUserId: string) => {
+    if (newStatus === "revision") {
+      const task = tasks.find((t) => t.id === taskId);
+      setRevisionTask(task);
+      setManagerNotes("");
+      setRevisionDialogOpen(true);
+      return;
+    }
+
     const isOwner = user?.id === assignedUserId;
     if (!isUnitLeader) {
       if (!isOwner) { toast.error("Anda hanya bisa mengubah status tugas milik Anda."); return; }
@@ -356,6 +372,27 @@ export default function Tasks() {
       toast.error("Terjadi kesalahan saat mengubah status.");
     } finally {
       setUpdatingTaskId(null);
+    }
+  };
+
+  const handleSubmitRevision = async () => {
+    if (!revisionTask) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from("tasks").update({ 
+        status: "revision" as any, 
+        manager_notes: managerNotes 
+      }).eq("id", revisionTask.id);
+      
+      if (error) throw error;
+      toast.warning("Tugas dikembalikan untuk direvisi.");
+      setRevisionDialogOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mengembalikan tugas.");
+    } finally {
+      setIsSaving(false);
+      setRevisionTask(null);
     }
   };
 
@@ -429,7 +466,7 @@ export default function Tasks() {
       <>
         {task.status === "in_progress" && <SelectItem value="in_progress" disabled>Sedang Dikerjakan (Karyawan)</SelectItem>}
         {task.status === "pending_review" && <SelectItem value="pending_review" disabled>Menunggu Review</SelectItem>}
-        {task.status === "pending_review" && <SelectItem value="in_progress">Kembalikan (Revisi)</SelectItem>}
+        {task.status === "pending_review" && <SelectItem value="revision">Kembalikan (Revisi)</SelectItem>}
         <SelectItem value="done">Disetujui Selesai</SelectItem>
         <SelectItem value="cancelled">Dibatalkan</SelectItem>
       </>
@@ -528,6 +565,7 @@ export default function Tasks() {
                   <>
                     <SelectItem value="todo">Antrean</SelectItem>
                     <SelectItem value="in_progress">Dikerjakan</SelectItem>
+                    <SelectItem value="revision">Direvisi</SelectItem>
                     <SelectItem value="pending_review">Menunggu</SelectItem>
                   </>
                 ) : (
@@ -803,6 +841,14 @@ export default function Tasks() {
                     } 
                     isHighlight={!!viewingTask.kpi_indicators?.name}
                   />
+                  {viewingTask.status === "revision" && viewingTask.manager_notes && (
+                    <div className="col-span-1 md:col-span-2 mt-2">
+                      <DetailItem 
+                        label="Catatan Revisi dari Atasan" 
+                        value={<span className="text-red-600 font-medium whitespace-pre-wrap">{viewingTask.manager_notes}</span>} 
+                      />
+                    </div>
+                  )}
                 </DetailSection>
 
                 <div className="space-y-3">
@@ -839,6 +885,29 @@ export default function Tasks() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Revisi */}
+      <Dialog open={revisionDialogOpen} onOpenChange={setRevisionDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+          <DialogHeader className="p-6 border-b bg-muted/30 shrink-0">
+            <DialogTitle className="text-xl font-bold tracking-tight">Kembalikan untuk Revisi</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground/90 font-bold">Catatan untuk Karyawan</Label>
+                <Textarea value={managerNotes} onChange={e => setManagerNotes(e.target.value)} placeholder="Bagian mana yang perlu diperbaiki?" className="min-h-[100px] text-sm text-slate-900 shadow-sm" required />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="p-6 border-t bg-muted/30 shrink-0">
+            <div className="flex justify-end gap-3 w-full">
+              <Button type="button" variant="outline" className="min-w-[140px] h-10 text-sm font-medium" onClick={() => setRevisionDialogOpen(false)}>Batal</Button>
+              <Button type="button" onClick={handleSubmitRevision} disabled={isSaving || !managerNotes.trim()} className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">Kirim Permintaan</Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

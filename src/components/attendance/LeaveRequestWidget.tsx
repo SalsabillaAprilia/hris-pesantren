@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { supabaseFetchWithTimeout } from "@/utils/supabase-fetch";
 import { formatError } from "@/utils/error-handler";
+import { ApprovalDetailModal } from "../approvals/ApprovalDetailModal";
 
 interface LeaveRequestWidgetProps {
   employee: any;
@@ -22,6 +23,8 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
   const [approvals, setApprovals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [selectedApproval, setSelectedApproval] = useState<any>(null);
   const [form, setForm] = useState({ type: "leave" as "leave" | "permission" | "overtime" | "wfa" | "sick", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
   const [attachment, setAttachment] = useState<File | null>(null);
 
@@ -65,11 +68,16 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
     }
   };
 
-  useEffect(() => { fetchData(); }, [employee]);
+  useEffect(() => {
+    fetchData();
+    window.addEventListener('app_data_updated', fetchData);
+    return () => window.removeEventListener('app_data_updated', fetchData);
+  }, [employee]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employee) return;
+    setIsSaving(true);
     
     let attachment_url = null;
     if (attachment) {
@@ -106,9 +114,10 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
       reason: form.reason,
       attachment_url: attachment_url
     });
-    if (error) { toast.error(formatError(error, "Gagal mengajukan")); return; }
+    if (error) { toast.error(formatError(error, "Gagal mengajukan")); setIsSaving(false); return; }
     toast.success("Pengajuan berhasil");
     setDialogOpen(false);
+    setIsSaving(false);
     setForm({ type: "leave", start_date: "", end_date: "", start_time: "", end_time: "", reason: "" });
     setAttachment(null);
     fetchData();
@@ -122,7 +131,7 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
       return <span className="text-[11px] font-semibold text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] px-2 py-0.5 rounded border border-[hsl(0,55%,90%)] whitespace-nowrap">Ditolak</span>;
     }
     if (status === 'pending') {
-      return <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Pending</span>;
+      return <span className="text-[11px] font-semibold text-[hsl(38,55%,30%)] bg-[hsl(38,55%,94%)] px-2 py-0.5 rounded border border-[hsl(38,55%,88%)] whitespace-nowrap">Menunggu</span>;
     }
     return <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">{status}</span>;
   };
@@ -217,8 +226,10 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                 </div>
               </div>
               <div className="p-6 border-t bg-muted/30 flex justify-end gap-3">
-                <Button type="button" variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => setDialogOpen(false)}>Batal</Button>
-                <Button type="submit" className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">Simpan Pengajuan</Button>
+                <Button type="button" variant="outline" className="min-w-[140px] h-10 text-sm" onClick={() => setDialogOpen(false)} disabled={isSaving}>Batal</Button>
+                <Button type="submit" disabled={isSaving} className="min-w-[140px] h-10 shadow-md bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all transform active:scale-95 px-6">
+                  {isSaving ? "Menyimpan..." : "Simpan Pengajuan"}
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -245,13 +256,13 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground border-b border-gray-200">Tidak ada pengajuan untuk bulan ini</TableCell></TableRow>
               ) : (
                 filteredApprovals.map((a, index) => (
-                  <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm">
+                  <TableRow key={a.id} onClick={() => setSelectedApproval(a)} className="cursor-pointer hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm">
                     <TableCell className="text-slate-500 py-1.5 text-center">{index + 1}</TableCell>
                     <TableCell className="text-slate-900 py-1.5 font-medium">
                       {a.type === "leave" ? "Cuti" : a.type === "overtime" ? "Lembur" : a.type === "wfa" ? "WFA / WFH" : a.type === "sick" ? "Sakit" : "Izin"}
                       {a.type === "overtime" && a.start_time && <span className="block text-xs text-muted-foreground">{a.start_time.slice(0,5)} - {a.end_time?.slice(0,5)}</span>}
                     </TableCell>
-                    <TableCell className="text-slate-900 py-1.5">
+                    <TableCell className="text-slate-900 py-1.5 whitespace-nowrap">
                       {a.type === "overtime" || (a.start_date === a.end_date) 
                         ? format(new Date(a.start_date), "dd/MM/yyyy")
                         : `${format(new Date(a.start_date), "dd/MM/yyyy")} - ${format(new Date(a.end_date), "dd/MM/yyyy")}`}
@@ -274,6 +285,15 @@ export function LeaveRequestWidget({ employee }: LeaveRequestWidgetProps) {
           </table>
         </div>
       </div>
+
+      <ApprovalDetailModal 
+        open={!!selectedApproval} 
+        onOpenChange={(v) => !v && setSelectedApproval(null)} 
+        approval={selectedApproval} 
+        onStatusChange={() => {}} 
+        loading={false} 
+        readOnly={true} 
+      />
     </div>
   );
 }

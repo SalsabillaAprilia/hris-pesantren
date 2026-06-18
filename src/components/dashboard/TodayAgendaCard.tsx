@@ -9,6 +9,7 @@ interface TodayAgendaCardProps {
   agendas: any[];
   loading: boolean;
   isGlobalMode?: boolean;
+  title?: string;
 }
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -30,7 +31,7 @@ const statusConfig: Record<string, { label: string; class: string }> = {
   },
 };
 
-export function TodayAgendaCard({ agendas, loading, isGlobalMode }: TodayAgendaCardProps) {
+export function TodayAgendaCard({ agendas, loading, isGlobalMode, title = "Agenda Hari Ini" }: TodayAgendaCardProps) {
   const navigate = useNavigate();
 
   const todayAgendas = useMemo(() => {
@@ -60,7 +61,7 @@ export function TodayAgendaCard({ agendas, loading, isGlobalMode }: TodayAgendaC
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-primary" />
-          Agenda Hari Ini
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent>

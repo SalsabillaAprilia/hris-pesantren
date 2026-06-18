@@ -22,7 +22,7 @@ import { CalendarDays, Plus, Pencil, Trash2, Search, Send, AlertCircle, CheckCir
 import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
-const EMPTY_ITEM = { date: format(new Date(), "yyyy-MM-dd"), duration_minutes: 30, activity: "" };
+const EMPTY_ITEM = { date: format(new Date(), "yyyy-MM-dd"), activities: [{ activity: "", hours: 0, minutes: 30 }] };
 
 export default function Agendas() {
   const { employee, user, isAdminOrHr, hasRole } = useAuth();
@@ -40,7 +40,7 @@ export default function Agendas() {
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [itemMode, setItemMode] = useState<"create" | "edit">("create");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [itemForm, setItemForm] = useState(EMPTY_ITEM);
+  const [itemForm, setItemForm] = useState<any>(EMPTY_ITEM);
   
   // Revision State
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
@@ -62,7 +62,10 @@ export default function Agendas() {
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), "yyyy-MM"));
   const [approversMap, setApproversMap] = useState<Record<string, string>>({});
   
-  const [activeTab, setActiveTab] = useState<string>("saya");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tab") || "saya";
+  });
   const [myHistoryReports, setMyHistoryReports] = useState<any[]>([]);
   
   const currentStartOfWeek = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -211,7 +214,7 @@ export default function Agendas() {
                 start_date: currentStartOfWeek,
                 end_date: currentEndOfWeek,
                 status: "UNCREATED",
-                employees: { name: emp.name, unit_id: emp.unit_id, units: (emp as any).units },
+                employees: { name: emp.name, user_id: emp.user_id, unit_id: emp.unit_id, units: (emp as any).units },
                 agenda_items: []
               });
             }
@@ -237,6 +240,8 @@ export default function Agendas() {
 
   useEffect(() => {
     fetchData();
+    window.addEventListener('app_data_updated', fetchData);
+    return () => window.removeEventListener('app_data_updated', fetchData);
   }, [fetchData]);
 
   const filteredReports = useMemo(() => {
@@ -300,34 +305,56 @@ export default function Agendas() {
   const openCreateItem = () => {
     setItemMode("create");
     setEditingItemId(null);
-    setItemForm(EMPTY_ITEM);
+    setItemForm({ date: format(new Date(), "yyyy-MM-dd"), activities: [{ activity: "", hours: 0, minutes: 30 }] });
     setItemDialogOpen(true);
   };
 
   const openEditItem = (item: any) => {
     setItemMode("edit");
     setEditingItemId(item.id);
-    setItemForm({ date: item.date, duration_minutes: item.duration_minutes, activity: item.activity });
+    const h = Math.floor((item.duration_minutes || 0) / 60);
+    const m = (item.duration_minutes || 0) % 60;
+    setItemForm({ date: item.date, activities: [{ activity: item.activity, hours: h, minutes: m }] });
     setItemDialogOpen(true);
   };
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!myReport) return;
+    
+    // Validasi
+    for (const act of itemForm.activities) {
+      if (!act.activity.trim()) {
+        toast.error("Nama kegiatan tidak boleh kosong.");
+        return;
+      }
+      const totalMins = (act.hours || 0) * 60 + (act.minutes || 0);
+      if (totalMins <= 0) {
+        toast.error("Durasi kegiatan harus lebih dari 0 menit.");
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
-      const payload = {
-        report_id: myReport.id,
-        date: itemForm.date,
-        duration_minutes: itemForm.duration_minutes,
-        activity: itemForm.activity
-      };
-
       if (itemMode === "create") {
-        const { error } = await supabase.from("agenda_items").insert(payload);
+        const payloads = itemForm.activities.map((act: any) => ({
+          report_id: myReport.id,
+          date: itemForm.date,
+          duration_minutes: (act.hours || 0) * 60 + (act.minutes || 0),
+          activity: act.activity
+        }));
+        const { error } = await supabase.from("agenda_items").insert(payloads);
         if (error) throw error;
-        toast.success("Kegiatan ditambahkan.");
+        toast.success(`${payloads.length} kegiatan ditambahkan.`);
       } else {
+        const act = itemForm.activities[0];
+        const payload = {
+          report_id: myReport.id,
+          date: itemForm.date,
+          duration_minutes: (act.hours || 0) * 60 + (act.minutes || 0),
+          activity: act.activity
+        };
         const { error } = await supabase.from("agenda_items").update(payload).eq("id", editingItemId!);
         if (error) throw error;
         toast.success("Kegiatan diperbarui.");
@@ -339,6 +366,19 @@ export default function Agendas() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const addActivityField = () => {
+    setItemForm((prev: any) => ({ ...prev, activities: [...prev.activities, { activity: "", hours: 0, minutes: 30 }] }));
+  };
+  const removeActivityField = (index: number) => {
+    setItemForm((prev: any) => ({ ...prev, activities: prev.activities.filter((_: any, i: number) => i !== index) }));
+  };
+  const updateActivityField = (index: number, field: string, value: any) => {
+    setItemForm((prev: any) => ({
+      ...prev,
+      activities: prev.activities.map((act: any, i: number) => i === index ? { ...act, [field]: value } : act)
+    }));
   };
 
   const handleDeleteItem = async () => {
@@ -858,14 +898,36 @@ export default function Agendas() {
                   <Label className="text-sm text-muted-foreground/90 font-bold">Tanggal</Label>
                   <Input type="date" value={itemForm.date} min={currentStartOfWeek} max={currentEndOfWeek} onChange={e => setItemForm({...itemForm, date: e.target.value})} className="h-9 text-sm text-slate-900 shadow-sm" required />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground/90 font-bold">Durasi (Menit)</Label>
-                  <Input type="number" min="5" max="1440" value={itemForm.duration_minutes} onChange={e => setItemForm({...itemForm, duration_minutes: parseInt(e.target.value)})} className="h-9 text-sm text-slate-900 shadow-sm" required />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground/90 font-bold">Kegiatan</Label>
-                  <Input value={itemForm.activity} onChange={e => setItemForm({...itemForm, activity: e.target.value})} placeholder="Contoh: Rapat koordinasi" className="h-9 text-sm text-slate-900 shadow-sm" required />
-                </div>
+                
+                {itemForm.activities?.map((act: any, idx: number) => (
+                  <div key={idx} className="p-3 border rounded-lg bg-slate-50 space-y-3 relative">
+                    {itemMode === "create" && itemForm.activities.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 text-slate-400 hover:text-red-500" onClick={() => removeActivityField(idx)}>
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <div className="space-y-2 pr-6">
+                      <Label className="text-sm text-muted-foreground/90 font-bold">Kegiatan {itemMode === "create" ? idx + 1 : ""}</Label>
+                      <Input value={act.activity} onChange={e => updateActivityField(idx, "activity", e.target.value)} placeholder="Contoh: Rapat koordinasi" className="h-9 text-sm text-slate-900 shadow-sm" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground/90 font-bold">Durasi (Jam)</Label>
+                        <Input type="number" min="0" max="23" value={act.hours} onChange={e => updateActivityField(idx, "hours", parseInt(e.target.value) || 0)} className="h-9 text-sm text-slate-900 shadow-sm" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground/90 font-bold">Durasi (Menit)</Label>
+                        <Input type="number" min="0" max="59" value={act.minutes} onChange={e => updateActivityField(idx, "minutes", parseInt(e.target.value) || 0)} className="h-9 text-sm text-slate-900 shadow-sm" required />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {itemMode === "create" && (
+                  <Button type="button" variant="outline" size="sm" onClick={addActivityField} className="w-full gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5">
+                    <Plus className="h-4 w-4" /> Tambah Kegiatan Lain
+                  </Button>
+                )}
               </div>
             </div>
             <DialogFooter className="p-6 border-t bg-muted/30 shrink-0">

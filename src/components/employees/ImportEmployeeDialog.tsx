@@ -28,7 +28,7 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, tar
   const EXPECTED_HEADERS = ["Nama", "Email", "Password", "ID_Karyawan", "Jenis_Kelamin", "Jabatan", "Unit", "Role"];
 
   const handleDownloadTemplate = () => {
-    const csvContent = "Nama,Email,Password,ID_Karyawan,Jenis_Kelamin,Jabatan,Unit,Role\nBudi Santoso,budi@pesantren.com,password123,EMP001,Laki-laki,Guru,Pendidikan,employee";
+    const csvContent = "Nama,Email,Password,ID_Karyawan,Jenis_Kelamin,Jabatan,Unit,Role\n\"Budi Santoso, S.Kom\",budi@pesantren.com,password123,EMP001,Laki-laki,Guru,Pendidikan,employee";
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -235,6 +235,9 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, tar
     toast.success(`Import selesai! Berhasil: ${successCount}, Gagal: ${failCount}`);
     if (successCount > 0) {
       onSuccess();
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
     }
   };
 

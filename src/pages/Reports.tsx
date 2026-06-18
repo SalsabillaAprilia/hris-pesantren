@@ -19,6 +19,7 @@ type ReportType = "attendance" | "kpi" | "approvals" | "organization" | "tasks";
 
 type ReportCache = {
   employees: any[];
+  allEmployees: any[];
   units: any[];
   attendance: any[];
   approvals: any[];
@@ -69,6 +70,7 @@ export default function Reports() {
 
   // Raw data — diinisialisasi dari cache jika ada
   const [employees, setEmployees] = useState<any[]>(cachedData?.employees ?? []);
+  const [allEmployees, setAllEmployees] = useState<any[]>(cachedData?.allEmployees ?? []);
   const [units, setUnits] = useState<any[]>(cachedData?.units ?? []);
   const [attendance, setAttendance] = useState<any[]>(cachedData?.attendance ?? []);
   const [approvals, setApprovals] = useState<any[]>(cachedData?.approvals ?? []);
@@ -151,6 +153,7 @@ export default function Reports() {
 
         const snapshot: ReportCache = {
           employees: finalEmployees,
+          allEmployees: empData as any[],
           units: unitData as any[],
           attendance: attData as any[],
           approvals: apprData as any[],
@@ -162,6 +165,7 @@ export default function Reports() {
         reportsCache[cacheKey] = snapshot;
 
         setEmployees(snapshot.employees);
+        setAllEmployees(snapshot.allEmployees);
         setUnits(snapshot.units);
         setAttendance(snapshot.attendance);
         setApprovals(snapshot.approvals);
@@ -205,8 +209,19 @@ export default function Reports() {
     const empIds = new Set(filteredEmployees.map(e => e.id));
     let res = kpiEvals.filter((k) => empIds.has(k.employee_id));
     
-    // Filter by selected year and month
+    // Filter by selected year and month (check period overlap)
     res = res.filter(k => {
+      const selectedStart = new Date(year, month - 1, 1);
+      const selectedEnd = new Date(year, month, 0);
+      
+      const kpiStart = k.start_date ? new Date(k.start_date) : null;
+      const kpiEnd = k.end_date ? new Date(k.end_date) : null;
+      
+      if (kpiStart && kpiEnd) {
+        // Return true if periods overlap
+        return kpiStart <= selectedEnd && kpiEnd >= selectedStart;
+      }
+      
       const d = new Date((k.start_date ?? k.end_date) || k.created_at);
       return d.getFullYear() === year && (d.getMonth() + 1) === month;
     });
@@ -308,7 +323,7 @@ export default function Reports() {
         else predikat = "Kurang";
       }
 
-      const evaluatorName = employees.find((e) => e.user_id === k.evaluator_id)?.name || "—";
+      const evaluatorName = allEmployees.find((e) => e.user_id === k.evaluator_id)?.name || "—";
       
       const commonStats = [
         periodLabel,
@@ -322,14 +337,14 @@ export default function Reports() {
       return isGlobal ? [nama, unit, instansiMap.get(k.employees?.instansi_id) || "Tanpa Cabang", ...commonStats] : [nama, unit, ...commonStats];
     });
     return { headers, rows };
-  }, [filteredKpi, unitMap, effectiveInstansiId, instansiMap, term, employees]);
+  }, [filteredKpi, unitMap, effectiveInstansiId, instansiMap, term, allEmployees]);
 
   const getApprovalsReport = useCallback(() => {
     const isGlobal = !effectiveInstansiId && filterInstansiId === "all";
     const typeLabel: Record<string, string> = { leave: "Cuti", permission: "Izin", overtime: "Lembur", sick: "Sakit", wfa: "WFA / WFH" };
     const statusLabel: Record<string, string> = {
-      pending: "Menunggu", approved_unit_leader: "Disetujui KU",
-      approved_hr: "Disetujui HR", rejected: "Ditolak",
+      pending: "Menunggu", approved_unit_leader: "Disetujui",
+      approved_hr: "Disetujui", rejected: "Ditolak",
     };
     const headers = isGlobal
       ? ["Nama", term, "Cabang", "Pengajuan", "Tanggal Kegiatan", "Durasi (Hari)", "Alasan", "Status"]

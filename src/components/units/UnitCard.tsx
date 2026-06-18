@@ -104,8 +104,14 @@ export function UnitCard({ unit, employeeCount, leaderName, onClick }: UnitCardP
               {kepalaTerm}
             </div>
             {leaderName ? (
-              <span className="text-xs font-bold text-slate-700 truncate max-w-full mt-0.5 text-center">
-                {leaderName.split(" ")[0]}
+              <span className="text-xs font-bold text-slate-700 truncate max-w-full mt-0.5 text-center" title={leaderName}>
+                {(() => {
+                  const words = leaderName.split(" ");
+                  if (words[0].length < 5 && words.length > 1) {
+                    return `${words[0]} ${words[1]}`;
+                  }
+                  return words[0];
+                })()}
               </span>
             ) : (
               <span className="text-[11px] text-slate-300 italic mt-0.5">Belum diatur</span>

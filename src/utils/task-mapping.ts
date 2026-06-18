@@ -21,6 +21,10 @@ export const TASK_STATUS_MAP: Record<string, { label: string; colorClass: string
     label: "Dibatalkan",
     colorClass: "text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] border-[hsl(0,55%,90%)]", // Deep Crimson
   },
+  revision: {
+    label: "Direvisi",
+    colorClass: "text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] border-[hsl(0,55%,90%)]", // Deep Crimson
+  },
 };
 
 export const TASK_PRIORITY_MAP: Record<string, { label: string; colorClass: string }> = {

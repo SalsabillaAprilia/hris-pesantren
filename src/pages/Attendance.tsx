@@ -13,6 +13,7 @@ import { AttendanceLogTable } from "@/components/attendance/AttendanceLogTable";
 import { LeaveRequestWidget } from "@/components/attendance/LeaveRequestWidget";
 import { AdminDailyAttendance } from "@/components/attendance/AdminDailyAttendance";
 import { AdminSummaryAttendance } from "@/components/attendance/AdminSummaryAttendance";
+import { useLocation } from "react-router-dom";
 
 let globalAttendanceGlobalRecordsCache: any[] | null = null;
 let globalAttendancePersonalRecordsCache: any[] | null = null;
@@ -25,9 +26,19 @@ export default function Attendance() {
   const canSeeGlobal = isAdminOrHr || isUnitLeader;
   // isEmployee sudah mencakup unit_leader (keduanya punya data di tabel employees)
   const navigate = useNavigate();
+  const location = useLocation();
   const [globalRecords, setGlobalRecords] = useState<any[]>(globalAttendanceGlobalRecordsCache || []);
   const [personalRecords, setPersonalRecords] = useState<any[]>(globalAttendancePersonalRecordsCache || []);
   const [loading, setLoading] = useState(globalAttendanceGlobalRecordsCache === null && globalAttendancePersonalRecordsCache === null);
+
+  const defaultTab = isAdminOrHr ? "harian" : isUnitLeader ? "harian" : "presensi";
+  const [activeTab, setActiveTab] = useState(location.state?.tab || defaultTab);
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+  }, [location.state?.tab]);
 
   const isFirstFetch = useRef(globalAttendanceGlobalRecordsCache === null && globalAttendancePersonalRecordsCache === null);
   const isMounted = useRef(true);
@@ -85,7 +96,11 @@ export default function Attendance() {
     }
   }, [employee, isAdminOrHr, isEmployee, isUnitLeader, today, effectiveInstansiId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+    window.addEventListener('app_data_updated', fetchData);
+    return () => window.removeEventListener('app_data_updated', fetchData);
+  }, [fetchData]);
 
   return (
     <DashboardLayout>
@@ -114,7 +129,8 @@ export default function Attendance() {
         - employee biasa: Presensi Saya + Pengajuan saja
       */}
       <Tabs
-        defaultValue={isAdminOrHr ? "harian" : isUnitLeader ? "harian" : "presensi"}
+        value={activeTab}
+        onValueChange={setActiveTab}
         className="w-full"
       >
         {isAdminOrHr ? (

@@ -87,14 +87,14 @@ export function AppHeader() {
     try {
       const items: NotifItem[] = [];
 
-      // 1. Approvals: pending (untuk Admin, HR, Director, Unit Leader)
-      if (isAdminOrHr || isDirector || isUnitLeader) {
+      // 1. Approvals: pending (HANYA untuk HR dan Unit Leader)
+      if (hasRole("hr") || isUnitLeader) {
         let q = supabase
           .from("approvals")
-          .select("id, type, created_at, employee_id, employees!inner(name, unit_id)")
+          .select("id, type, created_at, employee_id, employees!inner(name, unit_id, user_id)")
           .eq("status", "pending")
           .order("created_at", { ascending: false })
-          .limit(10);
+          .limit(100);
           
         if (effectiveInstansiId) {
           q = q.eq("instansi_id", effectiveInstansiId);
@@ -103,18 +103,36 @@ export function AppHeader() {
         const res = await supabaseFetchWithTimeout(q, 15000);
         let approvalsData = res?.data || [];
         
-        // Filter spesifik untuk Unit Leader (hanya bawahannya)
-        if (isUnitLeader && !isAdminOrHr && !isDirector) {
-           if (employee?.unit_id) {
-               approvalsData = approvalsData.filter((a: any) => a.employees.unit_id === employee.unit_id);
-           } else {
-               approvalsData = [];
-           }
+        if (approvalsData.length > 0) {
+          const userIds = [...new Set(approvalsData.map((a: any) => a.employees?.user_id).filter(Boolean))];
+          if (userIds.length > 0) {
+            const { data: rolesData } = await supabaseFetchWithTimeout(
+              supabase.from("user_roles").select("user_id, role").in("user_id", userIds as string[])
+            );
+            const rolesMap = new Map();
+            (rolesData ?? []).forEach((r: any) => {
+              if (!rolesMap.has(r.user_id)) rolesMap.set(r.user_id, []);
+              rolesMap.get(r.user_id).push(r.role);
+            });
+            
+            const isHr = hasRole("hr");
+
+            approvalsData = approvalsData.filter((a: any) => {
+              const roles = rolesMap.get(a.employees?.user_id) || ["employee"];
+              const submitterRole = roles.includes("unit_leader") ? "unit_leader" : (roles.includes("employee") ? "employee" : roles[0]);
+              const isFromMyUnit = a.employees?.unit_id === employee?.unit_id;
+              
+              const canSeeAsLeader = isUnitLeader && isFromMyUnit && submitterRole !== "unit_leader" && a.employee_id !== employee?.id;
+              const canSeeAsHr = isHr && submitterRole === "unit_leader";
+              
+              return canSeeAsLeader || canSeeAsHr;
+            });
+          }
         }
 
-        approvalsData.forEach((a: any) => {
+        approvalsData.slice(0, 10).forEach((a: any) => {
           const typeLabel: Record<string, string> = {
-            leave: "cuti", permission: "izin", overtime: "lembur",
+            leave: "cuti", permission: "izin", overtime: "lembur", sick: "sakit", wfa: "WFA/WFH"
           };
           items.push({
             id: a.id,
@@ -126,7 +144,89 @@ export function AppHeader() {
         });
       }
 
-      // 2. Tasks: pending_review (HANYA untuk Unit Leader)
+      // 1b. Approvals: Personal Ditolak/Disetujui (Untuk Karyawan & Unit Leader)
+      if (isEmployee && employee?.id) {
+        const res = await supabaseFetchWithTimeout(
+          supabase
+            .from("approvals")
+            .select("id, type, status, updated_at")
+            .eq("employee_id", employee.id)
+            .in("status", ["approved_hr", "approved_unit_leader", "rejected"])
+            .order("updated_at", { ascending: false })
+            .limit(10),
+          15000
+        );
+        (res?.data || []).forEach((a: any) => {
+          const typeLabel: Record<string, string> = {
+            leave: "cuti", permission: "izin", overtime: "lembur", sick: "sakit", wfa: "WFA/WFH"
+          };
+          const statusText = a.status === "rejected" ? "ditolak" : "disetujui";
+          items.push({
+            id: `personal-app-${a.id}-${a.status}`,
+            type: "approval",
+            message: `Pengajuan ${typeLabel[a.type] ?? a.type} Anda ${statusText}`,
+            created_at: a.updated_at || new Date().toISOString(),
+            read: false,
+          });
+        });
+      }
+
+      // 2a. Agenda: SUBMITTED (HANYA untuk Unit Leader)
+      if (isUnitLeader && employee?.unit_id) {
+        let q = supabase
+          .from("agenda_reports")
+          .select("id, start_date, updated_at, employee_id, employees!inner(name, unit_id)")
+          .eq("status", "SUBMITTED")
+          .eq("employees.unit_id", employee.unit_id)
+          .neq("employee_id", employee.id)
+          .order("updated_at", { ascending: false })
+          .limit(10);
+          
+        if (effectiveInstansiId) {
+          q = q.eq("instansi_id", effectiveInstansiId);
+        }
+        
+        const res = await supabaseFetchWithTimeout(q, 15000);
+        (res?.data || []).forEach((a: any) => {
+          items.push({
+            id: `agenda-${a.id}`,
+            type: "task",
+            message: `Laporan Agenda menunggu persetujuan: ${a.employees?.name}`,
+            created_at: a.updated_at || new Date().toISOString(),
+            read: false,
+          });
+        });
+      }
+
+      // 2b. Agenda: Personal Status Berubah (Untuk Karyawan)
+      if (isEmployee && employee?.id) {
+        const res = await supabaseFetchWithTimeout(
+          supabase
+            .from("agenda_reports")
+            .select("id, status, updated_at")
+            .eq("employee_id", employee.id)
+            .in("status", ["APPROVED", "REVISION_REQUESTED"])
+            .order("updated_at", { ascending: false })
+            .limit(10),
+          15000
+        );
+        (res?.data || []).forEach((a: any) => {
+          const statusMap: Record<string, string> = {
+             "APPROVED": "disetujui",
+             "REJECTED": "ditolak",
+             "REVISION_REQUESTED": "direvisi"
+          };
+          items.push({
+            id: `personal-agenda-${a.id}-${a.status}`,
+            type: "task",
+            message: `Laporan Agenda Anda telah ${statusMap[a.status] || a.status}`,
+            created_at: a.updated_at || new Date().toISOString(),
+            read: false,
+          });
+        });
+      }
+
+      // 3a. Tasks: pending_review (HANYA untuk Unit Leader)
       if (isUnitLeader && employee?.unit_id) {
         let q = supabase
           .from("tasks")
@@ -152,9 +252,9 @@ export function AppHeader() {
         });
       }
 
-      // 3. Employee Tasks: todo (HANYA untuk Karyawan)
+      // 3b. Employee Tasks: todo, revised, completed (HANYA untuk Karyawan)
       if (isEmployee && employee?.id) {
-        const res = await supabaseFetchWithTimeout(
+        const resTodo = await supabaseFetchWithTimeout(
           supabase
             .from("tasks")
             .select("id, title, created_at")
@@ -164,12 +264,33 @@ export function AppHeader() {
             .limit(8),
           15000
         );
-        (res?.data || []).forEach((t: any) => {
+        (resTodo?.data || []).forEach((t: any) => {
           items.push({
             id: t.id,
             type: "task",
             message: `Tugas baru: "${t.title}"`,
             created_at: t.created_at,
+            read: false,
+          });
+        });
+
+        const resStatus = await supabaseFetchWithTimeout(
+          supabase
+            .from("tasks")
+            .select("id, title, updated_at, status")
+            .eq("assigned_to", employee.id)
+            .in("status", ["revision", "done"] as any[])
+            .order("updated_at", { ascending: false })
+            .limit(8),
+          15000
+        );
+        (resStatus?.data || []).forEach((t: any) => {
+          const statusText = t.status === "revision" ? "dikembalikan untuk direvisi" : "disetujui (selesai)";
+          items.push({
+            id: `task-status-${t.id}-${t.status}`,
+            type: "task",
+            message: `Tugas "${t.title}" telah ${statusText}`,
+            created_at: t.updated_at || new Date().toISOString(),
             read: false,
           });
         });
@@ -179,6 +300,9 @@ export function AppHeader() {
       const marked = items.map((n) => ({ ...n, read: readIds.has(n.id) }));
       marked.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setNotifs(marked.slice(0, 20));
+      
+      // Pancarkan sinyal global agar halaman aktif ikut me-refresh datanya bersamaan dengan notifikasi
+      window.dispatchEvent(new Event('app_data_updated'));
     } catch (err) {
       console.error("AppHeader: notif fetch failed", err);
     }
@@ -207,8 +331,16 @@ export function AppHeader() {
       return newSet;
     });
     setNotifsOpen(false);
-    if (notif.type === "approval") navigate("/approvals");
-    else navigate("/tasks");
+    
+    if (notif.id.includes("agenda")) {
+      navigate("/agenda");
+    } else if (notif.id.startsWith("personal-app-")) {
+      navigate("/attendance", { state: { tab: "pengajuan" } });
+    } else if (notif.type === "approval") {
+      navigate("/approvals");
+    } else {
+      navigate("/tasks");
+    }
   };
 
   return (

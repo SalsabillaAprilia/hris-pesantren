@@ -54,7 +54,7 @@ export function AppSidebar() {
     { title: "Agenda", url: "/agenda", icon: CalendarDays, show: !isGlobalMode && !isDirector },
     { title: "KPI", url: "/kpi", icon: BarChart3, show: !isGlobalMode },
     // Modul monitoring — tetap tampil di global mode
-    { title: "Laporan", url: "/reports", icon: FileText, show: isAdminOrHr || isUnitLeader || isDirector },
+    { title: "Laporan", url: "/reports", icon: FileText, show: isAdminOrHr || isDirector },
     // Menu khusus Super Admin
     { title: "Manajemen Akun", url: "/admin-accounts", icon: ShieldCheck, show: isSuperAdmin },
   ].filter(item => item.show);

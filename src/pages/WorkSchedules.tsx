@@ -455,7 +455,7 @@ export default function WorkSchedules() {
                     <TableCell className="text-center py-1.5">
                       {shift.employee_count > 0 ? (
                         <span className="text-[11px] font-semibold text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] px-2 py-0.5 rounded border border-[hsl(232,59%,90%)] whitespace-nowrap">
-                          {shift.employee_count} Org
+                          {shift.employee_count} Karyawan
                         </span>
                       ) : (
                         <span className="text-slate-400">—</span>

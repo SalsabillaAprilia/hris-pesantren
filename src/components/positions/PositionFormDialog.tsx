@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PositionFormDialogProps {
   open: boolean;
@@ -15,13 +16,16 @@ interface PositionFormDialogProps {
 
 export function PositionFormDialog({ open, onOpenChange, mode, initialData, onSubmit, loading }: PositionFormDialogProps) {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
   useEffect(() => {
     if (open) {
       if (mode === "edit" && initialData) {
         setName(initialData.name || "");
+        setDescription(initialData.description || "");
       } else {
         setName("");
+        setDescription("");
       }
     }
   }, [open, mode, initialData]);
@@ -31,7 +35,8 @@ export function PositionFormDialog({ open, onOpenChange, mode, initialData, onSu
     if (!name.trim()) return;
     
     onSubmit({
-      name: name.trim()
+      name: name.trim(),
+      description: description.trim() || null
     });
   };
 
@@ -41,7 +46,7 @@ export function PositionFormDialog({ open, onOpenChange, mode, initialData, onSu
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <DialogHeader className="p-6 border-b bg-muted/30">
             <DialogTitle className="text-xl font-bold tracking-tight">
-              {mode === "create" ? "Tambah Jabatan Baru" : "Edit Nama Jabatan"}
+              {mode === "create" ? "Tambah Jabatan Baru" : "Edit Jabatan"}
             </DialogTitle>
           </DialogHeader>
 
@@ -55,6 +60,16 @@ export function PositionFormDialog({ open, onOpenChange, mode, initialData, onSu
                 placeholder="Masukkan Nama Jabatan"
                 className="h-9 text-sm text-slate-900 shadow-sm"
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-muted-foreground/90">Rincian Tugas (Opsional)</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Pisahkan tiap tugas dengan baris baru (Enter)"
+                className="min-h-[100px] text-sm text-slate-900 shadow-sm custom-scrollbar"
+              />
+              <p className="text-xs text-slate-500">Gunakan baris baru (Enter) untuk memisahkan setiap poin rincian tugas.</p>
             </div>
           </div>
 

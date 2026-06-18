@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { format, parseISO, isPast, isToday } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ListTodo, Circle, CircleDot, CheckCircle2 } from "lucide-react";
+import { ListTodo, Circle, CircleDot, CheckCircle2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TASK_STATUS_MAP, getTaskStatusBadgeClass } from "@/utils/task-mapping";
 
@@ -30,6 +30,12 @@ const statusConfig: Record<string, { label: string; icon: typeof Circle; class: 
     class: "text-[hsl(142,45%,25%)] bg-[hsl(142,45%,96%)] border-[hsl(142,45%,90%)]",
     iconColor: "text-[hsl(142,45%,35%)]",
   },
+  revision: {
+    label: "Direvisi",
+    icon: AlertCircle,
+    class: "text-[hsl(0,55%,35%)] bg-[hsl(0,55%,96%)] border-[hsl(0,55%,90%)]",
+    iconColor: "text-[hsl(0,55%,45%)]",
+  },
 };
 
 export function MyTasksCard({ tasks, loading }: MyTasksCardProps) {
@@ -37,7 +43,7 @@ export function MyTasksCard({ tasks, loading }: MyTasksCardProps) {
 
   const activeTasks = useMemo(() => {
     return tasks
-      .filter((t) => t.status === "todo" || t.status === "in_progress")
+      .filter((t) => t.status === "todo" || t.status === "in_progress" || t.status === "revision")
       .sort((a, b) => {
         // Sort by due date (soonest first), null dates last
         if (!a.due_date && !b.due_date) return 0;
@@ -62,7 +68,7 @@ export function MyTasksCard({ tasks, loading }: MyTasksCardProps) {
       });
   }, [tasks]);
 
-  const totalActive = tasks.filter((t) => t.status === "todo" || t.status === "in_progress").length;
+  const totalActive = tasks.filter((t) => t.status === "todo" || t.status === "in_progress" || t.status === "revision").length;
 
   return (
     <Card className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-shadow">

@@ -232,6 +232,9 @@ export default function ProfilePage() {
                 placeholder={employee?.email || user?.email || "Masukkan email baru"}
                 required
               />
+              <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-100">
+                <strong>Catatan:</strong> Terdapat batasan frekuensi penggantian email untuk keamanan akun (limit default Supabase). Jika mengalami gagal, silakan coba lagi beberapa saat.
+              </p>
             </div>
             <div className="flex justify-end">
               <Button

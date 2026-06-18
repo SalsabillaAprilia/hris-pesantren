@@ -23,6 +23,7 @@ import { id } from "date-fns/locale";
 import { useTerminology } from "@/hooks/useTerminology";
 import { generateLeaveAttendanceRecords, rollbackLeaveAttendanceRecords } from "@/utils/attendance-generator";
 import { formatError } from "@/utils/error-handler";
+import { ApprovalDetailModal } from "@/components/approvals/ApprovalDetailModal";
 
 // Global memory cache untuk Stale-While-Revalidate lintas navigasi halaman.
 // Memungkinkan data langsung tampil tanpa loading saat user pindah-pindah menu.
@@ -194,14 +195,22 @@ export default function Approvals() {
           const { data: rolesData } = await supabaseFetchWithTimeout<any>(
             supabase.from("user_roles").select("user_id, role").in("user_id", userIds as string[])
           );
-          const rolesMap = Object.fromEntries((rolesData ?? []).map((r: any) => [r.user_id, r.role]));
-          rawData = rawData.map((a: any) => ({
-            ...a,
-            employees: {
-              ...a.employees,
-              role: rolesMap[a.employees?.user_id] ?? "employee"
-            }
-          }));
+          const rolesMap = new Map();
+          (rolesData ?? []).forEach((r: any) => {
+            if (!rolesMap.has(r.user_id)) rolesMap.set(r.user_id, []);
+            rolesMap.get(r.user_id).push(r.role);
+          });
+          rawData = rawData.map((a: any) => {
+            const roles = rolesMap.get(a.employees?.user_id) || ["employee"];
+            const submitterRole = roles.includes("unit_leader") ? "unit_leader" : (roles.includes("employee") ? "employee" : roles[0]);
+            return {
+              ...a,
+              employees: {
+                ...a.employees,
+                role: submitterRole
+              }
+            };
+          });
 
           if (activeTab === "menunggu") {
             rawData = rawData.filter((a: any) => {
@@ -239,6 +248,8 @@ export default function Approvals() {
 
   useEffect(() => {
     fetchData();
+    window.addEventListener('app_data_updated', fetchData);
+    return () => window.removeEventListener('app_data_updated', fetchData);
   }, [fetchData]);
 
 
@@ -534,81 +545,21 @@ export default function Approvals() {
         </DialogContent>
       </Dialog>
 
-      {/* Detail Modal */}
-      <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none bg-slate-50">
-          {selectedDetail && (
-            <>
-              <DetailHeader 
-                title="Detail Pengajuan"
-                badge={statusBadge(selectedDetail.status)}
-                actions={
-                  selectedCanAction ? (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => { setDetailModalOpen(false); setTimeout(() => openRejectModal(selectedDetail.id), 100); }} disabled={isProcessing} className="h-8 gap-1.5 font-semibold bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-200 shadow-none transition-all">
-                        <X className="h-3.5 w-3.5" /> Tolak
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleApprove(selectedDetail.id)} disabled={isProcessing} className="h-8 gap-1.5 font-semibold bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200 shadow-none transition-all">
-                        <Check className="h-3.5 w-3.5" /> Setujui
-                      </Button>
-                    </>
-                  ) : undefined
-                }
-              />
-              
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                <DetailSection icon={User} title="Informasi Pengaju">
-                  <DetailItem label="Nama Karyawan" value={selectedDetail.employees?.name ?? "—"} />
-                  <DetailItem label={term ? term.charAt(0).toUpperCase() + term.slice(1) : "Unit"} value={selectedDetail.employees?.units?.name ?? "—"} />
-                </DetailSection>
-
-                <DetailSection icon={ClipboardCheck} title="Informasi Pengajuan">
-                  <DetailItem label="Jenis Pengajuan" value={mapTypeLabel(selectedDetail.type)} />
-                  <DetailItem 
-                    label="Tanggal Kegiatan" 
-                    value={
-                      selectedDetail.type === "overtime" || (selectedDetail.start_date === selectedDetail.end_date) 
-                        ? format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })
-                        : `${format(new Date(selectedDetail.start_date), "dd MMMM yyyy", { locale: id })} - ${format(new Date(selectedDetail.end_date), "dd MMMM yyyy", { locale: id })}`
-                    } 
-                  />
-                  {selectedDetail.type === "overtime" && selectedDetail.start_time && (
-                    <DetailItem label="Jam Lembur" value={`${selectedDetail.start_time.slice(0,5)} - ${selectedDetail.end_time?.slice(0,5)}`} />
-                  )}
-                </DetailSection>
-
-                <DetailSection icon={MessageSquare} title="Keterangan Tambahan">
-                  <div className="col-span-1 md:col-span-2">
-                    <DetailItem label="Alasan Pengajuan" value={selectedDetail.reason} />
-                  </div>
-                  
-                  {selectedDetail.attachment_url && (
-                    <div className="col-span-1 md:col-span-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-semibold text-muted-foreground">Lampiran Dokumen</Label>
-                        <div className="pt-1">
-                          <a href={selectedDetail.attachment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md text-xs font-semibold border border-blue-200 transition-colors">
-                            <FileText className="h-3.5 w-3.5" /> Buka Dokumen Pendukung
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedDetail.status === "rejected" && selectedDetail.reject_reason && (
-                    <div className="col-span-1 md:col-span-2 mt-2">
-                      <DetailItem 
-                        label="Catatan Penolakan" 
-                        value={<span className="text-red-600 font-medium">{selectedDetail.reject_reason}</span>} 
-                      />
-                    </div>
-                  )}
-                </DetailSection>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ApprovalDetailModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        approval={selectedDetail}
+        onStatusChange={(id, status) => {
+          if (status === "approved") {
+            handleApprove(id);
+          } else {
+            setDetailModalOpen(false);
+            setTimeout(() => openRejectModal(id), 100);
+          }
+        }}
+        loading={isProcessing}
+        readOnly={!selectedCanAction}
+      />
     </DashboardLayout>
   );
 }

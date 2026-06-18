@@ -231,6 +231,7 @@ export function PositionTab({ isAdminOrHr, isSuperAdmin, onAdd, isFormOpen, onFo
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead className="w-14 text-center font-semibold">No</TableHead>
                 <TableHead className="font-semibold">Nama Jabatan</TableHead>
+                <TableHead className="font-semibold">Rincian Tugas</TableHead>
                 <TableHead className="w-40 text-center font-semibold">Personel</TableHead>
                 <TableHead className="w-24" />
               </TableRow>
@@ -242,13 +243,24 @@ export function PositionTab({ isAdminOrHr, isSuperAdmin, onAdd, isFormOpen, onFo
                   className="hover:bg-muted/50 transition-colors h-11 group border-b border-gray-200 text-sm"
                 >
                   <TableCell className="text-center text-slate-500 py-1.5">{idx + 1}</TableCell>
-                  <TableCell className="font-semibold text-slate-900 py-1.5">
+                  <TableCell className="font-semibold text-slate-900 py-1.5 align-top">
                     {pos.name}
                     {pos.is_active === false && (
                       <span className="ml-2 text-[10px] font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200 uppercase tracking-wider">Diarsipkan</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-center py-1.5">
+                  <TableCell className="py-2 align-top">
+                    {pos.description ? (
+                      <ul className="list-disc pl-4 space-y-1 text-slate-600 text-xs text-left max-w-xs break-words whitespace-normal">
+                        {pos.description.split('\n').filter((p: string) => p.trim()).map((p: string, i: number) => (
+                          <li key={i}>{p}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-slate-400 italic text-xs">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center py-1.5 align-top">
                     {pos.employee_count > 0 ? (
                       <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 whitespace-nowrap">
                         {pos.employee_count} Karyawan

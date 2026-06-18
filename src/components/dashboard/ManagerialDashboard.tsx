@@ -7,6 +7,7 @@ import { ExpiringContractsCard } from "./ExpiringContractsCard";
 import { RecentApprovalsCard } from "./RecentApprovalsCard";
 import { TodayAgendaCard } from "./TodayAgendaCard";
 import { PendingTasksCard } from "./PendingTasksCard";
+import { PendingAgendaCard } from "./PendingAgendaCard";
 
 interface Stats {
   totalEmployees: number;
@@ -23,11 +24,13 @@ interface ManagerialDashboardProps {
   units: any[];
   approvals: any[];
   agendas: any[];
+  pendingAgendas?: any[];
   tasks?: any[];
   loading: boolean;
   isUnitLeader?: boolean;
   isGlobalMode?: boolean;
   institutions?: any[];
+  isDirectorOrSuperAdmin?: boolean;
 }
 
 export function ManagerialDashboard({
@@ -38,11 +41,13 @@ export function ManagerialDashboard({
   units,
   approvals,
   agendas,
+  pendingAgendas = [],
   tasks = [],
   loading,
   isUnitLeader = false,
   isGlobalMode = false,
   institutions = [],
+  isDirectorOrSuperAdmin = false,
 }: ManagerialDashboardProps) {
   const statCards = [
     {
@@ -73,12 +78,16 @@ export function ManagerialDashboard({
       gradient: "from-[hsl(198,64%,35%)] to-[hsl(198,55%,48%)]",
       iconBg: "bg-white/15",
     },
-  ];
+  ].filter(s => {
+    if (isDirectorOrSuperAdmin && (s.label === "Pengajuan Baru" || s.label === "Tugas Aktif")) return false;
+    if (s.label === "Tugas Aktif" && !isUnitLeader) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
       {/* Stat Cards — modern gradient style */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${statCards.length === 4 ? 'lg:grid-cols-4' : statCards.length === 3 ? 'lg:grid-cols-3' : ''} gap-4`}>
         {statCards.map((s) => (
           <div
             key={s.label}
@@ -114,11 +123,15 @@ export function ManagerialDashboard({
       </div>
 
       {/* Info Cards Row */}
-      <div className={`grid grid-cols-1 ${!isUnitLeader ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4`}>
-        <RecentApprovalsCard approvals={approvals} loading={loading} isGlobalMode={isGlobalMode} />
-        <TodayAgendaCard agendas={agendas} loading={loading} isGlobalMode={isGlobalMode} />
+      <div className={`grid grid-cols-1 ${isDirectorOrSuperAdmin ? "lg:grid-cols-1" : "lg:grid-cols-2"} gap-4`}>
+        {!isDirectorOrSuperAdmin && (
+          <RecentApprovalsCard approvals={approvals} loading={loading} isGlobalMode={isGlobalMode} />
+        )}
         {!isUnitLeader && (
           <ExpiringContractsCard employees={employees} units={units} loading={loading} isGlobalMode={isGlobalMode} />
+        )}
+        {isUnitLeader && (
+          <PendingAgendaCard pendingAgendas={pendingAgendas} loading={loading} />
         )}
       </div>
     </div>

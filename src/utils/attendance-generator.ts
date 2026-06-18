@@ -28,7 +28,10 @@ export async function generateLeaveAttendanceRecords(
   let currentDate = startDate;
 
   // Convert work_days array (1=Senin..7=Minggu) to match getDay() (0=Minggu, 1=Senin..6=Sabtu)
-  const shiftDays = employeeShift.work_days || [];
+  let shiftDays = employeeShift.work_days;
+  if (!shiftDays || shiftDays.length === 0) {
+    shiftDays = [1, 2, 3, 4, 5]; // Default to Mon-Fri if missing
+  }
   const validDays = shiftDays.map((d: number) => (d === 7 ? 0 : d));
 
   while (currentDate <= endDate) {
@@ -44,8 +47,6 @@ export async function generateLeaveAttendanceRecords(
           instansi_id: approval.instansi_id,
           date: dateStr,
           daily_status: status,
-          check_in: null,
-          check_out: null,
         });
       }
     }
@@ -60,7 +61,7 @@ export async function generateLeaveAttendanceRecords(
     
     if (error) {
       console.error("Failed to auto-generate attendance records:", error);
-      throw new Error("Gagal membuat rekam kehadiran otomatis");
+      throw new Error(`Gagal membuat rekam kehadiran otomatis: ${error.message}`);
     }
   }
 }
