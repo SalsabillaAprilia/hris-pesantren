@@ -379,7 +379,9 @@ export default function Dashboard() {
 
   const getDisplayName = () => {
     if (!employee?.name) return "Admin";
-    const parts = employee.name.split(" ");
+    // Hapus gelar (semua karakter setelah koma) agar tidak muncul di sapaan
+    const nameWithoutTitle = employee.name.split(",")[0].trim();
+    const parts = nameWithoutTitle.split(" ");
     if (parts.length > 1 && parts[0].length < 5) {
       return `${parts[0]} ${parts[1]}`;
     }

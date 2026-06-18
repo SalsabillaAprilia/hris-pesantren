@@ -13,6 +13,7 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
   const { term } = useTerminology();
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [isScrolled, setIsScrolled] = useState(false);
+  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
 
@@ -57,6 +58,10 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
       const scrolled = scrollContainerRef.current.scrollLeft > 2;
       if (scrolled !== isScrolled) setIsScrolled(scrolled);
     }
+  };
+
+  const toggleExpand = (cellId: string) => {
+    setExpandedCells(prev => ({ ...prev, [cellId]: !prev[cellId] }));
   };
 
   const filteredRecords = useMemo(() => {
@@ -154,14 +159,26 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                       {filteredRecords.indexOf(r) + 1}
                     </TableCell>
                     <TableCell
-                      className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 truncate text-slate-900
+                      onClick={() => r.employees?.name && toggleExpand(`${r.id}-name`)}
+                      className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 cursor-pointer text-slate-900
+                        ${expandedCells[`${r.id}-name`] ? 'whitespace-normal break-words' : 'truncate'}
                         ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}
                     >
                       {r.employees?.name ?? "—"}
                     </TableCell>
                     <TableCell className="text-slate-900 py-1.5 text-left">{r.employees?.employee_id_number ?? "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px] text-center">{r.employees?.units?.name ?? "—"}</TableCell>
-                    <TableCell className="text-slate-900 py-1.5 truncate max-w-[130px] text-left">{r.employees?.position ?? "—"}</TableCell>
+                    <TableCell 
+                      onClick={() => r.employees?.units?.name && toggleExpand(`${r.id}-unit`)}
+                      className={`text-slate-900 py-1.5 max-w-[130px] text-center cursor-pointer transition-all duration-200 ${expandedCells[`${r.id}-unit`] ? 'whitespace-normal break-words' : 'truncate'}`}
+                    >
+                      {r.employees?.units?.name ?? "—"}
+                    </TableCell>
+                    <TableCell 
+                      onClick={() => r.employees?.position && toggleExpand(`${r.id}-position`)}
+                      className={`text-slate-900 py-1.5 max-w-[130px] text-left cursor-pointer transition-all duration-200 ${expandedCells[`${r.id}-position`] ? 'whitespace-normal break-words' : 'truncate'}`}
+                    >
+                      {r.employees?.position ?? "—"}
+                    </TableCell>
                     <TableCell className="text-slate-900 py-1.5 text-center">
                       {r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}
                     </TableCell>
@@ -199,7 +216,13 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                         {!r.check_in_location && !r.check_out_location && <span className="text-slate-400">—</span>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-500 py-1.5 truncate max-w-[200px]" title={r.notes || undefined}>{r.notes ?? "—"}</TableCell>
+                    <TableCell 
+                      onClick={() => r.notes && toggleExpand(`${r.id}-notes`)}
+                      className={`text-slate-500 py-1.5 max-w-[200px] cursor-pointer transition-all duration-200 ${expandedCells[`${r.id}-notes`] ? 'whitespace-normal break-words' : 'truncate'}`} 
+                      title={r.notes || undefined}
+                    >
+                      {r.notes ?? "—"}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

@@ -15,6 +15,7 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
   const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1).padStart(2, "0"));
   const [selectedYear, setSelectedYear] = useState<string>(String(now.getFullYear()));
   const [isScrolled, setIsScrolled] = useState(false);
+  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
 
@@ -79,6 +80,10 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
     const timer = setTimeout(recalculateSticky, 50);
     return () => clearTimeout(timer);
   }, [records]);
+
+  const toggleExpand = (cellId: string) => {
+    setExpandedCells(prev => ({ ...prev, [cellId]: !prev[cellId] }));
+  };
 
   const handleHorizontalScroll = () => {
     if (scrollContainerRef.current) {
@@ -204,7 +209,9 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                       </TableCell>
                       {isAdminOrHr && (
                         <TableCell
-                          className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 truncate text-slate-900
+                          onClick={() => r.employees?.name && toggleExpand(`${r.id}-name`)}
+                          className={`sticky left-[40px] z-[20] bg-white font-semibold transition-all duration-75 w-[180px] max-w-[180px] min-w-[180px] group-hover:bg-[#f8fafc] py-1.5 cursor-pointer text-slate-900
+                            ${expandedCells[`${r.id}-name`] ? 'whitespace-normal break-words' : 'truncate'}
                             ${isScrolled ? 'shadow-[inset_-1px_0_0_0_#94a3b8,8px_0_12px_-4px_rgba(0,0,0,0.25)]' : 'shadow-none'}`}
                         >
                           {r.employees?.name ?? "—"}
@@ -240,7 +247,11 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                            <span className="text-[11px] font-semibold text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] px-2 py-0.5 rounded border border-[hsl(232,59%,90%)] whitespace-nowrap">{statusLabel}</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-slate-500 py-1.5 truncate max-w-[200px]" title={r.notes || undefined}>
+                      <TableCell 
+                        onClick={() => r.notes && toggleExpand(`${r.id}-notes`)}
+                        className={`text-slate-500 py-1.5 max-w-[200px] cursor-pointer transition-all duration-200 ${expandedCells[`${r.id}-notes`] ? 'whitespace-normal break-words' : 'truncate'}`} 
+                        title={r.notes || undefined}
+                      >
                         {r.notes ?? "—"}
                       </TableCell>
                     </TableRow>
