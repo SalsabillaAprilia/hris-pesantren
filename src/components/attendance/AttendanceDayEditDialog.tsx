@@ -118,7 +118,7 @@ export function AttendanceDayEditDialog({ open, onOpenChange, record, onSuccess 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground/90 font-bold">Jam Masuk</Label>
+                <Label className="text-sm text-muted-foreground/90 font-bold">Jam Datang</Label>
                 <Input
                   type="time"
                   value={form.check_in_time}

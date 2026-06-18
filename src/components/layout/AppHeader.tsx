@@ -123,7 +123,7 @@ export function AppHeader() {
               const isFromMyUnit = a.employees?.unit_id === employee?.unit_id;
               
               const canSeeAsLeader = isUnitLeader && isFromMyUnit && submitterRole !== "unit_leader" && a.employee_id !== employee?.id;
-              const canSeeAsHr = isHr && submitterRole === "unit_leader";
+              const canSeeAsHr = isHr && submitterRole === "unit_leader" && a.employee_id !== employee?.id;
               
               return canSeeAsLeader || canSeeAsHr;
             });

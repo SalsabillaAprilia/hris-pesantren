@@ -29,10 +29,19 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
   ];
 
   const filteredRecords = useMemo(() => {
-    return records.filter(r => {
-      const d = r.date?.slice(0, 7); // "yyyy-MM"
-      return d === `${selectedYear}-${selectedMonth}`;
-    });
+    return records
+      .filter(r => {
+        const d = r.date?.slice(0, 7); // "yyyy-MM"
+        return d === `${selectedYear}-${selectedMonth}`;
+      })
+      .sort((a, b) => {
+        if (a.date !== b.date) {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+        const nameA = a.employees?.name || "";
+        const nameB = b.employees?.name || "";
+        return nameA.localeCompare(nameB);
+      });
   }, [records, selectedMonth, selectedYear]);
 
   const recalculateSticky = () => {
@@ -78,12 +87,14 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
     }
   };
 
-  const totalHadir = filteredRecords.filter(r => r.check_in).length;
+  const totalHadir = filteredRecords.filter(r => r.check_in && !['Mangkir','Izin','Cuti','Sakit'].includes(r.daily_status)).length;
   const totalTelat = filteredRecords.filter(r => r.late_minutes && r.late_minutes > 0).length;
+  
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const totalMangkir = filteredRecords.filter(r => !r.check_in && new Date(r.date) < todayStart && !['Izin','Cuti','Sakit'].includes(r.daily_status)).length;
-  const totalIzin = filteredRecords.filter(r => r.daily_status && ['Izin','Cuti','Sakit'].includes(r.daily_status)).length;
+
+  const totalMangkir = filteredRecords.filter(r => r.daily_status === 'Mangkir').length;
+  const totalIzin = filteredRecords.filter(r => ['Izin','Cuti','Sakit'].includes(r.daily_status)).length;
 
   return (
     <div className="space-y-4">
@@ -205,13 +216,13 @@ export function AttendanceLogTable({ records, loading, isAdminOrHr }: Attendance
                       <TableCell className="text-slate-900 py-1.5 text-center">
                         {r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}
                         {r.late_minutes && r.late_minutes > 0 ? (
-                          <span className="ml-2 text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">+{r.late_minutes}m</span>
+                          <span className="ml-1 text-[11px] text-amber-600 font-medium">(+{r.late_minutes}m)</span>
                         ) : null}
                       </TableCell>
                       <TableCell className="text-slate-900 py-1.5 text-center">
                         {r.check_out ? format(new Date(r.check_out), "HH:mm") : (isLupaCheckOut ? <span className="text-rose-500 text-xs italic">Lupa absen</span> : "—")}
                         {r.early_leave_minutes && r.early_leave_minutes > 0 ? (
-                          <span className="ml-2 text-[10px] text-rose-600 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">-{r.early_leave_minutes}m</span>
+                          <span className="ml-1 text-[11px] text-rose-600 font-medium">(-{r.early_leave_minutes}m)</span>
                         ) : null}
                       </TableCell>
                       <TableCell className="text-slate-900 py-1.5 text-center">

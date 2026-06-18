@@ -88,7 +88,7 @@ export function AttendanceEmployeeRecordsDialog({
                       <TableRow className="border-none hover:bg-transparent">
                         <TableHead className="font-semibold whitespace-nowrap text-left">Tanggal</TableHead>
                         <TableHead className="font-semibold whitespace-nowrap text-center">Status</TableHead>
-                        <TableHead className="font-semibold whitespace-nowrap text-center">Masuk</TableHead>
+                        <TableHead className="font-semibold whitespace-nowrap text-center">Datang</TableHead>
                         <TableHead className="font-semibold whitespace-nowrap text-center">Keluar</TableHead>
                         <TableHead className="font-semibold whitespace-nowrap text-center">Terlambat</TableHead>
                         <TableHead className="font-semibold whitespace-nowrap text-left">Catatan Admin</TableHead>

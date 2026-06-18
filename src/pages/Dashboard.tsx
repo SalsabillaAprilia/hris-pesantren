@@ -127,8 +127,8 @@ export default function Dashboard() {
           ),
           supabaseFetchWithTimeout(
             (() => {
-              let q = supabase.from("attendance").select("*").gte("date", format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd")).order("date", { ascending: false });
-              if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+              let q = supabase.from("attendance").select("*, employees!inner(instansi_id)").gte("date", format(new Date(Date.now() - 7 * 86400000), "yyyy-MM-dd")).order("date", { ascending: false });
+              if (effectiveInstansiId) q = q.eq("employees.instansi_id", effectiveInstansiId);
               return q;
             })(),
             20000
@@ -226,8 +226,8 @@ export default function Dashboard() {
         if (isUnitLeader && !isAdminOrHr && !isDirector) {
           const myUnitId = employee?.unit_id;
           if (myUnitId) {
-            filteredEmps = activeEmps.filter(e => e.unit_id === myUnitId && e.user_id !== employee?.user_id);
-            filteredAllEmps = filteredAllEmps.filter(e => e.unit_id === myUnitId && e.user_id !== employee?.user_id);
+            filteredEmps = activeEmps.filter(e => e.unit_id === myUnitId);
+            filteredAllEmps = filteredAllEmps.filter(e => e.unit_id === myUnitId);
             const subordinateIds = new Set(filteredAllEmps.map(e => e.id));
             attData = attData.filter(a => subordinateIds.has(a.employee_id));
             apprData = apprData.filter(a => subordinateIds.has(a.employee_id));

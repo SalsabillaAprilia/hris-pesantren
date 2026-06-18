@@ -146,11 +146,11 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                 <>
                   <TableHead className="font-semibold text-left whitespace-nowrap">ID Karyawan</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Status</TableHead>
-                  <TableHead className="font-semibold text-center whitespace-nowrap">Akad</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">{term}</TableHead>
                   <TableHead className="font-semibold text-left whitespace-nowrap">Jabatan</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Jadwal Kerja</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Bergabung</TableHead>
+                  <TableHead className="font-semibold text-center whitespace-nowrap">Akad</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Masa Kerja</TableHead>
                   <TableHead className="font-semibold text-center whitespace-nowrap">Akhir Kontrak</TableHead>
                   {isSuperAdmin && (
@@ -217,13 +217,13 @@ export function EmployeeTable({ employees, activeTab, onViewDetail, loading, isS
                   <>
                     <TableCell className="text-slate-900 py-1.5 whitespace-nowrap text-left">{emp.employee_id_number || "—"}</TableCell>
                     <TableCell className="py-1.5 origin-center whitespace-nowrap text-center">{getStatusBadge(emp.status)}</TableCell>
-                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center text-[13px] font-medium">{emp.contract_type || "—"}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center">{emp.units?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-left">{emp.positions?.name || "—"}</TableCell>
                     <TableCell className="py-1.5 truncate max-w-[150px] text-slate-900 text-center text-[13px]">{emp.shifts ? `${emp.shifts.name}` : "—"}</TableCell>
                     <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {emp.join_date ? format(new Date(emp.join_date), "dd/MM/yyyy") : "—"}
                     </TableCell>
+                    <TableCell className="py-1.5 whitespace-nowrap text-slate-900 text-center text-[13px]">{emp.contract_type || "—"}</TableCell>
                     <TableCell className="font-normal py-1.5 whitespace-nowrap text-slate-900 text-center">
                       {calculateMasaKerja(emp.join_date)}
                     </TableCell>

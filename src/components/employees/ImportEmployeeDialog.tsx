@@ -59,27 +59,39 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, tar
         return;
       }
 
-      // Regex to handle commas inside quotes
+      // Deteksi otomatis delimiter (koma atau titik koma)
+      let delimiter = ',';
+      if (lines[0].includes(';') && !lines[0].includes(',')) {
+        delimiter = ';';
+      }
+
+      // Parser CSV karakter-demi-karakter yang tahan banting terhadap koma di dalam tanda kutip
       const splitCsvLine = (line: string) => {
-        const matches = line.match(/(\s*"[^"]+"\s*|\s*[^,]+|,)(?=,|$)/g);
-        if (!matches) return [];
-        let r = [];
-        for (let i = 0; i < matches.length; i++) {
-          let val = matches[i].trim();
-          if (val === ',') {
-             // empty column
-             if (i === 0 || matches[i-1] === ',') r.push('');
-             continue;
+        const row: string[] = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            // Tangani escaped quote ""
+            if (inQuotes && line[i+1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === delimiter && !inQuotes) {
+            row.push(cur.trim());
+            cur = '';
+          } else {
+            cur += char;
           }
-          if (val.startsWith('"') && val.endsWith('"')) {
-            val = val.slice(1, -1).replace(/""/g, '"');
-          }
-          r.push(val);
         }
-        return r;
+        row.push(cur.trim());
+        return row;
       };
 
-      const headers = splitCsvLine(lines[0]).map(h => h.trim());
+      const headers = splitCsvLine(lines[0]);
       
       const missingHeaders = EXPECTED_HEADERS.filter(eh => !headers.includes(eh));
       if (missingHeaders.length > 0) {
@@ -89,8 +101,16 @@ export function ImportEmployeeDialog({ open, onOpenChange, units, positions, tar
 
       const results = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = splitCsvLine(lines[i]);
+        let values = splitCsvLine(lines[i]);
         if (values.length < 2) continue; // skip empty rows
+        
+        // Auto-heal pintar: jika kolom berlebih karena koma di gelar tidak ada tanda kutip
+        if (values.length > headers.length && delimiter === ',') {
+          const excess = values.length - headers.length;
+          // Asumsikan koma nyasar ada di kolom Nama (index 0)
+          const mergedName = values.slice(0, 1 + excess).join(', ');
+          values = [mergedName.replace(/,\s*,/g, ','), ...values.slice(1 + excess)];
+        }
         
         let obj: any = {};
         headers.forEach((h, idx) => {

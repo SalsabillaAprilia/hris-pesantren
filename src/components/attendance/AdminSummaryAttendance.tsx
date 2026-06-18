@@ -94,7 +94,7 @@ export function AdminSummaryAttendance({ records, loading, isAdminOrHr, onRefres
         if (r.overtime_minutes && r.overtime_minutes > 0) stat.overtime += r.overtime_minutes;
       }
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [records, startDate, endDate]);
 
   return (

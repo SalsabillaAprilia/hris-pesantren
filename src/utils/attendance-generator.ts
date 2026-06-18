@@ -54,14 +54,43 @@ export async function generateLeaveAttendanceRecords(
   }
 
   if (recordsToInsert.length > 0) {
-    // upsert to avoid duplicating if HR manually entered it
-    const { error } = await supabase
+    const dates = recordsToInsert.map(r => r.date);
+    const { data: existing, error: fetchErr } = await supabase
       .from("attendance")
-      .upsert(recordsToInsert, { onConflict: "employee_id,date" });
+      .select("id, date")
+      .eq("employee_id", approval.employee_id)
+      .in("date", dates);
+
+    if (fetchErr) {
+      console.error("Failed to check existing attendance records:", fetchErr);
+      throw new Error(`Gagal mengecek rekam kehadiran yang ada: ${fetchErr.message}`);
+    }
+
+    const existingDates = new Set(existing?.map(e => e.date) || []);
     
-    if (error) {
-      console.error("Failed to auto-generate attendance records:", error);
-      throw new Error(`Gagal membuat rekam kehadiran otomatis: ${error.message}`);
+    const toInsert = recordsToInsert.filter(r => !existingDates.has(r.date));
+    const toUpdate = recordsToInsert.filter(r => existingDates.has(r.date));
+
+    if (toInsert.length > 0) {
+      const { error } = await supabase.from("attendance").insert(toInsert);
+      if (error) {
+        console.error("Failed to insert auto-generated attendance records:", error);
+        throw new Error(`Gagal membuat rekam kehadiran otomatis: ${error.message}`);
+      }
+    }
+    
+    if (toUpdate.length > 0) {
+      for (const record of toUpdate) {
+        const { error } = await supabase.from("attendance")
+          .update({ daily_status: record.daily_status })
+          .eq("employee_id", record.employee_id)
+          .eq("date", record.date);
+          
+        if (error) {
+          console.error("Failed to update auto-generated attendance:", error);
+          throw new Error(`Gagal memperbarui rekam kehadiran otomatis: ${error.message}`);
+        }
+      }
     }
   }
 }

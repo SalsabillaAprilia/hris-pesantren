@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,7 +27,7 @@ export function QuickAttendanceDialog({ trigger }: QuickAttendanceDialogProps = 
     if (!employee) return;
     setLoading(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = format(new Date(), "yyyy-MM-dd");
       const { data } = await supabase
         .from("attendance")
         .select("*")
@@ -66,7 +67,8 @@ export function QuickAttendanceDialog({ trigger }: QuickAttendanceDialogProps = 
           <CheckInOutWidget 
             employee={employee} 
             todayRecord={todayRecord} 
-            onSuccess={fetchTodayRecord} 
+            onSuccess={fetchTodayRecord}
+            isFetching={loading} 
           />
         </div>
       </DialogContent>

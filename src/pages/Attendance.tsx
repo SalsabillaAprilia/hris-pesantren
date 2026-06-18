@@ -57,7 +57,7 @@ export default function Attendance() {
       let fetchGlobal;
       if (isAdminOrHr) {
          let q = (supabase as any).from("attendance").select("*, employees!inner(*, units:unit_id(name))").order("date", { ascending: false }).limit(1000);
-         if (effectiveInstansiId) q = q.eq("instansi_id", effectiveInstansiId);
+         if (effectiveInstansiId) q = q.eq("employees.instansi_id", effectiveInstansiId);
          fetchGlobal = q;
       } else if (isUnitLeader && employee?.unit_id) {
          fetchGlobal = (supabase as any).from("attendance").select("*, employees!inner(*, units:unit_id(name))").eq("employees.unit_id", employee.unit_id).order("date", { ascending: false }).limit(1000);
@@ -142,16 +142,16 @@ export default function Attendance() {
         ) : isUnitLeader ? (
           // Unit Leader: 4 tab (global unit + personal)
           <TabsList className="grid grid-cols-4 mb-3 bg-muted/50 h-9 rounded-lg">
-            <TabsTrigger value="harian" className="text-xs">Rekapitulasi Harian</TabsTrigger>
-            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan Kehadiran</TabsTrigger>
+            <TabsTrigger value="harian" className="text-xs">Rekapitulasi Harian Tim</TabsTrigger>
+            <TabsTrigger value="ringkasan" className="text-xs">Ringkasan Kehadiran Tim</TabsTrigger>
             <TabsTrigger value="presensi" className="text-xs">Presensi Saya</TabsTrigger>
-            <TabsTrigger value="pengajuan" className="text-xs">Pengajuan</TabsTrigger>
+            <TabsTrigger value="pengajuan" className="text-xs">Pengajuan Saya</TabsTrigger>
           </TabsList>
         ) : (
           // Karyawan biasa: 2 tab personal
           <TabsList className="grid grid-cols-2 mb-3 bg-muted/50 h-9 rounded-lg">
             <TabsTrigger value="presensi" className="text-xs">Presensi Saya</TabsTrigger>
-            <TabsTrigger value="pengajuan" className="text-xs">Pengajuan</TabsTrigger>
+            <TabsTrigger value="pengajuan" className="text-xs">Pengajuan Saya</TabsTrigger>
           </TabsList>
         )}
 

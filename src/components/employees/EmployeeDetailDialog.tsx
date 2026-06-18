@@ -95,6 +95,7 @@ export function EmployeeDetailDialog({
               <DetailItem label="Status Karyawan" value={employee.status === "active" ? "Aktif" : (employee.status === "inactive" ? "Nonaktif" : "Cuti")} />
               <DetailItem label="Tanggal Bergabung" value={employee.join_date ? format(new Date(employee.join_date), "dd MMMM yyyy", { locale: id }) : null} />
               <DetailItem label="Masa Kerja" value={calculateMasaKerja(employee.join_date)} />
+              <DetailItem label="Akad Kerja" value={employee.contract_type || "—"} />
               <DetailItem label="Akhir Kontrak" value={employee.contract_end_date ? format(new Date(employee.contract_end_date), "dd MMMM yyyy", { locale: id }) : null} />
               <DetailItem label="Jenjang Pendidikan" value={employee.education_level} />
               <DetailItem label="Lembaga Pendidikan" value={employee.education_institution} />

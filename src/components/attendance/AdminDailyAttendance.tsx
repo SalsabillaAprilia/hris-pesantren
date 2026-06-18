@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,15 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
     }
   };
 
-  const filteredRecords = records.filter(r => r.date === selectedDate);
+  const filteredRecords = useMemo(() => {
+    return records
+      .filter(r => r.date === selectedDate)
+      .sort((a, b) => {
+        const nameA = (a.employees?.name || "").toLowerCase();
+        const nameB = (b.employees?.name || "").toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+  }, [records, selectedDate]);
 
   const totalHadir   = filteredRecords.filter(r => r.check_in && !['Mangkir','Izin','Cuti','Sakit'].includes(r.daily_status)).length;
   const totalTelat   = filteredRecords.filter(r => r.late_minutes && r.late_minutes > 0).length;
@@ -124,7 +132,7 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                 <TableHead className="font-semibold w-[120px] whitespace-nowrap text-left">ID Karyawan</TableHead>
                 <TableHead className="font-semibold w-[130px] whitespace-nowrap text-center">{term}</TableHead>
                 <TableHead className="font-semibold w-[130px] whitespace-nowrap text-left">Jabatan</TableHead>
-                <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Masuk</TableHead>
+                <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Datang</TableHead>
                 <TableHead className="font-semibold w-[100px] whitespace-nowrap text-center">Keluar</TableHead>
                 <TableHead className="font-semibold w-[90px] whitespace-nowrap text-center">Lembur</TableHead>
                 <TableHead className="font-semibold w-[90px] whitespace-nowrap text-center">Terlambat</TableHead>
@@ -180,15 +188,15 @@ export function AdminDailyAttendance({ records, loading }: AdminDailyAttendanceP
                         <span className="text-[11px] font-semibold text-[hsl(232,59%,21%)] bg-[hsl(232,59%,96%)] px-2 py-0.5 rounded border border-[hsl(232,59%,90%)] whitespace-nowrap">{r.daily_status || 'Hadir'}</span>
                       )}
                     </TableCell>
-                    <TableCell className="py-1.5 text-center">
-                      <div className="flex gap-1.5 justify-center">
+                    <TableCell className="text-slate-900 py-1.5 text-center">
+                      <div className="flex gap-2 justify-center">
                         {r.check_in_location && r.check_in_location !== "Location not available" ? (
-                          <a href={`https://www.google.com/maps/search/?api=1&query=${r.check_in_location}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-semibold text-[10px] bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">Masuk</a>
+                          <a href={`https://www.google.com/maps/search/?api=1&query=${r.check_in_location}`} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline transition-colors">Datang</a>
                         ) : null}
                         {r.check_out_location && r.check_out_location !== "Location not available" ? (
-                          <a href={`https://www.google.com/maps/search/?api=1&query=${r.check_out_location}`} target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline font-semibold text-[10px] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Pulang</a>
+                          <a href={`https://www.google.com/maps/search/?api=1&query=${r.check_out_location}`} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline transition-colors">Pulang</a>
                         ) : null}
-                        {!r.check_in_location && !r.check_out_location && <span className="text-slate-400 text-xs">—</span>}
+                        {!r.check_in_location && !r.check_out_location && <span className="text-slate-400">—</span>}
                       </div>
                     </TableCell>
                     <TableCell className="text-slate-500 py-1.5 truncate max-w-[200px]" title={r.notes || undefined}>{r.notes ?? "—"}</TableCell>

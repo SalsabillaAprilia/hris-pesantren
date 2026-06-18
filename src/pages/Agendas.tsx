@@ -22,7 +22,7 @@ import { CalendarDays, Plus, Pencil, Trash2, Search, Send, AlertCircle, CheckCir
 import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
-const EMPTY_ITEM = { date: format(new Date(), "yyyy-MM-dd"), activities: [{ activity: "", hours: 0, minutes: 30 }] };
+const EMPTY_ITEM = { date: format(new Date(), "yyyy-MM-dd"), activities: [{ activity: "", hours: 0, minutes: 0 }] };
 
 export default function Agendas() {
   const { employee, user, isAdminOrHr, hasRole } = useAuth();
@@ -305,7 +305,7 @@ export default function Agendas() {
   const openCreateItem = () => {
     setItemMode("create");
     setEditingItemId(null);
-    setItemForm({ date: format(new Date(), "yyyy-MM-dd"), activities: [{ activity: "", hours: 0, minutes: 30 }] });
+    setItemForm({ date: format(new Date(), "yyyy-MM-dd"), activities: [{ activity: "", hours: 0, minutes: 0 }] });
     setItemDialogOpen(true);
   };
 
@@ -369,7 +369,7 @@ export default function Agendas() {
   };
 
   const addActivityField = () => {
-    setItemForm((prev: any) => ({ ...prev, activities: [...prev.activities, { activity: "", hours: 0, minutes: 30 }] }));
+    setItemForm((prev: any) => ({ ...prev, activities: [...prev.activities, { activity: "", hours: 0, minutes: 0 }] }));
   };
   const removeActivityField = (index: number) => {
     setItemForm((prev: any) => ({ ...prev, activities: prev.activities.filter((_: any, i: number) => i !== index) }));
@@ -913,11 +913,11 @@ export default function Agendas() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground/90 font-bold">Durasi (Jam)</Label>
-                        <Input type="number" min="0" max="23" value={act.hours} onChange={e => updateActivityField(idx, "hours", parseInt(e.target.value) || 0)} className="h-9 text-sm text-slate-900 shadow-sm" required />
+                        <Input type="number" min="0" max="23" value={act.hours} onChange={e => updateActivityField(idx, "hours", e.target.value === "" ? "" : parseInt(e.target.value, 10))} className="h-9 text-sm text-slate-900 shadow-sm" required />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground/90 font-bold">Durasi (Menit)</Label>
-                        <Input type="number" min="0" max="59" value={act.minutes} onChange={e => updateActivityField(idx, "minutes", parseInt(e.target.value) || 0)} className="h-9 text-sm text-slate-900 shadow-sm" required />
+                        <Input type="number" min="0" max="59" value={act.minutes} onChange={e => updateActivityField(idx, "minutes", e.target.value === "" ? "" : parseInt(e.target.value, 10))} className="h-9 text-sm text-slate-900 shadow-sm" required />
                       </div>
                     </div>
                   </div>

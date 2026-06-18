@@ -61,7 +61,7 @@ interface KpiEvaluation {
   employees?: { name: string; unit_id: string | null; user_id?: string; units?: { name: string } };
 }
 
-interface IndicatorRow { name: string; weight: string; description: string; }
+interface IndicatorRow { id?: string; name: string; weight: string; description: string; }
 
 let globalKpiTemplatesCache: KpiTemplate[] | null = null;
 let globalKpiIndicatorsCache: KpiIndicator[] | null = null;
@@ -411,7 +411,7 @@ export default function KPI() {
     setTplThreshSB(String(t.threshold_sangat_baik ?? 85));
     setTplThreshB(String(t.threshold_baik ?? 70));
     setTplThreshC(String(t.threshold_cukup ?? 55));
-    setTplInds(getInds(t.id).map(i => ({ name: i.name, weight: String(i.weight), description: i.description ?? "" })));
+    setTplInds(getInds(t.id).map(i => ({ id: i.id, name: i.name, weight: String(i.weight), description: i.description ?? "" })));
     setShowThresh(false); setTplOpen(true);
   };
 
@@ -437,18 +437,45 @@ export default function KPI() {
           .insert({ ...tplPayload, created_by: user.id }).select().single();
         if (error) throw error;
         tplId = data.id; newTplId = data.id;
+        
+        const { error: indErr } = await supabase.from("kpi_indicators").insert(
+          tplInds.map(i => ({ template_id: tplId!, name: i.name, weight: parseFloat(i.weight), description: i.description || null }))
+        );
+        if (indErr) {
+          await supabase.from("kpi_templates").delete().eq("id", newTplId);
+          throw indErr;
+        }
       } else {
         const { error } = await supabase.from("kpi_templates").update(tplPayload).eq("id", tplId!);
         if (error) throw error;
-        const { error: delErr } = await supabase.from("kpi_indicators").delete().eq("template_id", tplId!);
-        if (delErr) throw delErr;
-      }
-      const { error: indErr } = await supabase.from("kpi_indicators").insert(
-        tplInds.map(i => ({ template_id: tplId!, name: i.name, weight: parseFloat(i.weight), description: i.description || null }))
-      );
-      if (indErr) {
-        if (newTplId) await supabase.from("kpi_templates").delete().eq("id", newTplId);
-        throw indErr;
+        
+        const existingInds = getInds(tplId!);
+        const newInds = tplInds.filter(i => !i.id);
+        const updateInds = tplInds.filter(i => i.id);
+        const keptIndIds = updateInds.map(i => i.id);
+        const indsToDelete = existingInds.filter(i => !keptIndIds.includes(i.id));
+
+        if (indsToDelete.length > 0) {
+          const { error: delErr } = await supabase.from("kpi_indicators").delete().in("id", indsToDelete.map(i => i.id));
+          if (delErr) {
+             if (delErr.code === '23503') throw new Error("Tidak dapat menghapus indikator karena sudah digunakan. Silakan kembalikan indikator tersebut atau buat template baru.");
+             throw delErr;
+          }
+        }
+        
+        for (const ind of updateInds) {
+          const { error: updErr } = await supabase.from("kpi_indicators").update({
+            name: ind.name, weight: parseFloat(ind.weight), description: ind.description || null
+          }).eq("id", ind.id);
+          if (updErr) throw updErr;
+        }
+        
+        if (newInds.length > 0) {
+          const { error: insErr } = await supabase.from("kpi_indicators").insert(
+            newInds.map(i => ({ template_id: tplId!, name: i.name, weight: parseFloat(i.weight), description: i.description || null }))
+          );
+          if (insErr) throw insErr;
+        }
       }
       toast.success(tplMode === "create" ? "Template dibuat!" : "Template diperbarui!");
       setTplOpen(false); fetchData();

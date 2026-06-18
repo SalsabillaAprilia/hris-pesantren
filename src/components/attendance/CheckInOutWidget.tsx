@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Camera, Clock, LogIn, LogOut, MapPin, CalendarDays } from "lucide-react";
+import { Camera, Clock, LogIn, LogOut, MapPin, CalendarDays, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,10 +12,12 @@ interface CheckInOutWidgetProps {
   employee: any;
   todayRecord: any;
   onSuccess: () => void;
+  isFetching?: boolean;
 }
 
-export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOutWidgetProps) {
+export function CheckInOutWidget({ employee, todayRecord, onSuccess, isFetching }: CheckInOutWidgetProps) {
   const [capturing, setCapturing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [notes, setNotes] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -48,8 +50,9 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
 
   const captureAndCheckIn = async () => {
     if (!videoRef.current || !employee) return;
-
-    let locationStr = "Location not available";
+    setIsLoading(true);
+    try {
+      let locationStr = "Location not available";
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
@@ -166,11 +169,13 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
               daily_status = 'Lembur';
               late_minutes = null;
             } else if (shift.start_time) {
-              const start_dt = new Date(`${secureTodayStr}T${shift.start_time}:00+07:00`);
+              const startStr = shift.start_time.split(":").slice(0, 2).join(":");
+              const start_dt = new Date(`${secureTodayStr}T${startStr}:00+07:00`);
               const tolerance = shift.late_tolerance_minutes || 0;
               const tolerance_dt = new Date(start_dt.getTime() + tolerance * 60000);
               if (secureDateObj > tolerance_dt) {
                 late_minutes = Math.max(0, Math.round((secureDateObj.getTime() - start_dt.getTime()) / 60000));
+                daily_status = 'Terlambat';
               }
             }
           }
@@ -218,7 +223,8 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
             .single();
 
           if (shift && shift.end_time) {
-            const end_dt = new Date(`${secureTodayStr}T${shift.end_time}:00+07:00`);
+            const endStr = shift.end_time.split(":").slice(0, 2).join(":");
+            const end_dt = new Date(`${secureTodayStr}T${endStr}:00+07:00`);
             if (secureDateObj < end_dt) {
               early_leave_minutes = Math.max(0, Math.round((end_dt.getTime() - secureDateObj.getTime()) / 60000));
             }
@@ -264,14 +270,17 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
       toast.success("Check-out berhasil!");
     }
 
-    stopCamera();
-    onSuccess();
+      stopCamera();
+      onSuccess();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const isCheckedIn = !!todayRecord?.check_in;
   const isCheckedOut = !!todayRecord?.check_out;
   const statusColor = isCheckedOut ? "text-emerald-500" : isCheckedIn ? "text-blue-500" : "text-amber-500";
-  const statusText = isCheckedOut ? "Sesi Selesai" : isCheckedIn ? "Sedang Bekerja" : "Belum Presensi";
+  const statusText = isFetching ? "Memuat..." : isCheckedOut ? "Sesi Selesai" : isCheckedIn ? "Sedang Bekerja" : "Belum Presensi";
 
   return (
     <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl border">
@@ -302,7 +311,12 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
           </div>
         )}
 
-        {isCheckedIn && isCheckedOut ? (
+        {isFetching ? (
+          <div className="w-full flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 text-primary animate-spin mb-3" />
+            <p className="text-sm text-muted-foreground font-medium">Memeriksa status presensi...</p>
+          </div>
+        ) : isCheckedIn && isCheckedOut ? (
           <div className="w-full bg-muted/20 border rounded-xl p-4 text-foreground space-y-2 mt-4">
             <div className="flex justify-center mb-2">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -312,7 +326,7 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
             <p className="font-semibold text-sm">Rekap Kehadiran Anda</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-background p-2 rounded border text-center">
-                <span className="block text-muted-foreground mb-0.5">Masuk</span>
+                <span className="block text-muted-foreground mb-0.5">Datang</span>
                 <strong className="text-sm">{format(new Date(todayRecord.check_in), "HH:mm")}</strong>
               </div>
               <div className="bg-background p-2 rounded border text-center">
@@ -334,11 +348,14 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
               onChange={(e) => setNotes(e.target.value)}
             />
             <div className="grid grid-cols-2 gap-3 w-full pt-2">
-              <Button onClick={captureAndCheckIn} className="h-10 shadow-md bg-primary hover:bg-primary/90 text-white font-bold transition-all transform active:scale-95">
-                <Camera className="h-4 w-4 mr-2" />
-                {todayRecord ? "Check-out" : "Check-in"}
+              <Button onClick={captureAndCheckIn} disabled={isLoading} className="h-10 shadow-md bg-primary hover:bg-primary/90 text-white font-bold transition-all transform active:scale-95">
+                {isLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Memproses...</>
+                ) : (
+                  <><Camera className="h-4 w-4 mr-2" /> {todayRecord ? "Check-out" : "Check-in"}</>
+                )}
               </Button>
-              <Button variant="outline" onClick={stopCamera} className="h-10 text-sm bg-white/50 shadow-sm transition-all font-medium">Batal</Button>
+              <Button variant="outline" onClick={stopCamera} disabled={isLoading} className="h-10 text-sm bg-white/50 shadow-sm transition-all font-medium">Batal</Button>
             </div>
           </div>
         ) : (
@@ -361,7 +378,7 @@ export function CheckInOutWidget({ employee, todayRecord, onSuccess }: CheckInOu
             {isCheckedIn && !isCheckedOut && (
               <p className="text-xs text-muted-foreground mt-4 font-medium flex items-center justify-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                Waktu Masuk: {format(new Date(todayRecord.check_in), "HH:mm")}
+                Waktu Datang: {format(new Date(todayRecord.check_in), "HH:mm")}
               </p>
             )}
             

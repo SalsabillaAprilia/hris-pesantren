@@ -105,7 +105,7 @@ export function EmploymentSection({ form, setForm, units, shifts, positions, isS
           </Select>
         </div>
         <div className="space-y-2">
-          <Label className="text-sm font-bold text-muted-foreground/90">Akad Karyawan</Label>
+          <Label className="text-sm font-bold text-muted-foreground/90">Akad Kerja</Label>
           <Select value={form.contract_type || "Kontrak"} onValueChange={(v) => setForm({ ...form, contract_type: v })}>
             <SelectTrigger className="h-9 text-sm text-slate-900 shadow-sm"><SelectValue placeholder="Pilih Akad" /></SelectTrigger>
             <SelectContent>
